@@ -318,6 +318,8 @@ body {
     font-size: 2.2rem;
     animation: pulse 1s infinite;
     filter: drop-shadow(0 0 10px var(--cyan));
+    position: relative;
+    z-index: 2;
 }
 
 .cell.player2 {
@@ -329,6 +331,8 @@ body {
     font-size: 2.2rem;
     animation: pulse 1s infinite;
     filter: drop-shadow(0 0 10px var(--magenta));
+    position: relative;
+    z-index: 2;
 }
 
 .cell.player3 {
@@ -340,6 +344,8 @@ body {
     font-size: 2.2rem;
     animation: pulse 1s infinite;
     filter: drop-shadow(0 0 10px var(--yellow));
+    position: relative;
+    z-index: 2;
 }
 
 .cell.player4 {
@@ -351,6 +357,19 @@ body {
     font-size: 2.2rem;
     animation: pulse 1s infinite;
     filter: drop-shadow(0 0 10px var(--green));
+    position: relative;
+    z-index: 2;
+}
+
+/* Stacked cells - show both bomb and player */
+.cell.stacked::before {
+    content: '💣';
+    position: absolute;
+    font-size: 2rem;
+    animation: bombPulse 0.5s infinite;
+    filter: drop-shadow(0 0 15px var(--bomb-color));
+    z-index: 1;
+    opacity: 0.7;
 }
 
 .cell.bomb {

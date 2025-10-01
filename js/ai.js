@@ -29,9 +29,10 @@ GAME RULES:
 - Turn-based: each player makes ONE move per turn sequentially
 - Players can occupy the same square
 
-YOUR ACTIONS (choose ONE per turn):
+YOUR ACTIONS (per turn):
+You can MOVE and optionally DROP A BOMB at the same time!
 1. MOVE: Go up/down/left/right one square
-2. BOMB: Place a bomb at your current position
+2. MOVE + BOMB: Move AND place a bomb at your starting position simultaneously
 
 MOVEMENT:
 - You can move to adjacent squares (up, down, left, right)
@@ -63,13 +64,14 @@ SCORING:
 
 STRATEGY TIPS:
 - Avoid bomb blast radiuses (1 tile in cross pattern)
-- Drop bomb then MOVE AWAY immediately - you can walk through bombs!
+- Drop bomb WHILE MOVING - no speed penalty! Move and drop simultaneously
 - Trap opponents between bombs and walls
 - Clear soft blocks to create escape routes
 - Watch bomb timers to avoid your own explosions
 - Corner opponents when they have a bomb active
 - Control center area for tactical advantage
 - With 3 second timers, you have 3 turns to escape (move at least 2 tiles away)
+- Smart play: Move forward while dropping bomb behind you!
 
 WINNING:
 - Last player alive wins automatically
@@ -77,11 +79,13 @@ WINNING:
 - Being strategic > being aggressive
 
 YOU MUST RESPOND WITH VALID JSON:
-{"action": "move", "direction": "up"}
-{"action": "move", "direction": "down"}
-{"action": "move", "direction": "left"}
-{"action": "move", "direction": "right"}
-{"action": "bomb"}
+{"action": "move", "direction": "up", "dropBomb": false}
+{"action": "move", "direction": "down", "dropBomb": true}
+{"action": "move", "direction": "left", "dropBomb": false}
+{"action": "move", "direction": "right", "dropBomb": true}
+
+The "dropBomb" field is optional (defaults to false).
+If dropBomb is true, you'll place a bomb at your STARTING position before moving.
 
 DO NOT include explanations, only the JSON action.`;
     }

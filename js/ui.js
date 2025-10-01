@@ -94,34 +94,54 @@ function handleKeyPress(e) {
     }
 
     let handled = false;
+    let bombMsg = '';
+
+    // Check if Shift is held for bomb+move
+    const dropBomb = e.shiftKey;
 
     // Arrow keys for movement
     if (e.key === 'ArrowUp') {
+        if (dropBomb) {
+            game.playerPlaceBomb(1);
+            bombMsg = ' + BOMB';
+        }
         if (game.movePlayer(1, 'up')) {
-            log('Player 1 moved UP (manual)');
+            log(`Player 1 moved UP${bombMsg} (manual)`);
             manualControlEnabled = true;
             handled = true;
         }
     } else if (e.key === 'ArrowDown') {
+        if (dropBomb) {
+            game.playerPlaceBomb(1);
+            bombMsg = ' + BOMB';
+        }
         if (game.movePlayer(1, 'down')) {
-            log('Player 1 moved DOWN (manual)');
+            log(`Player 1 moved DOWN${bombMsg} (manual)`);
             manualControlEnabled = true;
             handled = true;
         }
     } else if (e.key === 'ArrowLeft') {
+        if (dropBomb) {
+            game.playerPlaceBomb(1);
+            bombMsg = ' + BOMB';
+        }
         if (game.movePlayer(1, 'left')) {
-            log('Player 1 moved LEFT (manual)');
+            log(`Player 1 moved LEFT${bombMsg} (manual)`);
             manualControlEnabled = true;
             handled = true;
         }
     } else if (e.key === 'ArrowRight') {
+        if (dropBomb) {
+            game.playerPlaceBomb(1);
+            bombMsg = ' + BOMB';
+        }
         if (game.movePlayer(1, 'right')) {
-            log('Player 1 moved RIGHT (manual)');
+            log(`Player 1 moved RIGHT${bombMsg} (manual)`);
             manualControlEnabled = true;
             handled = true;
         }
     }
-    // Spacebar or 'B' for bomb
+    // Spacebar or 'B' for bomb only (no movement)
     else if (e.key === ' ' || e.key === 'b' || e.key === 'B') {
         if (game.playerPlaceBomb(1)) {
             log('Player 1 placed BOMB (manual)');
@@ -231,9 +251,18 @@ async function executeTurn() {
 
         if (move) {
             if (move.action === 'move') {
+                // Drop bomb first if requested (at current position)
+                let bombMsg = '';
+                if (move.dropBomb) {
+                    const bombSuccess = game.playerPlaceBomb(currentPlayer.id);
+                    bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb failed)';
+                }
+
+                // Then move
                 const success = game.movePlayer(currentPlayer.id, move.direction);
-                log(`Player ${currentPlayer.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}`);
+                log(`Player ${currentPlayer.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
             } else if (move.action === 'bomb') {
+                // Legacy support: just bomb without moving
                 const success = game.playerPlaceBomb(currentPlayer.id);
                 log(`Player ${currentPlayer.id} ${success ? 'placed' : 'tried to place'} BOMB`);
             }
@@ -282,33 +311,44 @@ function renderGrid() {
             const cell = document.createElement('div');
             cell.className = 'cell';
 
-            // Check if any player is here
+            // Check what's at this position
             const player = game.players.find(p => p.alive && p.x === x && p.y === y);
-            if (player) {
-                cell.classList.add(`player${player.id}`);
-                gridElement.appendChild(cell);
-                continue;
-            }
-
-            // Check for explosion
+            const bomb = game.bombs.find(b => b.x === x && b.y === y);
             const explosion = game.explosions.find(exp =>
                 exp.cells.some(c => c.x === x && c.y === y)
             );
+
+            // Priority: Explosion > Player+Bomb > Player > Bomb > Terrain
             if (explosion) {
                 cell.classList.add('explosion');
                 gridElement.appendChild(cell);
                 continue;
             }
 
-            // Check for bomb
-            const bomb = game.bombs.find(b => b.x === x && b.y === y);
+            // Player on top of bomb - STACK THEM!
+            if (player && bomb) {
+                cell.classList.add('stacked');
+                cell.classList.add('bomb'); // Bomb as background
+                cell.classList.add(`player${player.id}`); // Player on top
+                gridElement.appendChild(cell);
+                continue;
+            }
+
+            // Just player
+            if (player) {
+                cell.classList.add(`player${player.id}`);
+                gridElement.appendChild(cell);
+                continue;
+            }
+
+            // Just bomb
             if (bomb) {
                 cell.classList.add('bomb');
                 gridElement.appendChild(cell);
                 continue;
             }
 
-            // Check cell type
+            // Terrain
             const cellType = game.grid[y][x];
             if (cellType === 0) {
                 cell.classList.add('empty');
