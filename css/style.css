@@ -541,6 +541,54 @@ body {
     filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
 }
 
+/* Player entities - positioned absolutely for smooth movement */
+.player-entity {
+    position: absolute;
+    width: calc((100% - 12px) / 13); /* 13 columns, 12 gaps of 1px */
+    height: calc((100% - 10px) / 11); /* 11 rows, 10 gaps of 1px */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.2rem;
+    animation: pulse 1s infinite;
+    z-index: 10;
+    pointer-events: none;
+    transition: left 0.3s ease-out, top 0.3s ease-out;
+}
+
+.player-entity.player1 {
+    filter: drop-shadow(0 0 10px var(--cyan));
+}
+
+.player-entity.player1::after {
+    content: '⛷️';
+}
+
+.player-entity.player2 {
+    filter: drop-shadow(0 0 10px var(--magenta));
+}
+
+.player-entity.player2::after {
+    content: '🥷';
+}
+
+.player-entity.player3 {
+    filter: drop-shadow(0 0 10px var(--yellow));
+}
+
+.player-entity.player3::after {
+    content: '🛒';
+}
+
+.player-entity.player4 {
+    filter: drop-shadow(0 0 10px var(--green));
+}
+
+.player-entity.player4::after {
+    content: '🧑‍🚀';
+}
+
+/* Legacy cell-based player rendering (fallback) */
 .cell.player1 {
     background: #0d0d0d;
 }
