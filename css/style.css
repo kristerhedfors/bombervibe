@@ -536,7 +536,7 @@ body {
 }
 
 .cell.hard-block::after {
-    content: '🗿';
+    content: '⛰️';
     font-size: 2rem;
     filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
 }
@@ -841,4 +841,339 @@ body {
     background: var(--cyan);
     box-shadow: 0 0 30px var(--cyan);
     transform: scale(1.1);
+}
+
+.game-stats {
+    color: var(--magenta) !important;
+    font-size: 1rem !important;
+    margin-top: 1rem !important;
+}
+
+.game-over-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.game-over-buttons button {
+    margin-top: 0;
+}
+
+/* Replay Control Panel */
+.replay-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    border-top: 3px solid var(--cyan);
+    padding: 1.5rem;
+    z-index: 50;
+    box-shadow: 0 -5px 30px var(--cyan);
+}
+
+.replay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--cyan);
+}
+
+.replay-header h2 {
+    color: var(--cyan);
+    font-size: 1.5rem;
+    margin: 0;
+    text-shadow: 0 0 15px var(--cyan);
+}
+
+.exit-replay {
+    padding: 0.5rem 1.5rem;
+    background: var(--magenta);
+    color: var(--bg-dark);
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.exit-replay:hover {
+    background: var(--yellow);
+    box-shadow: 0 0 15px var(--yellow);
+    transform: scale(1.05);
+}
+
+.replay-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    color: var(--green);
+    font-size: 1.1rem;
+}
+
+.replay-timeline {
+    margin-bottom: 1.5rem;
+}
+
+#replaySlider {
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, var(--cyan), var(--magenta));
+    outline: none;
+    border-radius: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#replaySlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--yellow);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--yellow);
+}
+
+#replaySlider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--yellow);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--yellow);
+    border: none;
+}
+
+#replaySlider:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 20px var(--yellow);
+    transform: scale(1.2);
+}
+
+.replay-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.replay-controls button {
+    padding: 0.8rem 1.5rem;
+    background: var(--cyan);
+    color: var(--bg-dark);
+    border: 2px solid var(--cyan);
+    font-size: 1.5rem;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 60px;
+}
+
+.replay-controls button:hover {
+    background: var(--bg-dark);
+    color: var(--cyan);
+    box-shadow: 0 0 20px var(--cyan);
+    transform: scale(1.1);
+}
+
+.replay-controls button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.replay-speed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.replay-speed label {
+    color: var(--green);
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+.speed-btn {
+    padding: 0.5rem 1rem;
+    background: var(--bg-dark);
+    color: var(--green);
+    border: 2px solid var(--green);
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.speed-btn:hover {
+    background: var(--green);
+    color: var(--bg-dark);
+    box-shadow: 0 0 10px var(--green);
+}
+
+.speed-btn.active {
+    background: var(--yellow);
+    color: var(--bg-dark);
+    border-color: var(--yellow);
+    box-shadow: 0 0 15px var(--yellow);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    body {
+        overflow-y: auto;
+        height: auto;
+    }
+
+    #gameContainer {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    /* Game board first - full width */
+    #gameBoard {
+        order: 1;
+        width: 100%;
+        min-height: 60vh;
+        padding: 0.5rem;
+    }
+
+    /* Prompts below - full width, scrollable */
+    .prompt-editor {
+        order: 2;
+        width: 100%;
+        max-height: 200px;
+        min-height: 150px;
+    }
+
+    .top-left { order: 2; }
+    .top-right { order: 3; }
+    .bottom-left { order: 4; }
+    .bottom-right { order: 5; }
+
+    /* Game info - stack buttons vertically */
+    #gameInfo {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    .info-left, .info-center, .info-right {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .info-right {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    #gameInfo button {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+        flex: 1;
+        min-width: 100px;
+    }
+
+    .info-center h1 {
+        font-size: 1.2rem;
+        text-align: center;
+    }
+
+    /* Grid scaling */
+    #grid {
+        font-size: 1.5rem;
+    }
+
+    .cell {
+        font-size: 1.5rem;
+    }
+
+    .player-entity {
+        font-size: 1.8rem;
+    }
+
+    /* Score board */
+    #scoreBoard {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Game log - move below prompts */
+    #gameLog {
+        position: static;
+        width: 100%;
+        max-height: 200px;
+        margin-top: 0.5rem;
+        order: 6;
+    }
+
+    /* Modal adjustments */
+    .modal-content {
+        width: 90vw;
+        padding: 1rem;
+        max-width: none;
+    }
+
+    .system-prompt-modal {
+        width: 95vw;
+        max-height: 80vh;
+    }
+
+    .system-prompt-modal textarea {
+        min-height: 300px;
+    }
+
+    /* Replay controls */
+    .replay-panel {
+        padding: 0.75rem;
+    }
+
+    .replay-controls {
+        flex-wrap: wrap;
+    }
+
+    .replay-speed {
+        flex-wrap: wrap;
+    }
+
+    /* Floating thoughts - smaller */
+    .floating-thought {
+        font-size: 0.6rem;
+        width: 150px;
+        padding: 0.3rem 0.5rem;
+    }
+
+    /* Game over overlay */
+    .game-over-content {
+        padding: 1.5rem;
+    }
+
+    .game-over-content h1 {
+        font-size: 2rem;
+    }
+
+    .game-over-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .winner-emoji {
+        font-size: 3rem;
+    }
+
+    .game-over-content p {
+        font-size: 1rem;
+    }
+
+    .game-over-buttons {
+        flex-direction: column;
+    }
 }
