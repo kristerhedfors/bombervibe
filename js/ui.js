@@ -417,12 +417,14 @@ function renderFloatingThoughts() {
         bubble.className = `floating-thought player${i}-thought`;
         bubble.textContent = thought;
 
-        // Position it 1 cell left and 1 cell up from player
+        // Position bubble above player (bubble grows upward from this point)
         // Account for gaps between cells
         const playerX = player.x * (cellWidth + gapSize);
         const playerY = player.y * (cellHeight + gapSize);
         bubble.style.left = `${playerX}px`;
-        bubble.style.top = `${playerY - cellHeight - 10}px`;
+        // Position at bottom of bubble = top of player cell, so bubble grows upward
+        bubble.style.bottom = `${gridRect.height - playerY}px`;
+        bubble.style.top = 'auto'; // Override default positioning
 
         gridElement.appendChild(bubble);
     }

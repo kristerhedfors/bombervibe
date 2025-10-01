@@ -225,7 +225,7 @@ body {
 .floating-thought::after {
     content: '';
     position: absolute;
-    bottom: -10px;
+    top: 100%;
     left: 10px;
     width: 0;
     height: 0;
