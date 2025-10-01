@@ -31,6 +31,7 @@ bombervibe/
 
 ### Implemented (Simplified Version)
 - ✅ 13x11 grid with hard/soft blocks
+- ✅ Emoji-based graphics (players as people: ⛷️🧑‍🌾🛒🧑‍🚀, blocks: 🌳🗿, bombs: 💣, explosions: 💥)
 - ✅ 4 players, turn-based sequential play
 - ✅ Move OR place bomb per turn
 - ✅ One bomb per player at a time

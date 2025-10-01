@@ -78,9 +78,20 @@ cd bombervibe
   - Eliminate player: +100 points
 - **Win condition**: Last player alive or highest score
 
+### Visual Elements
+
+- **Player 1** ⛷️ Skier (Cyan)
+- **Player 2** 🧑‍🌾 Farmer (Magenta)
+- **Player 3** 🛒 Shopper (Yellow)
+- **Player 4** 🧑‍🚀 Astronaut (Green)
+- **Soft Blocks** 🌳 Trees (destructible)
+- **Hard Blocks** 🗿 Stones (indestructible)
+- **Bombs** 💣 Classic bomb
+- **Explosions** 💥 Boom!
+
 ### Controls
 
-**Player 1 (Cyan) Manual Override:**
+**Player 1 (⛷️ Skier) Manual Override:**
 - Arrow Keys: Move
 - Spacebar or B: Place bomb
 

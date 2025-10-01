@@ -247,7 +247,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.2rem;
+    font-size: 2rem;
     position: relative;
 }
 
@@ -257,76 +257,77 @@ body {
 
 .cell.soft-block {
     background: var(--soft-block);
-    color: var(--green);
 }
 
 .cell.soft-block::after {
-    content: '▓';
-    opacity: 0.6;
+    content: '🌳';
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.5));
 }
 
 .cell.hard-block {
     background: var(--hard-block);
-    color: #444;
 }
 
 .cell.hard-block::after {
-    content: '█';
+    content: '🗿';
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
 }
 
 .cell.player1 {
-    color: var(--cyan);
-    text-shadow: 0 0 10px var(--cyan);
+    background: #0d0d0d;
 }
 
 .cell.player1::after {
-    content: '◆';
-    font-size: 1.5rem;
+    content: '⛷️';
+    font-size: 2.2rem;
     animation: pulse 1s infinite;
+    filter: drop-shadow(0 0 10px var(--cyan));
 }
 
 .cell.player2 {
-    color: var(--magenta);
-    text-shadow: 0 0 10px var(--magenta);
+    background: #0d0d0d;
 }
 
 .cell.player2::after {
-    content: '◆';
-    font-size: 1.5rem;
+    content: '🧑‍🌾';
+    font-size: 2.2rem;
     animation: pulse 1s infinite;
+    filter: drop-shadow(0 0 10px var(--magenta));
 }
 
 .cell.player3 {
-    color: var(--yellow);
-    text-shadow: 0 0 10px var(--yellow);
+    background: #0d0d0d;
 }
 
 .cell.player3::after {
-    content: '◆';
-    font-size: 1.5rem;
+    content: '🛒';
+    font-size: 2.2rem;
     animation: pulse 1s infinite;
+    filter: drop-shadow(0 0 10px var(--yellow));
 }
 
 .cell.player4 {
-    color: var(--green);
-    text-shadow: 0 0 10px var(--green);
+    background: #0d0d0d;
 }
 
 .cell.player4::after {
-    content: '◆';
-    font-size: 1.5rem;
+    content: '🧑‍🚀';
+    font-size: 2.2rem;
     animation: pulse 1s infinite;
+    filter: drop-shadow(0 0 10px var(--green));
 }
 
 .cell.bomb {
-    color: var(--bomb-color);
-    text-shadow: 0 0 15px var(--bomb-color);
+    background: #0d0d0d;
 }
 
 .cell.bomb::after {
-    content: '●';
-    font-size: 1.3rem;
+    content: '💣';
+    font-size: 2rem;
     animation: bombPulse 0.5s infinite;
+    filter: drop-shadow(0 0 15px var(--bomb-color));
 }
 
 .cell.explosion {
@@ -335,9 +336,8 @@ body {
 }
 
 .cell.explosion::after {
-    content: '✱';
-    color: #fff;
-    font-size: 2rem;
+    content: '💥';
+    font-size: 2.5rem;
 }
 
 @keyframes pulse {
