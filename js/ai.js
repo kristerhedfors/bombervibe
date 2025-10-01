@@ -1,11 +1,17 @@
-// AI.js - Groq Cloud API integration for AI players
+// AI.js - OpenAI API integration for AI players
 
 class AIController {
     constructor() {
         this.apiKey = null;
-        this.apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        this.model = 'moonshotai/kimi-k2-instruct-0905';
+        this.apiUrl = 'https://api.openai.com/v1/chat/completions';
+        this.model = 'gpt-4o-mini';
         this.prompts = {
+            1: '',
+            2: '',
+            3: '',
+            4: ''
+        };
+        this.playerMemory = {
             1: '',
             2: '',
             3: '',
@@ -13,6 +19,7 @@ class AIController {
         };
         this.systemPrompt = this.getDefaultSystemPrompt();
         this.errorCallback = null; // Callback to show error modal
+        this.loadPlayerMemories();
     }
 
     setErrorCallback(callback) {
@@ -23,7 +30,7 @@ class AIController {
         return `You are playing ELECTRIC BOOGALOO, an AI-powered Bomberman game.
 
 GAME OBJECTIVE:
-- Survive longer than other players
+- Survive longer than other players (TOP PRIORITY!)
 - Eliminate opponents by trapping them in bomb explosions
 - Destroy soft blocks for points
 - Win by being the last player alive or having the highest score
@@ -32,73 +39,44 @@ GAME RULES:
 - 13x11 grid (coordinates: x=0-12, y=0-10)
 - 4 players compete simultaneously
 - Turn-based: each player makes ONE move per turn sequentially
-- Players can occupy the same square
+- Bombs explode after 10 TURNS with 1-tile blast radius in all directions
 
-YOUR ACTIONS (per turn):
-You MUST ALWAYS MOVE. You can optionally drop a bomb while moving.
-- EVERY turn you must pick a direction: up/down/left/right
-- You can set dropBomb: true to place a bomb at your CURRENT position BEFORE moving
-- If you already have a bomb placed, the dropBomb will fail but you'll still move
+CRITICAL SURVIVAL RULES:
+- YOU WILL RECEIVE CLEAR DANGER ANALYSIS showing which moves are SAFE vs LETHAL
+- ALWAYS prioritize SAFE moves over LETHAL moves
+- If current position is LETHAL, you MUST move immediately
+- NEVER choose a move marked as "💀 LETHAL" unless absolutely necessary
+- Always check "⚠️ ADJACENT BOMBS WARNING" section
 
-MOVEMENT:
-- You can move to adjacent squares (up, down, left, right)
-- You CANNOT move through hard blocks (🗿)
-- You CAN move through soft blocks (🌳), bombs (💣), and other players
-- Moving off the grid edge is invalid
-- IMPORTANT: You can move away from bombs! Drop bomb then move away immediately
+FUNCTION CALLING:
+You must use the provided functions to make your move. Available functions:
+- move_up() - Move up (no bomb)
+- move_down() - Move down (no bomb)
+- move_left() - Move left (no bomb)
+- move_right() - Move right (no bomb)
+- move_up_with_bomb() - Move up AND drop bomb at current position
+- move_down_with_bomb() - Move down AND drop bomb
+- move_left_with_bomb() - Move left AND drop bomb
+- move_right_with_bomb() - Move right AND drop bomb
+- set_next_thought(thought: string) - Save your plan for next turn (MAX 50 words)
 
-BOMB MECHANICS:
-- Each player can have only ONE active bomb at a time
-- Bombs explode after 10 TURNS (turn-based countdown, NOT time-based)
-- With 4 players taking turns sequentially, 10 turns = 2.5 full rounds through all players
-- Explosion range: 1 tile in all 4 directions (cross pattern)
-- Explosions destroy soft blocks (🌳) but NOT hard blocks (🗿)
-- Explosions kill any player in the blast radius
-- Chain reactions: bombs can trigger other bombs
-- You can walk through bombs to escape!
-
-GRID SYMBOLS:
-- . (dot) = empty space
-- # (hash) = soft block 🌳 (destructible, +10 points)
-- X = hard block 🗿 (indestructible, blocks explosions)
-- P1, P2, P3, P4 = player positions
-- B1, B2, B3, B4 = bombs (number indicates which player placed it)
-
-SCORING:
-- Destroy soft block: +10 points
-- Kill opponent: +100 points
-- Getting killed: you're out of the game
+THOUGHT/MEMORY SYSTEM:
+- ALWAYS call set_next_thought() to record your current plan/strategy
+- Keep it under 50 words - be concise!
+- Examples:
+  * "Escaping south from my bomb, then circling back to trap Player 2"
+  * "Moving to center area to control space and box in Player 3"
+  * "Avoiding bombs, clearing blocks on east side for escape routes"
+- Your previous thought will be shown to you each turn - use it to maintain strategy continuity
 
 STRATEGY TIPS:
-- Avoid bomb blast radiuses (1 tile in cross pattern)
-- Drop bomb WHILE MOVING - no speed penalty! Move and drop simultaneously
+- PAY ATTENTION to the DANGER ANALYSIS - it tells you exactly which moves are safe!
+- Drop bomb WHILE MOVING for no penalty
 - Trap opponents between bombs and walls
-- Clear soft blocks to create escape routes
-- Watch bomb turn countdown to avoid your own explosions
-- Corner opponents when they have a bomb active
-- Control center area for tactical advantage
-- With 10-turn timers, you get 2 full moves before your own bomb explodes (at least 2 tiles away)
-- Smart play: Drop bomb, move away immediately, move again to be safe!
-- NEVER move back onto your own bomb after escaping!
+- Reference your previous thought to follow through on plans
+- Smart play: Drop bomb, move to safety, follow your plan
 
-WINNING:
-- Last player alive wins automatically
-- If time runs out, highest score wins
-- Being strategic > being aggressive
-
-YOU MUST RESPOND WITH VALID JSON (MOVE IS REQUIRED):
-{"action": "move", "direction": "up", "dropBomb": false}
-{"action": "move", "direction": "down", "dropBomb": true}
-{"action": "move", "direction": "left", "dropBomb": false}
-{"action": "move", "direction": "right", "dropBomb": true}
-
-IMPORTANT:
-- "action" MUST be "move"
-- "direction" MUST be one of: "up", "down", "left", "right"
-- "dropBomb" is optional (defaults to false)
-- NO other action types allowed
-
-DO NOT include explanations, only the JSON action.`;
+WINNING: Last player alive wins. Don't die!`;
     }
 
     setSystemPrompt(prompt) {
@@ -124,11 +102,11 @@ DO NOT include explanations, only the JSON action.`;
 
     setApiKey(key) {
         this.apiKey = key;
-        localStorage.setItem('groq_api_key', key);
+        localStorage.setItem('openai_api_key', key);
     }
 
     loadApiKey() {
-        const stored = localStorage.getItem('groq_api_key');
+        const stored = localStorage.getItem('openai_api_key');
         if (stored) {
             this.apiKey = stored;
             return true;
@@ -150,8 +128,29 @@ DO NOT include explanations, only the JSON action.`;
         }
     }
 
-    // Generate game state description for LLM
-    generateGameStateDescription(gameState, playerId) {
+    savePlayerMemory(playerId, thought) {
+        // Limit to 50 words
+        const words = thought.trim().split(/\s+/);
+        const limited = words.slice(0, 50).join(' ');
+        this.playerMemory[playerId] = limited;
+        localStorage.setItem(`player_${playerId}_memory`, limited);
+    }
+
+    loadPlayerMemories() {
+        for (let i = 1; i <= 4; i++) {
+            const stored = localStorage.getItem(`player_${i}_memory`);
+            if (stored) {
+                this.playerMemory[i] = stored;
+            }
+        }
+    }
+
+    getPlayerMemory(playerId) {
+        return this.playerMemory[playerId] || 'No previous thought';
+    }
+
+    // Generate game state description for LLM with danger analysis
+    generateGameStateDescription(gameState, playerId, game) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
@@ -220,18 +219,139 @@ DO NOT include explanations, only the JSON action.`;
             }
         }
 
+        // Adjacent bombs warning
+        const adjacentBombs = game.getAdjacentBombs(player.x, player.y, 2);
+        let adjacentInfo = '\n⚠️  ADJACENT BOMBS WARNING:\n';
+        if (adjacentBombs.length === 0) {
+            adjacentInfo += 'No bombs nearby - you are safe from immediate danger\n';
+        } else {
+            adjacentInfo += `${adjacentBombs.length} bomb(s) within 2 tiles of you:\n`;
+            for (const bomb of adjacentBombs) {
+                adjacentInfo += `  - Bomb at (${bomb.x},${bomb.y}) by Player ${bomb.playerId}: ${bomb.turnsLeft} turns left, ${bomb.distance} tiles away\n`;
+            }
+        }
+
+        // Danger analysis
+        const safeMoves = game.getSafeMoves(playerId);
+        const dangerousMoves = game.getDangerousMoves(playerId);
+        const currentlySafe = !game.isPositionLethal(player.x, player.y, 1);
+
+        let dangerInfo = '\n🚨 DANGER ANALYSIS:\n';
+        dangerInfo += `Current position (${player.x},${player.y}): ${currentlySafe ? '✅ SAFE' : '💀 LETHAL - YOU WILL DIE IF YOU STAY!'}\n\n`;
+
+        dangerInfo += 'SAFE MOVES (will NOT kill you):\n';
+        if (safeMoves.length === 0) {
+            dangerInfo += '  ⚠️  NO SAFE MOVES AVAILABLE! All directions are lethal!\n';
+        } else {
+            for (const move of safeMoves) {
+                dangerInfo += `  ✅ ${move.direction.toUpperCase()} to (${move.x},${move.y}) - SAFE\n`;
+            }
+        }
+
+        dangerInfo += '\nLETHAL MOVES (will kill you next turn):\n';
+        if (dangerousMoves.length === 0) {
+            dangerInfo += '  None - all valid moves are safe\n';
+        } else {
+            for (const move of dangerousMoves) {
+                dangerInfo += `  💀 ${move.direction.toUpperCase()} to (${move.x},${move.y}) - DEATH!\n`;
+            }
+        }
+
         // Your status
         const yourInfo = `\nYOU ARE PLAYER ${playerId}:\n`;
         const yourStatus = `Position: (${player.x}, ${player.y})\n`;
         const yourBomb = player.hasBomb ? 'You have a bomb placed - cannot place another until it explodes\n' : 'You can place a bomb\n';
         const yourScore = `Score: ${player.score}\n`;
 
-        const fullDescription = gridStr + playersInfo + bombsInfo + yourInfo + yourStatus + yourBomb + yourScore;
+        // Previous thought/plan
+        const previousThought = this.getPlayerMemory(playerId);
+        const memoryInfo = `\n💭 YOUR LAST THOUGHT/PLAN:\n"${previousThought}"\n`;
+
+        const fullDescription = gridStr + playersInfo + bombsInfo + adjacentInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + memoryInfo;
         return fullDescription;
     }
 
-    // Call Groq API to get AI move
-    async getAIMove(gameState, playerId) {
+    // Define function calling tools for OpenAI API
+    getFunctionTools() {
+        return [
+            {
+                type: 'function',
+                function: {
+                    name: 'move_up',
+                    description: 'Move up one tile (no bomb dropped)'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_down',
+                    description: 'Move down one tile (no bomb dropped)'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_left',
+                    description: 'Move left one tile (no bomb dropped)'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_right',
+                    description: 'Move right one tile (no bomb dropped)'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_up_with_bomb',
+                    description: 'Drop bomb at current position, then move up'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_down_with_bomb',
+                    description: 'Drop bomb at current position, then move down'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_left_with_bomb',
+                    description: 'Drop bomb at current position, then move left'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'move_right_with_bomb',
+                    description: 'Drop bomb at current position, then move right'
+                }
+            },
+            {
+                type: 'function',
+                function: {
+                    name: 'set_next_thought',
+                    description: 'Save your thought/plan for the next turn (max 50 words)',
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            thought: {
+                                type: 'string',
+                                description: 'Your current plan or strategy (max 50 words)'
+                            }
+                        },
+                        required: ['thought']
+                    }
+                }
+            }
+        ];
+    }
+
+    // Call OpenAI API to get AI move using function calling
+    async getAIMove(gameState, playerId, game) {
         if (!this.apiKey) {
             throw new Error('API key not set');
         }
@@ -241,7 +361,7 @@ DO NOT include explanations, only the JSON action.`;
             return null;
         }
 
-        const gameDescription = this.generateGameStateDescription(gameState, playerId);
+        const gameDescription = this.generateGameStateDescription(gameState, playerId, game);
         const playerStrategy = this.prompts[playerId] || 'You are a Bomberman AI player. Make smart moves to survive and win.';
 
         const userPrompt = `${gameDescription}
@@ -249,11 +369,10 @@ DO NOT include explanations, only the JSON action.`;
 YOUR STRATEGY:
 ${playerStrategy}
 
-Now choose your action (JSON only):`;
+Use the function calls to make your move. You MUST call one movement function (move_up, move_down, move_left, move_right, or their _with_bomb variants). You SHOULD also call set_next_thought to record your plan.`;
 
         try {
             console.log(`[AI P${playerId}] Sending request to ${this.model}`);
-            console.log(`[AI P${playerId}] User prompt length: ${userPrompt.length} chars`);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -267,8 +386,10 @@ Now choose your action (JSON only):`;
                         { role: 'system', content: this.systemPrompt },
                         { role: 'user', content: userPrompt }
                     ],
+                    tools: this.getFunctionTools(),
+                    tool_choice: 'auto',
                     temperature: 0.7,
-                    max_tokens: 100
+                    max_tokens: 200
                 })
             });
 
@@ -281,99 +402,106 @@ Now choose your action (JSON only):`;
             }
 
             const data = await response.json();
-            const content = data.choices[0].message.content.trim();
-            console.log(`[AI P${playerId}] Raw response:`, content);
+            const message = data.choices[0].message;
 
-            // Parse JSON response - SUPER PERMISSIVE parsing
-            const jsonMatch = content.match(/\{[^}]+\}/);
-            if (!jsonMatch) {
-                console.log(`[AI P${playerId}] No JSON found, using random move`);
-                return this.getRandomMove(gameState, playerId);
-            }
+            console.log(`[AI P${playerId}] Response:`, message);
 
-            let move;
-            try {
-                move = JSON.parse(jsonMatch[0]);
-            } catch (e) {
-                // Try to fix common JSON errors (single quotes)
-                try {
-                    const fixed = jsonMatch[0].replace(/'/g, '"');
-                    move = JSON.parse(fixed);
-                } catch (e2) {
-                    console.log(`[AI P${playerId}] JSON parse failed, using random move`);
-                    return this.getRandomMove(gameState, playerId);
-                }
-            }
-
-            console.log(`[AI P${playerId}] Parsed move:`, move);
-
-            // SUPER PERMISSIVE keyword search - look for direction and bomb keywords anywhere
-            const contentLower = JSON.stringify(move).toLowerCase();
+            // Process function calls
             let direction = null;
-
-            // Search for direction keywords (case-insensitive) - prioritize full words
-            if (contentLower.includes('up')) direction = 'up';
-            else if (contentLower.includes('down')) direction = 'down';
-            else if (contentLower.includes('left')) direction = 'left';
-            else if (contentLower.includes('right')) direction = 'right';
-
-            // Search for bomb keyword - if "bomb" appears anywhere, drop a bomb
             let dropBomb = false;
-            if (contentLower.includes('bomb') || contentLower.includes('true')) {
-                dropBomb = true;
-            }
+            let thought = null;
 
-            // If no direction found, pick a VALID random direction
-            if (!direction) {
-                const player = gameState.players.find(p => p.id === playerId);
-                const validDirections = [];
+            if (message.tool_calls && message.tool_calls.length > 0) {
+                for (const toolCall of message.tool_calls) {
+                    const funcName = toolCall.function.name;
+                    console.log(`[AI P${playerId}] Function called: ${funcName}`);
 
-                // Check each direction for validity
-                const checkDir = [
-                    {name: 'up', dx: 0, dy: -1},
-                    {name: 'down', dx: 0, dy: 1},
-                    {name: 'left', dx: -1, dy: 0},
-                    {name: 'right', dx: 1, dy: 0}
-                ];
-
-                for (const d of checkDir) {
-                    const newX = player.x + d.dx;
-                    const newY = player.y + d.dy;
-
-                    // Check bounds
-                    if (newX >= 0 && newX < 13 && newY >= 0 && newY < 11) {
-                        const cell = gameState.grid[newY][newX];
-                        // Valid if empty, soft block, or bomb (can pass through)
-                        if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
-                            validDirections.push(d.name);
+                    // Parse movement functions
+                    if (funcName === 'move_up') {
+                        direction = 'up';
+                    } else if (funcName === 'move_down') {
+                        direction = 'down';
+                    } else if (funcName === 'move_left') {
+                        direction = 'left';
+                    } else if (funcName === 'move_right') {
+                        direction = 'right';
+                    } else if (funcName === 'move_up_with_bomb') {
+                        direction = 'up';
+                        dropBomb = true;
+                    } else if (funcName === 'move_down_with_bomb') {
+                        direction = 'down';
+                        dropBomb = true;
+                    } else if (funcName === 'move_left_with_bomb') {
+                        direction = 'left';
+                        dropBomb = true;
+                    } else if (funcName === 'move_right_with_bomb') {
+                        direction = 'right';
+                        dropBomb = true;
+                    } else if (funcName === 'set_next_thought') {
+                        // Parse arguments
+                        try {
+                            const args = JSON.parse(toolCall.function.arguments);
+                            thought = args.thought;
+                        } catch (e) {
+                            console.warn(`[AI P${playerId}] Failed to parse thought arguments`);
                         }
                     }
                 }
-
-                // Pick random from valid directions, or any direction if none valid
-                if (validDirections.length > 0) {
-                    direction = validDirections[Math.floor(Math.random() * validDirections.length)];
-                    console.log(`[AI P${playerId}] No direction found, randomized from valid: ${direction}`);
-                } else {
-                    const allDirs = ['up', 'down', 'left', 'right'];
-                    direction = allDirs[Math.floor(Math.random() * 4)];
-                    console.log(`[AI P${playerId}] No valid moves, picked random: ${direction}`);
-                }
             }
 
-            console.log(`[AI P${playerId}] Extracted: direction=${direction}, dropBomb=${dropBomb}`);
-            return {
-                action: 'move',
-                direction: direction,
-                dropBomb: dropBomb
-            };
+            // Save thought if provided
+            if (thought) {
+                this.savePlayerMemory(playerId, thought);
+                console.log(`[AI P${playerId}] Saved thought: "${thought}"`);
+            }
+
+            // If we got a valid direction, return it
+            if (direction) {
+                console.log(`[AI P${playerId}] Move: ${direction}, dropBomb: ${dropBomb}`);
+                return {
+                    action: 'move',
+                    direction: direction,
+                    dropBomb: dropBomb
+                };
+            }
+
+            // No valid function call found - fallback
+            console.log(`[AI P${playerId}] No valid move function called, using random move`);
+            return this.getRandomMove(gameState, playerId);
 
         } catch (error) {
             console.error(`[AI P${playerId}] Exception:`, error);
-            // Fallback to random move
             console.log(`[AI P${playerId}] Using random move fallback`);
             return this.getRandomMove(gameState, playerId);
         }
+    }
+
+    // Get AI moves for all alive players in parallel (one API call per player)
+    async getAllPlayerMoves(gameState, game) {
+        if (!this.apiKey) {
+            throw new Error('API key not set');
+        }
+
+        console.log('[BATCH AI] Requesting moves for all alive players in parallel');
+
+        // Create array of promises for all alive players
+        const movePromises = gameState.players
+            .filter(p => p.alive)
+            .map(p => this.getAIMove(gameState, p.id, game));
+
+        // Execute all API calls in parallel
+        const moves = await Promise.all(movePromises);
+
+        // Build result object mapping playerId -> move
+        const result = {};
+        gameState.players.forEach((p, index) => {
+            if (p.alive) {
+                result[p.id] = moves[gameState.players.filter((p2, i) => i < index && p2.alive).length];
+            }
+        });
+
+        console.log('[BATCH AI] All moves received:', result);
+        return result;
     }
 
     // Fallback: generate random valid move (ALWAYS returns a move action)

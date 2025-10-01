@@ -18,9 +18,9 @@ function initializeGame() {
     // Set error callback for AI
     ai.setErrorCallback(showErrorModal);
 
-    // Check for API key in URL fragment (e.g., #gsk_abc123...)
+    // Check for API key in URL fragment (e.g., #sk-abc123...)
     const fragment = window.location.hash.substring(1); // Remove '#'
-    if (fragment && fragment.startsWith('gsk_')) {
+    if (fragment && fragment.startsWith('sk-')) {
         ai.setApiKey(fragment);
         document.getElementById('apiModal').classList.add('hidden');
         document.getElementById('apiKeyInput').value = '***';
@@ -166,7 +166,7 @@ function handleKeyPress(e) {
 
 function startGame() {
     if (!ai.apiKey) {
-        alert('Please enter your Groq API key first!');
+        alert('Please enter your OpenAI API key first!');
         document.getElementById('apiModal').classList.remove('hidden');
         return;
     }
@@ -233,68 +233,71 @@ function gameLoop() {
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// Execute one turn
+// Execute one turn (now processes all players in parallel)
 async function executeTurn() {
-    const currentPlayer = game.getCurrentPlayer();
-    console.log(`[TURN ${game.turnCount}] Current player: ${currentPlayer.id} at (${currentPlayer.x}, ${currentPlayer.y})`);
+    const round = Math.floor(game.turnCount / 4) + 1;
+    console.log(`[ROUND ${round}] Processing all players in parallel`);
 
-    if (!currentPlayer.alive) {
-        console.log(`[TURN ${game.turnCount}] Player ${currentPlayer.id} is dead, skipping`);
-        game.nextTurn();
-        return;
-    }
-
-    // Player 1 can be controlled manually - skip AI if manual control was used
-    if (currentPlayer.id === 1 && manualControlEnabled) {
-        console.log(`[TURN ${game.turnCount}] Player 1 manual control - skipping AI`);
-        // Manual control already handled by keyboard
-        // Just advance turn
-        game.nextTurn();
-        return;
-    }
-
-    // Get AI move
     try {
-        log(`Player ${currentPlayer.id} thinking...`);
-        console.log(`[TURN ${game.turnCount}] Requesting AI move for Player ${currentPlayer.id}`);
-
         const gameState = game.getGameState();
-        console.log(`[TURN ${game.turnCount}] Game state:`, {
+        console.log(`[ROUND ${round}] Game state:`, {
             players: gameState.players.map(p => `P${p.id}:(${p.x},${p.y}) ${p.alive?'alive':'dead'}`),
-            bombs: gameState.bombs.length,
-            currentPlayerHasBomb: currentPlayer.hasBomb
+            bombs: gameState.bombs.length
         });
 
-        const move = await ai.getAIMove(gameState, currentPlayer.id);
-        console.log(`[TURN ${game.turnCount}] AI returned move:`, move);
+        // Get all AI moves in parallel (one API call per alive player)
+        log('All players thinking...');
+        const allMoves = await ai.getAllPlayerMoves(gameState, game);
+        console.log(`[ROUND ${round}] All AI moves received:`, allMoves);
 
-        if (move && move.action === 'move') {
-            const startPos = {x: currentPlayer.x, y: currentPlayer.y};
+        // Update thought displays
+        updateThoughts();
 
-            // Drop bomb first if requested (at current position)
-            let bombMsg = '';
-            if (move.dropBomb) {
-                console.log(`[TURN ${game.turnCount}] Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
-                const bombSuccess = game.playerPlaceBomb(currentPlayer.id);
-                bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
-                console.log(`[TURN ${game.turnCount}] Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED (already have one)'}`);
+        // Execute all moves sequentially to maintain game order
+        for (let playerId = 1; playerId <= 4; playerId++) {
+            const player = game.players[playerId - 1];
+
+            if (!player.alive) {
+                console.log(`[ROUND ${round}] Player ${playerId} is dead, skipping`);
+                continue;
             }
 
-            // Then move
-            console.log(`[TURN ${game.turnCount}] Attempting to move ${move.direction} from (${startPos.x}, ${startPos.y})`);
-            const success = game.movePlayer(currentPlayer.id, move.direction);
-            console.log(`[TURN ${game.turnCount}] Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${currentPlayer.x}, ${currentPlayer.y})`);
-            log(`Player ${currentPlayer.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
-        } else {
-            console.warn(`[TURN ${game.turnCount}] Invalid or missing move from AI:`, move);
-            log(`Player ${currentPlayer.id} received invalid move - skipping turn`);
+            const move = allMoves[playerId];
+            if (move && move.action === 'move') {
+                const startPos = {x: player.x, y: player.y};
+
+                // Drop bomb first if requested (at current position)
+                let bombMsg = '';
+                if (move.dropBomb) {
+                    console.log(`[ROUND ${round}] P${playerId}: Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
+                    const bombSuccess = game.playerPlaceBomb(playerId);
+                    bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
+                    console.log(`[ROUND ${round}] P${playerId}: Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED'}`);
+                }
+
+                // Then move
+                console.log(`[ROUND ${round}] P${playerId}: Moving ${move.direction} from (${startPos.x}, ${startPos.y})`);
+                const success = game.movePlayer(playerId, move.direction);
+                console.log(`[ROUND ${round}] P${playerId}: Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${player.x}, ${player.y})`);
+                log(`Player ${playerId} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
+            } else {
+                console.warn(`[ROUND ${round}] P${playerId}: Invalid or missing move:`, move);
+                log(`Player ${playerId} received invalid move - skipping`);
+            }
+        }
+
+        // Advance turn counter by 4 (one full round)
+        for (let i = 0; i < 4; i++) {
+            game.nextTurn();
         }
     } catch (error) {
-        console.error(`[TURN ${game.turnCount}] ERROR for Player ${currentPlayer.id}:`, error);
-        log(`ERROR: Player ${currentPlayer.id} - ${error.message}`);
+        console.error(`[ROUND ${round}] ERROR:`, error);
+        log(`ERROR: ${error.message}`);
+        // Still advance turns even on error
+        for (let i = 0; i < 4; i++) {
+            game.nextTurn();
+        }
     }
-
-    game.nextTurn();
 }
 
 function endGame() {
@@ -480,4 +483,15 @@ Using random move as fallback.`;
 
 function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
+}
+
+// Update thought displays for all players
+function updateThoughts() {
+    for (let i = 1; i <= 4; i++) {
+        const thoughtElement = document.getElementById(`thought${i}`);
+        if (thoughtElement) {
+            const thought = ai.getPlayerMemory(i);
+            thoughtElement.textContent = thought;
+        }
+    }
 }

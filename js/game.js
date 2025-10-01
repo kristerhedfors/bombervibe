@@ -306,4 +306,155 @@ class Game {
             p.score > max.score ? p : max
         , this.players[0]);
     }
+
+    // Check if a position will be hit by explosion in the next turn
+    isPositionLethal(x, y, afterTurns = 1) {
+        for (const bomb of this.bombs) {
+            const turnsLeft = Math.max(0, bomb.turnsUntilExplode - (this.turnCount - bomb.placedOnTurn));
+
+            // Will this bomb explode within the specified turns?
+            if (turnsLeft <= afterTurns) {
+                // Check if position is in blast radius
+                // Center of bomb
+                if (bomb.x === x && bomb.y === y) {
+                    return true;
+                }
+
+                // Check 4 directions
+                const directions = [
+                    { dx: 0, dy: -1 }, // Up
+                    { dx: 0, dy: 1 },  // Down
+                    { dx: -1, dy: 0 }, // Left
+                    { dx: 1, dy: 0 }   // Right
+                ];
+
+                for (const dir of directions) {
+                    for (let i = 1; i <= bomb.range; i++) {
+                        const bx = bomb.x + dir.dx * i;
+                        const by = bomb.y + dir.dy * i;
+
+                        // Check if hard block blocks explosion
+                        const blockX = bomb.x + dir.dx * (i - 1);
+                        const blockY = bomb.y + dir.dy * (i - 1);
+                        if (i > 1 && this.grid[blockY] && this.grid[blockY][blockX] === 2) {
+                            break;
+                        }
+
+                        if (bx === x && by === y) {
+                            return true;
+                        }
+
+                        // Stop at hard blocks
+                        if (this.grid[by] && this.grid[by][bx] === 2) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // Get all bombs adjacent (within range) to a position
+    getAdjacentBombs(x, y, range = 2) {
+        const adjacent = [];
+        for (const bomb of this.bombs) {
+            const distance = Math.abs(bomb.x - x) + Math.abs(bomb.y - y);
+            if (distance <= range) {
+                const turnsLeft = Math.max(0, bomb.turnsUntilExplode - (this.turnCount - bomb.placedOnTurn));
+                adjacent.push({
+                    x: bomb.x,
+                    y: bomb.y,
+                    playerId: bomb.playerId,
+                    turnsLeft: turnsLeft,
+                    distance: distance
+                });
+            }
+        }
+        return adjacent;
+    }
+
+    // Get all safe moves for a player
+    getSafeMoves(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return [];
+
+        const safeMoves = [];
+        const directions = ['up', 'down', 'left', 'right'];
+
+        for (const dir of directions) {
+            let x = player.x;
+            let y = player.y;
+
+            if (dir === 'up') y--;
+            else if (dir === 'down') y++;
+            else if (dir === 'left') x--;
+            else if (dir === 'right') x++;
+
+            // Check bounds
+            if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) {
+                continue;
+            }
+
+            // Check if passable
+            const cell = this.grid[y][x];
+            if (cell === 2) { // Hard block
+                continue;
+            }
+
+            // Check if lethal
+            if (!this.isPositionLethal(x, y, 1)) {
+                safeMoves.push({
+                    direction: dir,
+                    x: x,
+                    y: y,
+                    safe: true
+                });
+            }
+        }
+
+        return safeMoves;
+    }
+
+    // Get all dangerous moves for a player
+    getDangerousMoves(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return [];
+
+        const dangerousMoves = [];
+        const directions = ['up', 'down', 'left', 'right'];
+
+        for (const dir of directions) {
+            let x = player.x;
+            let y = player.y;
+
+            if (dir === 'up') y--;
+            else if (dir === 'down') y++;
+            else if (dir === 'left') x--;
+            else if (dir === 'right') x++;
+
+            // Check bounds
+            if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) {
+                continue;
+            }
+
+            // Check if passable
+            const cell = this.grid[y][x];
+            if (cell === 2) { // Hard block
+                continue;
+            }
+
+            // Check if lethal
+            if (this.isPositionLethal(x, y, 1)) {
+                dangerousMoves.push({
+                    direction: dir,
+                    x: x,
+                    y: y,
+                    lethal: true
+                });
+            }
+        }
+
+        return dangerousMoves;
+    }
 }
