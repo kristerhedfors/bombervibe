@@ -52,21 +52,31 @@ STRATEGIC PLAY:
 - DON'T just move up/down repeatedly on the edge!
 - EXPLORE toward the CENTER of the board (around x=6, y=5)
 - DROP BOMBS near soft blocks (#) to destroy them for points
-- After dropping a bomb, move AWAY from it (not back and forth)
+- After dropping a bomb, ENSURE you can escape to a safe position (not blocked)
 - Use your previous thought to avoid repeating failed strategies
 
-FUNCTION CALLING:
-- move_up() / move_down() / move_left() / move_right() - Move without bomb
-- move_up_with_bomb() / move_down_with_bomb() / etc. - Drop bomb then move
-- set_next_thought(thought: string) - Save your plan (MAX 50 words)
+RESPONSE FORMAT:
+You MUST respond with valid JSON in this exact format:
+{
+  "direction": "up" | "down" | "left" | "right",
+  "dropBomb": true | false,
+  "thought": "Your strategic plan in 50 words or less"
+}
+
+EXAMPLES:
+{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at corner (0,0), moving right to escape. Safe move to (1,0). Will circle back to trap Player 2."}
+{"direction": "up", "dropBomb": false, "thought": "Moving toward center (6,5) to control territory and find soft blocks to destroy for points."}
+{"direction": "down", "dropBomb": false, "thought": "Player 3 approaching from north. Moving south to avoid confrontation and position for counter-attack."}
+{"direction": "left", "dropBomb": true, "thought": "Soft block cluster at (4,5). Dropping bomb then escaping left. Will destroy 3+ blocks for 30+ points."}
 
 THOUGHT/MEMORY:
-ALWAYS call set_next_thought() with your current plan. Examples:
-- "Moving toward center (6,5) to control territory and find blocks to destroy"
-- "Placed bomb at corner, now moving right to explore east side"
-- "Player 2 is at (12,5), moving to intercept and trap them"
-
 Your previous thought is shown each turn - USE IT to maintain continuity and avoid repeating the same move forever!
+
+BOMB SAFETY:
+If dropBomb is true, VERIFY your direction move leads to a position that:
+1. Is not blocked by walls or hard blocks
+2. Is not lethal (check DANGER ANALYSIS)
+3. Allows you to escape the bomb's blast radius (1 tile in all directions)
 
 WINNING: Last player alive. Play smart, explore the board, and don't get stuck in repetitive patterns!`;
     }
@@ -293,86 +303,38 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         return fullDescription;
     }
 
-    // Define function calling tools for OpenAI API
-    getFunctionTools() {
-        return [
-            {
-                type: 'function',
-                function: {
-                    name: 'move_up',
-                    description: 'Move up one tile (no bomb dropped)'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_down',
-                    description: 'Move down one tile (no bomb dropped)'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_left',
-                    description: 'Move left one tile (no bomb dropped)'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_right',
-                    description: 'Move right one tile (no bomb dropped)'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_up_with_bomb',
-                    description: 'Drop bomb at current position, then move up'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_down_with_bomb',
-                    description: 'Drop bomb at current position, then move down'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_left_with_bomb',
-                    description: 'Drop bomb at current position, then move left'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'move_right_with_bomb',
-                    description: 'Drop bomb at current position, then move right'
-                }
-            },
-            {
-                type: 'function',
-                function: {
-                    name: 'set_next_thought',
-                    description: 'Save your thought/plan for the next turn (max 50 words)',
-                    parameters: {
-                        type: 'object',
-                        properties: {
-                            thought: {
-                                type: 'string',
-                                description: 'Your current plan or strategy (max 50 words)'
-                            }
+    // Get JSON schema for structured output
+    getResponseFormat() {
+        return {
+            type: "json_schema",
+            json_schema: {
+                name: "bomberman_move",
+                strict: true,
+                schema: {
+                    type: "object",
+                    properties: {
+                        direction: {
+                            type: "string",
+                            enum: ["up", "down", "left", "right"],
+                            description: "Direction to move"
                         },
-                        required: ['thought']
-                    }
+                        dropBomb: {
+                            type: "boolean",
+                            description: "Whether to drop a bomb at current position before moving"
+                        },
+                        thought: {
+                            type: "string",
+                            description: "Your strategic thought/plan for next turn (max 50 words)"
+                        }
+                    },
+                    required: ["direction", "dropBomb", "thought"],
+                    additionalProperties: false
                 }
             }
-        ];
+        };
     }
 
-    // Call OpenAI API to get AI move using function calling
+    // Call OpenAI API to get AI move using structured output
     async getAIMove(gameState, playerId, game) {
         if (!this.apiKey) {
             throw new Error('API key not set');
@@ -391,7 +353,7 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
 YOUR STRATEGY:
 ${playerStrategy}
 
-Use the function calls to make your move. You MUST call one movement function (move_up, move_down, move_left, move_right, or their _with_bomb variants). You SHOULD also call set_next_thought to record your plan.`;
+Respond with JSON containing your move decision and strategic thought.`;
 
         try {
             console.log(`[AI P${playerId}] Sending request to ${this.model}`);
@@ -408,8 +370,7 @@ Use the function calls to make your move. You MUST call one movement function (m
                         { role: 'system', content: this.systemPrompt },
                         { role: 'user', content: userPrompt }
                     ],
-                    tools: this.getFunctionTools(),
-                    tool_choice: 'auto',
+                    response_format: this.getResponseFormat(),
                     temperature: 0.7,
                     max_tokens: 200
                 })
@@ -424,72 +385,33 @@ Use the function calls to make your move. You MUST call one movement function (m
             }
 
             const data = await response.json();
-            const message = data.choices[0].message;
+            const content = data.choices[0].message.content;
 
-            console.log(`[AI P${playerId}] Response:`, message);
+            console.log(`[AI P${playerId}] Raw response:`, content);
 
-            // Process function calls
-            let direction = null;
-            let dropBomb = false;
-            let thought = null;
+            // Parse structured JSON output
+            const move = JSON.parse(content);
 
-            if (message.tool_calls && message.tool_calls.length > 0) {
-                for (const toolCall of message.tool_calls) {
-                    const funcName = toolCall.function.name;
-                    console.log(`[AI P${playerId}] Function called: ${funcName}`);
+            console.log(`[AI P${playerId}] Parsed move:`, move);
 
-                    // Parse movement functions
-                    if (funcName === 'move_up') {
-                        direction = 'up';
-                    } else if (funcName === 'move_down') {
-                        direction = 'down';
-                    } else if (funcName === 'move_left') {
-                        direction = 'left';
-                    } else if (funcName === 'move_right') {
-                        direction = 'right';
-                    } else if (funcName === 'move_up_with_bomb') {
-                        direction = 'up';
-                        dropBomb = true;
-                    } else if (funcName === 'move_down_with_bomb') {
-                        direction = 'down';
-                        dropBomb = true;
-                    } else if (funcName === 'move_left_with_bomb') {
-                        direction = 'left';
-                        dropBomb = true;
-                    } else if (funcName === 'move_right_with_bomb') {
-                        direction = 'right';
-                        dropBomb = true;
-                    } else if (funcName === 'set_next_thought') {
-                        // Parse arguments
-                        try {
-                            const args = JSON.parse(toolCall.function.arguments);
-                            thought = args.thought;
-                        } catch (e) {
-                            console.warn(`[AI P${playerId}] Failed to parse thought arguments`);
-                        }
-                    }
-                }
+            // Validate direction
+            if (!['up', 'down', 'left', 'right'].includes(move.direction)) {
+                console.log(`[AI P${playerId}] Invalid direction: ${move.direction}, using random move`);
+                return this.getRandomMove(gameState, playerId);
             }
 
-            // Save thought if provided
-            if (thought) {
-                this.savePlayerMemory(playerId, thought);
-                console.log(`[AI P${playerId}] Saved thought: "${thought}"`);
+            // Save thought
+            if (move.thought) {
+                this.savePlayerMemory(playerId, move.thought);
+                console.log(`[AI P${playerId}] Saved thought: "${move.thought}"`);
             }
 
-            // If we got a valid direction, return it
-            if (direction) {
-                console.log(`[AI P${playerId}] Move: ${direction}, dropBomb: ${dropBomb}`);
-                return {
-                    action: 'move',
-                    direction: direction,
-                    dropBomb: dropBomb
-                };
-            }
-
-            // No valid function call found - fallback
-            console.log(`[AI P${playerId}] No valid move function called, using random move`);
-            return this.getRandomMove(gameState, playerId);
+            console.log(`[AI P${playerId}] Move: ${move.direction}, dropBomb: ${move.dropBomb}`);
+            return {
+                action: 'move',
+                direction: move.direction,
+                dropBomb: move.dropBomb
+            };
 
         } catch (error) {
             console.error(`[AI P${playerId}] Exception:`, error);
