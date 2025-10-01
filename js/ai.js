@@ -339,8 +339,8 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
 
         // Previous thought/plan
         const previousThought = this.getPlayerMemory(playerId);
-        let memoryInfo = `\n💭 YOUR LAST THOUGHT/PLAN:\n"${previousThought}"\n`;
-        memoryInfo += 'Use this to avoid repeating the same moves! If your plan isn\'t working, try something different.\n';
+        let memoryInfo = `\n💭 YOUR PREVIOUS THOUGHT:\n"${previousThought}"\n`;
+        memoryInfo += '⚡ UPDATE your thought based on new game state - don\'t repeat it! Adjust your strategy as the situation changes.\n';
 
         const fullDescription = gridStr + playersInfo + bombsInfo + adjacentInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + strategyHint + memoryInfo;
         return fullDescription;
