@@ -349,7 +349,7 @@ function endGame() {
 }
 
 function getPlayerEmoji(playerId) {
-    const emojis = ['⛷️', '🧑‍🌾', '🛒', '🧑‍🚀'];
+    const emojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
     return emojis[playerId - 1];
 }
 
