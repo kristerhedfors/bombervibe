@@ -5,24 +5,14 @@ class AIController {
         this.apiKey = null;
         this.apiUrl = 'https://api.openai.com/v1/chat/completions';
         this.model = 'gpt-4.1-mini';
-        this.prompts = {
-            1: '',
-            2: '',
-            3: '',
-            4: ''
-        };
+        this.prompts = {}; // Dynamic prompts for all players
         this.defaultPrompts = {
             1: 'You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don\'t repeat moves!',
             2: 'You are Player 2 (magenta). AGGRESSIVE play - move toward center G6, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!',
             3: 'You are Player 3 (yellow). DEFENSIVE explorer - clear blocks for escape routes, maintain distance from opponents. Use DANGER ANALYSIS to stay safe and adapt plans!',
             4: 'You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!'
         };
-        this.playerMemory = {
-            1: '',
-            2: '',
-            3: '',
-            4: ''
-        };
+        this.playerMemory = {}; // Dynamic memory for all players
         this.systemPrompt = this.getDefaultSystemPrompt();
         this.errorCallback = null; // Callback to show error modal
         this.loadPlayerMemories();
@@ -160,7 +150,7 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
     }
 
     loadPlayerMemories() {
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 10; i++) {
             const stored = localStorage.getItem(`player_${i}_memory`);
             if (stored) {
                 this.playerMemory[i] = stored;
@@ -174,7 +164,8 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
 
     clearAllMemories() {
         console.log('[AI] Clearing all player memories for new round');
-        for (let i = 1; i <= 4; i++) {
+        // Clear all player memories (dynamic range for NPCs)
+        for (let i = 1; i <= 10; i++) {
             this.playerMemory[i] = '';
             localStorage.removeItem(`player_${i}_memory`);
         }

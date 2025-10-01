@@ -246,6 +246,10 @@ function resetGame() {
     lastTurnTime = 0;
     gameHistory = new GameHistory(); // Reset history
     replayPlayer = null;
+
+    // Trigger gameReset event for NPC system
+    window.dispatchEvent(new Event('gameReset'));
+
     renderGrid();
     updateScores();
     updateGameInfo();
@@ -290,8 +294,9 @@ function gameLoop() {
 
 // Execute one turn (now processes all players in parallel)
 async function executeTurn() {
-    const round = Math.floor(game.turnCount / 4) + 1;
-    console.log(`[ROUND ${round}] Processing all players in parallel`);
+    const playerCount = game.players.length;
+    const round = Math.floor(game.turnCount / playerCount) + 1;
+    console.log(`[ROUND ${round}] Processing ${playerCount} players in parallel`);
 
     try {
         const gameState = game.getGameState();
@@ -305,54 +310,50 @@ async function executeTurn() {
         const allMoves = await ai.getAllPlayerMoves(gameState, game);
         console.log(`[ROUND ${round}] All AI moves received:`, allMoves);
 
-        // Execute all moves sequentially to maintain game order
-        for (let playerId = 1; playerId <= 4; playerId++) {
-            const player = game.players[playerId - 1];
-
+        // Execute all moves sequentially for all players
+        for (const player of game.players) {
             if (!player.alive) {
-                console.log(`[ROUND ${round}] Player ${playerId} is dead, skipping`);
+                console.log(`[ROUND ${round}] Player ${player.id} is dead, skipping`);
                 continue;
             }
 
-            const move = allMoves[playerId];
+            const move = allMoves[player.id];
             if (move && move.action === 'move') {
                 const startPos = {x: player.x, y: player.y};
 
                 // Drop bomb first if requested (at current position)
                 let bombMsg = '';
                 if (move.dropBomb) {
-                    console.log(`[ROUND ${round}] P${playerId}: Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
-                    const bombSuccess = game.playerPlaceBomb(playerId);
+                    console.log(`[ROUND ${round}] P${player.id}: Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
+                    const bombSuccess = game.playerPlaceBomb(player.id);
                     bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
-                    console.log(`[ROUND ${round}] P${playerId}: Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED'}`);
+                    console.log(`[ROUND ${round}] P${player.id}: Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED'}`);
                 }
 
                 // Then move
-                console.log(`[ROUND ${round}] P${playerId}: Moving ${move.direction} from (${startPos.x}, ${startPos.y})`);
-                const success = game.movePlayer(playerId, move.direction);
-                console.log(`[ROUND ${round}] P${playerId}: Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${player.x}, ${player.y})`);
-                log(`Player ${playerId} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
+                console.log(`[ROUND ${round}] P${player.id}: Moving ${move.direction} from (${startPos.x}, ${startPos.y})`);
+                const success = game.movePlayer(player.id, move.direction);
+                console.log(`[ROUND ${round}] P${player.id}: Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${player.x}, ${player.y})`);
+                log(`Player ${player.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
             } else {
-                console.warn(`[ROUND ${round}] P${playerId}: Invalid or missing move:`, move);
-                log(`Player ${playerId} received invalid move - skipping`);
+                console.warn(`[ROUND ${round}] P${player.id}: Invalid or missing move:`, move);
+                log(`Player ${player.id} received invalid move - skipping`);
             }
         }
 
-        // Advance turn counter by 4 (one full round)
-        for (let i = 0; i < 4; i++) {
+        // Advance turn counter by number of players (one full round)
+        for (let i = 0; i < playerCount; i++) {
             game.nextTurn();
         }
 
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
             const newState = captureGameState();
-            // Capture current player thoughts for replay
-            const thoughts = {
-                1: ai.playerMemory[1] || '',
-                2: ai.playerMemory[2] || '',
-                3: ai.playerMemory[3] || '',
-                4: ai.playerMemory[4] || ''
-            };
+            // Capture all player thoughts for replay (dynamic)
+            const thoughts = {};
+            game.players.forEach(p => {
+                thoughts[p.id] = ai.playerMemory[p.id] || '';
+            });
             const action = new Action('turn', {round, playerId: null, thoughts});
             gameHistory.record(newState, action);
         }
@@ -360,7 +361,7 @@ async function executeTurn() {
         console.error(`[ROUND ${round}] ERROR:`, error);
         log(`ERROR: ${error.message}`);
         // Still advance turns even on error
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < playerCount; i++) {
             game.nextTurn();
         }
     }
@@ -475,6 +476,18 @@ function renderPlayers() {
         if (!playerEntity) {
             playerEntity = document.createElement('div');
             playerEntity.className = `player-entity player${player.id}`;
+
+            // Set custom color for NPCs
+            if (player.isNPC && player.color) {
+                playerEntity.style.filter = `drop-shadow(0 0 10px ${player.color})`;
+            }
+
+            // Set custom emoji for NPCs
+            if (player.isNPC && player.npcEmoji) {
+                playerEntity.setAttribute('data-emoji', player.npcEmoji);
+                playerEntity.style.setProperty('--emoji', `"${player.npcEmoji}"`);
+            }
+
             gridElement.appendChild(playerEntity);
         }
 
@@ -512,17 +525,23 @@ function renderFloatingThoughts() {
     const cellWidth = totalWidth / game.GRID_WIDTH;
     const cellHeight = totalHeight / game.GRID_HEIGHT;
 
-    for (let i = 1; i <= 4; i++) {
-        const player = game.players[i - 1];
+    for (const player of game.players) {
         if (!player.alive) continue;
 
-        const thought = ai.getPlayerMemory(i);
+        const thought = ai.getPlayerMemory(player.id);
         if (!thought || thought === 'No previous thought' || thought.trim() === '') continue;
 
         // Create floating thought bubble
         const bubble = document.createElement('div');
-        bubble.className = `floating-thought player${i}-thought`;
+        bubble.className = `floating-thought player${player.id}-thought`;
         bubble.textContent = thought;
+
+        // Set custom color for NPC thought bubbles
+        if (player.isNPC && player.color) {
+            bubble.style.color = player.color;
+            bubble.style.borderColor = player.color;
+            bubble.style.boxShadow = `0 0 15px ${player.color}`;
+        }
 
         // Position bubble above player (bubble grows upward from this point)
         // Account for gaps between cells
@@ -538,17 +557,31 @@ function renderFloatingThoughts() {
 }
 
 function updateScores() {
-    for (let i = 1; i <= 4; i++) {
-        const player = game.players[i - 1];
-        document.getElementById(`score${i}`).textContent = player.score;
+    // Update all player scores dynamically
+    for (const player of game.players) {
+        const scoreElement = document.getElementById(`score${player.id}`);
+        if (scoreElement) {
+            scoreElement.textContent = player.score;
+        }
 
-        // Update dead player prompt overlays
-        const promptEditor = document.querySelector(`.prompt-editor:has(#prompt${i})`);
-        if (promptEditor) {
-            if (!player.alive) {
-                promptEditor.classList.add('dead');
-            } else {
-                promptEditor.classList.remove('dead');
+        // Update dead player prompt overlays (only for P1-P4)
+        if (player.id <= 4) {
+            const promptEditor = document.querySelector(`.prompt-editor:has(#prompt${player.id})`);
+            if (promptEditor) {
+                if (!player.alive) {
+                    promptEditor.classList.add('dead');
+                } else {
+                    promptEditor.classList.remove('dead');
+                }
+            }
+        }
+
+        // Mark spawned NPCs as dead in palette
+        if (player.isNPC && !player.alive && player.npcId) {
+            const npcIcon = document.querySelector(`.npc-icon[data-npc-id="${player.npcId}"]`);
+            if (npcIcon) {
+                npcIcon.classList.add('spawned');
+                npcIcon.style.opacity = '0.2';
             }
         }
     }

@@ -100,6 +100,15 @@
             </div>
             <textarea id="prompt4" placeholder="Enter AI strategy...">You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!</textarea>
         </div>
+
+        <!-- NPC Character Palette (Battle Royale Airdrop) -->
+        <div id="npcPalette" class="npc-palette">
+            <div class="npc-palette-header">⚡ BATTLE ROYALE NPCs ⚡</div>
+            <div class="npc-grid">
+                <!-- NPCs populated by JavaScript -->
+            </div>
+            <div class="npc-instructions">Drag & drop onto board to spawn</div>
+        </div>
     </div>
 
     <!-- Error Popup Modal -->
@@ -131,9 +140,11 @@
     <script src="js/serialization.js"></script>
 
     <!-- LEGACY CODE (currently active) -->
+    <script src="js/npc-characters.js"></script>
     <script src="js/player.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ai.js"></script>
+    <script src="js/drag-drop.js"></script>
     <script src="js/ui.js"></script>
 </body>
 </html>

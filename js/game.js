@@ -101,12 +101,13 @@ class Game {
     }
 
     nextTurn() {
-        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % 4;
+        const playerCount = this.players.length;
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playerCount;
 
         // Skip dead players
         let attempts = 0;
-        while (!this.getCurrentPlayer().alive && attempts < 4) {
-            this.currentPlayerIndex = (this.currentPlayerIndex + 1) % 4;
+        while (!this.getCurrentPlayer().alive && attempts < playerCount) {
+            this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playerCount;
             attempts++;
         }
 

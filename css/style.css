@@ -318,6 +318,11 @@ body {
     border-top-color: var(--green);
 }
 
+/* NPC thought bubbles (5-10) - inline style sets colors dynamically */
+.floating-thought[style*="border-color"]::after {
+    border-top-color: inherit;
+}
+
 .prompt-editor textarea {
     flex: 1;
     background: var(--bg-darker);
@@ -361,6 +366,132 @@ body {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1.1);
     }
+}
+
+/* NPC Character Palette */
+.npc-palette {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 280px;
+    background: var(--bg-dark);
+    border: 2px solid var(--cyan);
+    padding: 1rem;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    z-index: 50;
+}
+
+.npc-palette-header {
+    color: var(--cyan);
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    text-shadow: 0 0 10px var(--cyan);
+    letter-spacing: 1px;
+}
+
+.npc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.npc-icon {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-darker);
+    border: 2px solid;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.3s;
+    position: relative;
+    padding: 0.5rem;
+}
+
+.npc-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px;
+}
+
+.npc-icon:active {
+    cursor: grabbing;
+}
+
+.npc-icon.dragging {
+    opacity: 0.5;
+}
+
+.npc-icon.spawned {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.npc-emoji {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+.npc-name {
+    font-size: 0.65rem;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.npc-instructions {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--yellow);
+    opacity: 0.8;
+}
+
+/* NPC Tooltip */
+.npc-tooltip {
+    position: absolute;
+    bottom: 105%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 100;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+    line-height: 1.4;
+    max-width: 220px;
+    white-space: normal;
+}
+
+.npc-icon:hover .npc-tooltip {
+    opacity: 1;
+}
+
+.npc-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: inherit;
+}
+
+.npc-tooltip .keyword {
+    font-weight: bold;
+    text-shadow: 0 0 5px currentColor;
 }
 
 /* Error Modal */
@@ -586,6 +717,11 @@ body {
 
 .player-entity.player4::after {
     content: '🧑‍🚀';
+}
+
+/* NPC players (5-10) - use data-emoji attribute for custom emoji */
+.player-entity[data-emoji]::after {
+    content: attr(data-emoji);
 }
 
 /* Legacy cell-based player rendering (fallback) */
