@@ -12,6 +12,11 @@ class AIController {
             4: ''
         };
         this.systemPrompt = this.getDefaultSystemPrompt();
+        this.errorCallback = null; // Callback to show error modal
+    }
+
+    setErrorCallback(callback) {
+        this.errorCallback = callback;
     }
 
     getDefaultSystemPrompt() {
@@ -44,7 +49,8 @@ MOVEMENT:
 
 BOMB MECHANICS:
 - Each player can have only ONE active bomb at a time
-- Bombs explode after 3 seconds automatically
+- Bombs explode after 8 TURNS (turn-based countdown, NOT time-based)
+- With 4 players taking turns sequentially, 8 turns = 2 full rounds through all players
 - Explosion range: 1 tile in all 4 directions (cross pattern)
 - Explosions destroy soft blocks (🌳) but NOT hard blocks (🗿)
 - Explosions kill any player in the blast radius
@@ -68,11 +74,11 @@ STRATEGY TIPS:
 - Drop bomb WHILE MOVING - no speed penalty! Move and drop simultaneously
 - Trap opponents between bombs and walls
 - Clear soft blocks to create escape routes
-- Watch bomb timers to avoid your own explosions
+- Watch bomb turn countdown to avoid your own explosions
 - Corner opponents when they have a bomb active
 - Control center area for tactical advantage
-- With 3 second timers, you have 3 turns to escape (move at least 2 tiles away)
-- Smart play: Move forward while dropping bomb behind you!
+- With 8-turn timers, you get exactly 2 moves before your own bomb explodes
+- Smart play: Move forward while dropping bomb behind you, then move again to be 2 tiles away!
 
 WINNING:
 - Last player alive wins automatically
@@ -277,36 +283,78 @@ Now choose your action (JSON only):`;
             const content = data.choices[0].message.content.trim();
             console.log(`[AI P${playerId}] Raw response:`, content);
 
-            // Parse JSON response
+            // Parse JSON response - PERMISSIVE parsing
             const jsonMatch = content.match(/\{[^}]+\}/);
             if (!jsonMatch) {
                 console.error(`[AI P${playerId}] No JSON found in response:`, content);
                 console.log(`[AI P${playerId}] Falling back to random move`);
+                this.showError(playerId, 'No JSON found', content, 'Expected JSON object with format: {"action":"move","direction":"up/down/left/right","dropBomb":true/false}');
                 return this.getRandomMove(gameState, playerId);
             }
 
-            const move = JSON.parse(jsonMatch[0]);
+            let move;
+            try {
+                move = JSON.parse(jsonMatch[0]);
+            } catch (e) {
+                // Try to fix common JSON errors (single quotes)
+                try {
+                    const fixed = jsonMatch[0].replace(/'/g, '"');
+                    move = JSON.parse(fixed);
+                } catch (e2) {
+                    console.error(`[AI P${playerId}] JSON parse failed:`, jsonMatch[0]);
+                    this.showError(playerId, 'JSON parsing failed', jsonMatch[0], 'Invalid JSON syntax. Common issues: use double quotes, not single quotes. Expected format: {"action":"move","direction":"up","dropBomb":false}');
+                    return this.getRandomMove(gameState, playerId);
+                }
+            }
+
             console.log(`[AI P${playerId}] Parsed move:`, move);
 
-            // Validate move - MUST have action=move and valid direction
-            if (move.action === 'move' && move.direction && ['up', 'down', 'left', 'right'].includes(move.direction)) {
-                console.log(`[AI P${playerId}] Valid move action: ${move.direction} (dropBomb: ${move.dropBomb || false})`);
-                // Ensure dropBomb is boolean
-                move.dropBomb = Boolean(move.dropBomb);
-                return move;
+            // PERMISSIVE keyword search - look for direction anywhere in the response
+            const contentLower = JSON.stringify(move).toLowerCase();
+            let direction = null;
+
+            // Search for direction keywords (case-insensitive)
+            if (contentLower.includes('up')) direction = 'up';
+            else if (contentLower.includes('down')) direction = 'down';
+            else if (contentLower.includes('left')) direction = 'left';
+            else if (contentLower.includes('right')) direction = 'right';
+
+            // Search for dropBomb value (any truthy/falsy indicator)
+            let dropBomb = false;
+            if (contentLower.includes('true') || contentLower.includes('"dropbomb":true') || contentLower.includes("'dropbomb':true")) {
+                dropBomb = true;
+            }
+
+            // If we found a direction, construct valid move
+            if (direction) {
+                console.log(`[AI P${playerId}] Extracted: direction=${direction}, dropBomb=${dropBomb}`);
+                return {
+                    action: 'move',
+                    direction: direction,
+                    dropBomb: dropBomb
+                };
             }
 
             // Invalid format - log and fallback
-            console.error(`[AI P${playerId}] Invalid move format:`, move);
-            console.log(`[AI P${playerId}] Expected: {action:"move", direction:"up/down/left/right", dropBomb:true/false}`);
+            console.error(`[AI P${playerId}] Could not extract direction from:`, move);
+            console.log(`[AI P${playerId}] Expected direction keyword: up/down/left/right`);
             console.log(`[AI P${playerId}] Falling back to random move`);
+            this.showError(playerId, 'No direction found', JSON.stringify(move, null, 2), 'Could not find direction keyword (up/down/left/right) in response. Expected format: {"action":"move","direction":"up","dropBomb":false}');
             return this.getRandomMove(gameState, playerId);
 
         } catch (error) {
             console.error(`[AI P${playerId}] Exception:`, error);
             // Fallback to random move
             console.log(`[AI P${playerId}] Using random move fallback`);
+            this.showError(playerId, 'Exception occurred', error.toString(), 'An unexpected error occurred while getting AI move. Check console for details.');
             return this.getRandomMove(gameState, playerId);
+        }
+    }
+
+    // Show error modal with details
+    showError(playerId, errorType, rawResponse, expectedFormat) {
+        if (this.errorCallback) {
+            this.errorCallback(playerId, errorType, rawResponse, expectedFormat);
         }
     }
 

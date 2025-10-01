@@ -15,6 +15,9 @@ function initializeGame() {
     game = new Game();
     ai = new AIController();
 
+    // Set error callback for AI
+    ai.setErrorCallback(showErrorModal);
+
     // Check for API key in URL fragment (e.g., #gsk_abc123...)
     const fragment = window.location.hash.substring(1); // Remove '#'
     if (fragment && fragment.startsWith('gsk_')) {
@@ -75,6 +78,9 @@ function setupEventListeners() {
     document.getElementById('saveSystemPrompt').addEventListener('click', saveSystemPrompt);
     document.getElementById('resetSystemPrompt').addEventListener('click', resetSystemPrompt);
     document.getElementById('closeSystemPrompt').addEventListener('click', closeSystemPromptEditor);
+
+    // Error modal
+    document.getElementById('closeError').addEventListener('click', closeErrorModal);
 
     // Prompt editors - save on change
     for (let i = 1; i <= 4; i++) {
@@ -445,4 +451,33 @@ function resetSystemPrompt() {
 
 function closeSystemPromptEditor() {
     document.getElementById('systemPromptModal').classList.add('hidden');
+}
+
+// Error Modal functions
+function showErrorModal(playerId, errorType, rawResponse, expectedFormat) {
+    const playerColors = ['', 'cyan', 'magenta', 'yellow', 'green'];
+    const playerColor = playerColors[playerId];
+
+    const details = `<strong style="color: var(--${playerColor});">Player ${playerId} AI Error</strong>
+
+<strong>Error Type:</strong>
+${errorType}
+
+<strong>What was received:</strong>
+${rawResponse}
+
+<strong>Expected Format:</strong>
+${expectedFormat}
+
+<strong>Action Taken:</strong>
+Using random move as fallback.`;
+
+    document.getElementById('errorDetails').innerHTML = details;
+    document.getElementById('errorModal').style.display = 'flex';
+
+    log(`ERROR: Player ${playerId} AI parsing failed - ${errorType}`);
+}
+
+function closeErrorModal() {
+    document.getElementById('errorModal').style.display = 'none';
 }

@@ -210,6 +210,48 @@ body {
 .bottom-left textarea { color: var(--yellow); border-color: var(--yellow); }
 .bottom-right textarea { color: var(--green); border-color: var(--green); }
 
+/* Error Modal */
+#errorModal .modal-content {
+    max-width: 600px;
+    box-shadow: 0 0 30px #ff3333;
+}
+
+#errorModal .modal-content h2 {
+    color: #ff6666;
+    text-shadow: 0 0 10px #ff3333;
+}
+
+.error-details {
+    background: var(--bg-darker);
+    border: 1px solid #ff3333;
+    padding: 1rem;
+    margin: 1rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #ff6666;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    text-align: left;
+}
+
+.error-details strong {
+    color: #ffaaaa;
+    display: block;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+#errorModal button {
+    background: #ff3333;
+}
+
+#errorModal button:hover {
+    background: #ff6666;
+    box-shadow: 0 0 20px #ff3333;
+}
+
 /* Game Board */
 #gameBoard {
     grid-column: 2;

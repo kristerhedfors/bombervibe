@@ -146,18 +146,24 @@ class Game {
         const player = this.players.find(p => p.id === playerId);
         if (!player || !player.alive) return false;
 
-        return player.placeBomb(this.grid, this.bombs);
+        const success = player.placeBomb(this.grid, this.bombs);
+        if (success) {
+            // Set the turn number when bomb was placed
+            const bomb = this.bombs[this.bombs.length - 1];
+            bomb.placedOnTurn = this.turnCount;
+        }
+        return success;
     }
 
-    // Update bombs and check for explosions
+    // Update bombs and check for explosions (turn-based)
     updateBombs() {
-        const now = Date.now();
         const bombsToExplode = [];
 
-        // Check bomb timers
+        // Check bomb turn countdown
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
-            if (now - bomb.timestamp >= bomb.timer) {
+            const turnsSincePlaced = this.turnCount - bomb.placedOnTurn;
+            if (turnsSincePlaced >= bomb.turnsUntilExplode) {
                 bombsToExplode.push(bomb);
                 this.bombs.splice(i, 1);
             }
@@ -275,7 +281,7 @@ class Game {
                 x: b.x,
                 y: b.y,
                 playerId: b.playerId,
-                timeLeft: Math.max(0, b.timer - (Date.now() - b.timestamp))
+                turnsUntilExplode: Math.max(0, b.turnsUntilExplode - (this.turnCount - b.placedOnTurn))
             })),
             turnCount: this.turnCount,
             currentPlayerId: this.getCurrentPlayer().id

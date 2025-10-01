@@ -54,9 +54,9 @@ class Player {
             playerId: this.id,
             x: this.x,
             y: this.y,
-            timer: 3000, // 3 seconds
+            turnsUntilExplode: 8, // Explodes after 8 turns (2 full rounds with 4 players)
             range: 1, // 1 tile blast radius
-            timestamp: Date.now()
+            placedOnTurn: null // Will be set by game
         };
 
         bombs.push(bomb);
