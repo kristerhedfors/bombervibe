@@ -32,6 +32,7 @@ function initializeGame() {
 
     // Load stored prompts
     ai.loadPrompts();
+    ai.loadSystemPrompt();
     for (let i = 1; i <= 4; i++) {
         const textarea = document.getElementById(`prompt${i}`);
         if (ai.prompts[i]) {
@@ -68,6 +69,12 @@ function setupEventListeners() {
     document.getElementById('startGame').addEventListener('click', startGame);
     document.getElementById('pauseGame').addEventListener('click', pauseGame);
     document.getElementById('resetGame').addEventListener('click', resetGame);
+    document.getElementById('editSystemPrompt').addEventListener('click', openSystemPromptEditor);
+
+    // System prompt modal
+    document.getElementById('saveSystemPrompt').addEventListener('click', saveSystemPrompt);
+    document.getElementById('resetSystemPrompt').addEventListener('click', resetSystemPrompt);
+    document.getElementById('closeSystemPrompt').addEventListener('click', closeSystemPromptEditor);
 
     // Prompt editors - save on change
     for (let i = 1; i <= 4; i++) {
@@ -176,9 +183,17 @@ function gameLoop() {
     game.updateBombs();
     game.updateExplosions();
 
-    // Check for game over
+    // Render first to show explosions
+    renderGrid();
+    updateScores();
+    updateGameInfo();
+
+    // Check for game over AFTER rendering explosions
     if (game.isGameOver()) {
-        endGame();
+        // Wait a bit to show final explosion
+        setTimeout(() => {
+            endGame();
+        }, 1000);
         return;
     }
 
@@ -187,11 +202,6 @@ function gameLoop() {
         executeTurn();
         lastTurnTime = now;
     }
-
-    // Render
-    renderGrid();
-    updateScores();
-    updateGameInfo();
 
     // Continue loop
     animationFrameId = requestAnimationFrame(gameLoop);
@@ -238,8 +248,28 @@ async function executeTurn() {
 function endGame() {
     game.running = false;
     const winner = game.getWinner();
-    log(`GAME OVER! Winner: Player ${winner.id} (${winner.name}) with ${winner.score} points!`);
-    alert(`🎮 GAME OVER!\n\nWinner: ${winner.name}\nScore: ${winner.score}`);
+
+    // Show game over overlay
+    const gameBoard = document.getElementById('gameBoard');
+    const overlay = document.createElement('div');
+    overlay.id = 'gameOverOverlay';
+    overlay.innerHTML = `
+        <div class="game-over-content">
+            <h1>🎮 GAME OVER! 🎮</h1>
+            <h2>🏆 WINNER: ${winner.name} 🏆</h2>
+            <p class="winner-emoji">${getPlayerEmoji(winner.id)}</p>
+            <p>Score: ${winner.score} points</p>
+            <button onclick="document.getElementById('resetGame').click(); document.getElementById('gameOverOverlay').remove();">PLAY AGAIN</button>
+        </div>
+    `;
+    gameBoard.appendChild(overlay);
+
+    log(`🎮 GAME OVER! Winner: Player ${winner.id} (${winner.name}) with ${winner.score} points!`);
+}
+
+function getPlayerEmoji(playerId) {
+    const emojis = ['⛷️', '🧑‍🌾', '🛒', '🧑‍🚀'];
+    return emojis[playerId - 1];
 }
 
 // Render the grid
@@ -256,6 +286,7 @@ function renderGrid() {
             const player = game.players.find(p => p.alive && p.x === x && p.y === y);
             if (player) {
                 cell.classList.add(`player${player.id}`);
+                gridElement.appendChild(cell);
                 continue;
             }
 
@@ -311,10 +342,50 @@ function log(message) {
     const timestamp = new Date().toLocaleTimeString();
     const entry = document.createElement('div');
     entry.textContent = `[${timestamp}] ${message}`;
+
+    // Color code by player
+    if (message.includes('Player 1')) {
+        entry.style.color = 'var(--cyan)';
+    } else if (message.includes('Player 2')) {
+        entry.style.color = 'var(--magenta)';
+    } else if (message.includes('Player 3')) {
+        entry.style.color = 'var(--yellow)';
+    } else if (message.includes('Player 4')) {
+        entry.style.color = 'var(--green)';
+    } else if (message.includes('ERROR')) {
+        entry.style.color = '#ff3300';
+    }
+
     logContent.insertBefore(entry, logContent.firstChild);
 
     // Keep only last 20 messages
     while (logContent.children.length > 20) {
         logContent.removeChild(logContent.lastChild);
     }
+}
+
+// System Prompt Editor functions
+function openSystemPromptEditor() {
+    document.getElementById('systemPromptEditor').value = ai.getSystemPrompt();
+    document.getElementById('systemPromptModal').classList.remove('hidden');
+    log('System prompt editor opened');
+}
+
+function saveSystemPrompt() {
+    const newPrompt = document.getElementById('systemPromptEditor').value;
+    ai.setSystemPrompt(newPrompt);
+    document.getElementById('systemPromptModal').classList.add('hidden');
+    log('System prompt saved');
+}
+
+function resetSystemPrompt() {
+    if (confirm('Reset system prompt to default? This will erase your custom prompt.')) {
+        ai.resetSystemPrompt();
+        document.getElementById('systemPromptEditor').value = ai.getSystemPrompt();
+        log('System prompt reset to default');
+    }
+}
+
+function closeSystemPromptEditor() {
+    document.getElementById('systemPromptModal').classList.add('hidden');
 }

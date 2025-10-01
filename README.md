@@ -71,7 +71,8 @@ cd bombervibe
 - **4 Players** start in corners of 13x11 grid
 - **Turn-based**: Players take sequential turns (P1→P2→P3→P4)
 - **Actions per turn**: Move (up/down/left/right) OR place bomb
-- **Bombs**: Explode after 3 seconds with 2-tile range in 4 directions
+- **Bombs**: Explode after 3 seconds with **1-tile range** in 4 directions
+- **Movement**: Players can walk through bombs, soft blocks, and other players
 - **One bomb limit**: Can't place another bomb until first explodes
 - **Scoring**:
   - Destroy soft block: +10 points
@@ -105,10 +106,12 @@ Each corner has an editable prompt for that player's AI strategy:
 
 **Example Strategies:**
 
-- **Aggressive**: "Chase opponents relentlessly. Place bombs to trap enemies. Take risks for kills."
-- **Defensive**: "Avoid danger. Clear blocks slowly. Only engage when safe."
-- **Territorial**: "Control the center. Create bomb patterns to dominate space."
-- **Opportunistic**: "Wait for enemies to fight. Strike when they're vulnerable. Play smart."
+- **Aggressive**: "Chase opponents relentlessly. Drop bombs and move away immediately. Trap enemies in corners."
+- **Defensive**: "Avoid danger. Clear blocks slowly. Always keep escape routes open. Only engage when safe."
+- **Territorial**: "Control the center. Drop bombs and walk through them to safety. Dominate key areas."
+- **Opportunistic**: "Wait for enemies to fight. Strike when they're vulnerable. Use your escape mobility wisely."
+
+**Pro Tip**: Since you can walk through bombs, drop a bomb then immediately move away to safety!
 
 Edit prompts in the corner text boxes and they'll save automatically to localStorage.
 

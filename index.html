@@ -14,7 +14,21 @@
             <p>Enter your Groq API key to power the AI players</p>
             <input type="password" id="apiKeyInput" placeholder="gsk_..." />
             <button id="saveApiKey">INITIALIZE</button>
-            <p class="model-info">Model: openai/gpt-oss-20b</p>
+            <p class="model-info">Model: moonshotai/kimi-k2-instruct-0905</p>
+        </div>
+    </div>
+
+    <!-- System Prompt Modal -->
+    <div id="systemPromptModal" class="modal hidden">
+        <div class="modal-content system-prompt-modal">
+            <h2>⚙️ SYSTEM PROMPT EDITOR ⚙️</h2>
+            <p>Edit the core game rules and instructions sent to all AI players</p>
+            <textarea id="systemPromptEditor" rows="20"></textarea>
+            <div class="modal-buttons">
+                <button id="saveSystemPrompt">SAVE</button>
+                <button id="resetSystemPrompt">RESET TO DEFAULT</button>
+                <button id="closeSystemPrompt">CLOSE</button>
+            </div>
         </div>
     </div>
 
@@ -46,6 +60,7 @@
                     <button id="startGame">START</button>
                     <button id="pauseGame">PAUSE</button>
                     <button id="resetGame">RESET</button>
+                    <button id="editSystemPrompt">SYSTEM PROMPT</button>
                 </div>
             </div>
             <div id="grid"></div>

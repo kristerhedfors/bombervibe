@@ -4,13 +4,107 @@ class AIController {
     constructor() {
         this.apiKey = null;
         this.apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        this.model = 'gpt-oss-20b';
+        this.model = 'moonshotai/kimi-k2-instruct-0905';
         this.prompts = {
             1: '',
             2: '',
             3: '',
             4: ''
         };
+        this.systemPrompt = this.getDefaultSystemPrompt();
+    }
+
+    getDefaultSystemPrompt() {
+        return `You are playing BOMBERVIBE, an AI-powered Bomberman game.
+
+GAME OBJECTIVE:
+- Survive longer than other players
+- Eliminate opponents by trapping them in bomb explosions
+- Destroy soft blocks for points
+- Win by being the last player alive or having the highest score
+
+GAME RULES:
+- 13x11 grid (coordinates: x=0-12, y=0-10)
+- 4 players compete simultaneously
+- Turn-based: each player makes ONE move per turn sequentially
+- Players can occupy the same square
+
+YOUR ACTIONS (choose ONE per turn):
+1. MOVE: Go up/down/left/right one square
+2. BOMB: Place a bomb at your current position
+
+MOVEMENT:
+- You can move to adjacent squares (up, down, left, right)
+- You CANNOT move through hard blocks (🗿)
+- You CAN move through soft blocks (🌳), bombs (💣), and other players
+- Moving off the grid edge is invalid
+- IMPORTANT: You can move away from bombs! Drop bomb then move away immediately
+
+BOMB MECHANICS:
+- Each player can have only ONE active bomb at a time
+- Bombs explode after 3 seconds automatically
+- Explosion range: 1 tile in all 4 directions (cross pattern)
+- Explosions destroy soft blocks (🌳) but NOT hard blocks (🗿)
+- Explosions kill any player in the blast radius
+- Chain reactions: bombs can trigger other bombs
+- You can walk through bombs to escape!
+
+GRID SYMBOLS:
+- . (dot) = empty space
+- # (hash) = soft block 🌳 (destructible, +10 points)
+- X = hard block 🗿 (indestructible, blocks explosions)
+- P1, P2, P3, P4 = player positions
+- B1, B2, B3, B4 = bombs (number indicates which player placed it)
+
+SCORING:
+- Destroy soft block: +10 points
+- Kill opponent: +100 points
+- Getting killed: you're out of the game
+
+STRATEGY TIPS:
+- Avoid bomb blast radiuses (1 tile in cross pattern)
+- Drop bomb then MOVE AWAY immediately - you can walk through bombs!
+- Trap opponents between bombs and walls
+- Clear soft blocks to create escape routes
+- Watch bomb timers to avoid your own explosions
+- Corner opponents when they have a bomb active
+- Control center area for tactical advantage
+- With 3 second timers, you have 3 turns to escape (move at least 2 tiles away)
+
+WINNING:
+- Last player alive wins automatically
+- If time runs out, highest score wins
+- Being strategic > being aggressive
+
+YOU MUST RESPOND WITH VALID JSON:
+{"action": "move", "direction": "up"}
+{"action": "move", "direction": "down"}
+{"action": "move", "direction": "left"}
+{"action": "move", "direction": "right"}
+{"action": "bomb"}
+
+DO NOT include explanations, only the JSON action.`;
+    }
+
+    setSystemPrompt(prompt) {
+        this.systemPrompt = prompt;
+        localStorage.setItem('system_prompt', prompt);
+    }
+
+    loadSystemPrompt() {
+        const stored = localStorage.getItem('system_prompt');
+        if (stored) {
+            this.systemPrompt = stored;
+        }
+    }
+
+    getSystemPrompt() {
+        return this.systemPrompt;
+    }
+
+    resetSystemPrompt() {
+        this.systemPrompt = this.getDefaultSystemPrompt();
+        localStorage.removeItem('system_prompt');
     }
 
     setApiKey(key) {
@@ -107,7 +201,7 @@ class AIController {
         } else {
             for (const b of gameState.bombs) {
                 const timeLeft = (b.timeLeft / 1000).toFixed(1);
-                bombsInfo += `Bomb ${b.playerId}: pos=(${b.x},${b.y}) explodes in ${timeLeft}s range=2\n`;
+                bombsInfo += `Bomb ${b.playerId}: pos=(${b.x},${b.y}) explodes in ${timeLeft}s range=1\n`;
             }
         }
 
@@ -133,28 +227,14 @@ class AIController {
         }
 
         const gameDescription = this.generateGameStateDescription(gameState, playerId);
-        const systemPrompt = this.prompts[playerId] || 'You are a Bomberman AI player. Make smart moves to survive and win.';
+        const playerStrategy = this.prompts[playerId] || 'You are a Bomberman AI player. Make smart moves to survive and win.';
 
         const userPrompt = `${gameDescription}
 
-RULES:
-- You can move UP, DOWN, LEFT, or RIGHT (one cell at a time)
-- You can place a BOMB at your current position
-- You can only have ONE bomb active at a time
-- Bombs explode after 3 seconds with range of 2 cells
-- Avoid bomb explosions or you die
-- Destroy soft blocks (#) for points
-- Eliminate other players for points
+YOUR STRATEGY:
+${playerStrategy}
 
-RESPOND WITH JSON ONLY:
-Valid actions:
-{"action": "move", "direction": "up"}
-{"action": "move", "direction": "down"}
-{"action": "move", "direction": "left"}
-{"action": "move", "direction": "right"}
-{"action": "bomb"}
-
-Your move:`;
+Now choose your action (JSON only):`;
 
         try {
             const response = await fetch(this.apiUrl, {
@@ -166,7 +246,7 @@ Your move:`;
                 body: JSON.stringify({
                     model: this.model,
                     messages: [
-                        { role: 'system', content: systemPrompt },
+                        { role: 'system', content: this.systemPrompt },
                         { role: 'user', content: userPrompt }
                     ],
                     temperature: 0.7,

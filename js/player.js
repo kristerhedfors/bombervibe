@@ -20,9 +20,11 @@ class Player {
             return false;
         }
 
-        // Check if cell is empty
+        // Check if cell is passable
         const cell = grid[newY][newX];
-        if (cell === 0 || cell === 'bomb' + this.id) {
+        // Can move through: empty cells (0), any bombs, soft blocks (1)
+        // Cannot move through: hard blocks (2)
+        if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
             this.x = newX;
             this.y = newY;
             return true;
@@ -53,7 +55,7 @@ class Player {
             x: this.x,
             y: this.y,
             timer: 3000, // 3 seconds
-            range: 2,
+            range: 1, // 1 tile blast radius
             timestamp: Date.now()
         };
 

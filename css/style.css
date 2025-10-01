@@ -108,6 +108,39 @@ body {
     50% { box-shadow: 0 0 50px var(--cyan); }
 }
 
+/* System Prompt Modal */
+.system-prompt-modal {
+    max-width: 900px;
+    width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.system-prompt-modal textarea {
+    width: 100%;
+    min-height: 400px;
+    padding: 1rem;
+    margin: 1rem 0;
+    background: var(--bg-darker);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.modal-buttons button {
+    padding: 0.75rem 1.5rem;
+}
+
 /* Game Container */
 #gameContainer {
     display: grid;
@@ -187,6 +220,7 @@ body {
     border: 2px solid var(--green);
     padding: 1rem;
     box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+    position: relative; /* For game over overlay */
 }
 
 #gameInfo {
@@ -420,4 +454,85 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--cyan);
+}
+
+/* Game Over Overlay */
+#gameOverOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.game-over-content {
+    text-align: center;
+    padding: 3rem;
+    background: var(--bg-dark);
+    border: 3px solid var(--cyan);
+    box-shadow: 0 0 50px var(--cyan);
+    animation: glow 2s ease-in-out infinite;
+}
+
+.game-over-content h1 {
+    color: var(--cyan);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 20px var(--cyan);
+    animation: pulse 1s infinite;
+}
+
+.game-over-content h2 {
+    color: var(--yellow);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px var(--yellow);
+}
+
+.winner-emoji {
+    font-size: 5rem;
+    margin: 1rem 0;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.game-over-content p {
+    color: var(--green);
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.game-over-content button {
+    margin-top: 2rem;
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    background: var(--green);
+    color: var(--bg-dark);
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+.game-over-content button:hover {
+    background: var(--cyan);
+    box-shadow: 0 0 30px var(--cyan);
+    transform: scale(1.1);
 }
