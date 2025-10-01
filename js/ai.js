@@ -11,6 +11,12 @@ class AIController {
             3: '',
             4: ''
         };
+        this.defaultPrompts = {
+            1: 'You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don\'t repeat moves!',
+            2: 'You are Player 2 (magenta). AGGRESSIVE play - move toward center G6, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!',
+            3: 'You are Player 3 (yellow). DEFENSIVE explorer - clear blocks for escape routes, maintain distance from opponents. Use DANGER ANALYSIS to stay safe and adapt plans!',
+            4: 'You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!'
+        };
         this.playerMemory = {
             1: '',
             2: '',
@@ -129,6 +135,20 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
                 this.prompts[i] = stored;
             }
         }
+    }
+
+    getDefaultPrompt(playerId) {
+        return this.defaultPrompts[playerId] || '';
+    }
+
+    resetPrompt(playerId) {
+        const defaultPrompt = this.defaultPrompts[playerId];
+        if (defaultPrompt) {
+            this.prompts[playerId] = defaultPrompt;
+            localStorage.setItem(`player_${playerId}_prompt`, defaultPrompt);
+            return defaultPrompt;
+        }
+        return null;
     }
 
     savePlayerMemory(playerId, thought) {

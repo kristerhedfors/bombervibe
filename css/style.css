@@ -190,6 +190,40 @@ body {
     margin-bottom: 0.5rem;
     text-align: center;
     font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.reset-prompt {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: 1px solid currentColor;
+    color: inherit;
+    font-size: 1.2rem;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+    line-height: 1;
+}
+
+.reset-prompt:hover {
+    background: currentColor;
+    color: var(--bg-dark);
+    box-shadow: 0 0 10px currentColor;
+    transform: translateY(-50%) rotate(180deg);
 }
 
 .top-left .prompt-header { color: var(--cyan); }
@@ -567,7 +601,6 @@ body {
     animation: bombPulse 0.5s infinite;
     filter: drop-shadow(0 0 15px var(--bomb-color));
     z-index: 1;
-    opacity: 0.7;
 }
 
 .cell.bomb {

@@ -118,6 +118,18 @@ function setupEventListeners() {
         });
     }
 
+    // Reset prompt buttons
+    document.querySelectorAll('.reset-prompt').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const playerId = parseInt(e.target.getAttribute('data-player'));
+            const defaultPrompt = ai.resetPrompt(playerId);
+            if (defaultPrompt) {
+                document.getElementById(`prompt${playerId}`).value = defaultPrompt;
+                log(`Player ${playerId} prompt reset to default`);
+            }
+        });
+    });
+
     // Keyboard controls for manual play (Player 1)
     document.addEventListener('keydown', handleKeyPress);
 }
