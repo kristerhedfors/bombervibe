@@ -631,7 +631,7 @@ body {
     bottom: 1rem;
     left: 1rem;
     width: 280px;
-    max-height: 200px;
+    height: calc(250px + 1rem); /* Fill up to Player 3 prompt (250px row + 1rem gap) */
     background: rgba(10, 10, 10, 0.95);
     border: 1px solid var(--green);
     padding: 0.5rem;
