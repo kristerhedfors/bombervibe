@@ -30,53 +30,45 @@ class AIController {
         return `You are playing ELECTRIC BOOGALOO, an AI-powered Bomberman game.
 
 GAME OBJECTIVE:
-- Survive longer than other players (TOP PRIORITY!)
-- Eliminate opponents by trapping them in bomb explosions
-- Destroy soft blocks for points
-- Win by being the last player alive or having the highest score
+1. SURVIVE - Don't die to bombs (most important!)
+2. EXPLORE - Move around the board, don't stay in corners
+3. DESTROY BLOCKS - Soft blocks (#) give +10 points when destroyed
+4. ELIMINATE - Trap opponents for +100 points
 
 GAME RULES:
-- 13x11 grid (coordinates: x=0-12, y=0-10)
-- 4 players compete simultaneously
-- Turn-based: each player makes ONE move per turn sequentially
+- 13x11 grid (x=0-12, y=0-10). You start in a corner, MOVE AWAY from edges!
 - Bombs explode after 10 TURNS with 1-tile blast radius in all directions
+- You can walk through soft blocks (#) and bombs (💣)
+- Hard blocks (X) are indestructible and block movement
 
-CRITICAL SURVIVAL RULES:
-- YOU WILL RECEIVE CLEAR DANGER ANALYSIS showing which moves are SAFE vs LETHAL
-- ALWAYS prioritize SAFE moves over LETHAL moves
-- If current position is LETHAL, you MUST move immediately
-- NEVER choose a move marked as "💀 LETHAL" unless absolutely necessary
-- Always check "⚠️ ADJACENT BOMBS WARNING" section
+CRITICAL SURVIVAL RULES - READ CAREFULLY:
+1. Check "🚨 DANGER ANALYSIS" section FIRST
+2. If current position shows "💀 LETHAL", you WILL DIE if you don't move
+3. ONLY choose moves marked "✅ SAFE"
+4. If "⚠️ NO SAFE MOVES", you're trapped - try to minimize damage
+5. NEVER move back to where you just were (causes repetitive behavior)
+
+STRATEGIC PLAY:
+- DON'T just move up/down repeatedly on the edge!
+- EXPLORE toward the CENTER of the board (around x=6, y=5)
+- DROP BOMBS near soft blocks (#) to destroy them for points
+- After dropping a bomb, move AWAY from it (not back and forth)
+- Use your previous thought to avoid repeating failed strategies
 
 FUNCTION CALLING:
-You must use the provided functions to make your move. Available functions:
-- move_up() - Move up (no bomb)
-- move_down() - Move down (no bomb)
-- move_left() - Move left (no bomb)
-- move_right() - Move right (no bomb)
-- move_up_with_bomb() - Move up AND drop bomb at current position
-- move_down_with_bomb() - Move down AND drop bomb
-- move_left_with_bomb() - Move left AND drop bomb
-- move_right_with_bomb() - Move right AND drop bomb
-- set_next_thought(thought: string) - Save your plan for next turn (MAX 50 words)
+- move_up() / move_down() / move_left() / move_right() - Move without bomb
+- move_up_with_bomb() / move_down_with_bomb() / etc. - Drop bomb then move
+- set_next_thought(thought: string) - Save your plan (MAX 50 words)
 
-THOUGHT/MEMORY SYSTEM:
-- ALWAYS call set_next_thought() to record your current plan/strategy
-- Keep it under 50 words - be concise!
-- Examples:
-  * "Escaping south from my bomb, then circling back to trap Player 2"
-  * "Moving to center area to control space and box in Player 3"
-  * "Avoiding bombs, clearing blocks on east side for escape routes"
-- Your previous thought will be shown to you each turn - use it to maintain strategy continuity
+THOUGHT/MEMORY:
+ALWAYS call set_next_thought() with your current plan. Examples:
+- "Moving toward center (6,5) to control territory and find blocks to destroy"
+- "Placed bomb at corner, now moving right to explore east side"
+- "Player 2 is at (12,5), moving to intercept and trap them"
 
-STRATEGY TIPS:
-- PAY ATTENTION to the DANGER ANALYSIS - it tells you exactly which moves are safe!
-- Drop bomb WHILE MOVING for no penalty
-- Trap opponents between bombs and walls
-- Reference your previous thought to follow through on plans
-- Smart play: Drop bomb, move to safety, follow your plan
+Your previous thought is shown each turn - USE IT to maintain continuity and avoid repeating the same move forever!
 
-WINNING: Last player alive wins. Don't die!`;
+WINNING: Last player alive. Play smart, explore the board, and don't get stuck in repetitive patterns!`;
     }
 
     setSystemPrompt(prompt) {
@@ -263,11 +255,41 @@ WINNING: Last player alive wins. Don't die!`;
         const yourBomb = player.hasBomb ? 'You have a bomb placed - cannot place another until it explodes\n' : 'You can place a bomb\n';
         const yourScore = `Score: ${player.score}\n`;
 
+        // Find nearby soft blocks for strategic info
+        let nearbyBlocks = 0;
+        const searchRadius = 3;
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const checkX = player.x + dx;
+                const checkY = player.y + dy;
+                if (checkX >= 0 && checkX < 13 && checkY >= 0 && checkY < 11) {
+                    if (gameState.grid[checkY][checkX] === 1) {
+                        nearbyBlocks++;
+                    }
+                }
+            }
+        }
+
+        const blocksInfo = `Soft blocks within ${searchRadius} tiles: ${nearbyBlocks} (each worth +10 points)\n`;
+
+        // Strategic recommendation
+        let strategyHint = '\n💡 STRATEGIC HINT:\n';
+        if (player.x <= 2 || player.x >= 10 || player.y <= 2 || player.y >= 8) {
+            strategyHint += '⚠️ You are near the EDGE! Move toward CENTER (6,5) for better positioning.\n';
+        } else {
+            strategyHint += '✓ Good position. Look for soft blocks to destroy or opponents to trap.\n';
+        }
+
+        if (nearbyBlocks > 0 && !player.hasBomb) {
+            strategyHint += `💣 ${nearbyBlocks} soft blocks nearby - consider dropping a bomb!\n`;
+        }
+
         // Previous thought/plan
         const previousThought = this.getPlayerMemory(playerId);
-        const memoryInfo = `\n💭 YOUR LAST THOUGHT/PLAN:\n"${previousThought}"\n`;
+        let memoryInfo = `\n💭 YOUR LAST THOUGHT/PLAN:\n"${previousThought}"\n`;
+        memoryInfo += 'Use this to avoid repeating the same moves! If your plan isn\'t working, try something different.\n';
 
-        const fullDescription = gridStr + playersInfo + bombsInfo + adjacentInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + memoryInfo;
+        const fullDescription = gridStr + playersInfo + bombsInfo + adjacentInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + strategyHint + memoryInfo;
         return fullDescription;
     }
 
