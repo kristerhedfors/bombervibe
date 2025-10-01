@@ -160,6 +160,9 @@ body {
     flex-direction: column;
     box-shadow: 0 0 15px;
     position: relative; /* For skull overlay */
+    height: 100%; /* Fill grid cell exactly */
+    max-height: 250px; /* Match grid row height */
+    overflow: hidden; /* Prevent expansion */
 }
 
 .top-left {
