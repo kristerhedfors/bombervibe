@@ -54,7 +54,7 @@ class Player {
             playerId: this.id,
             x: this.x,
             y: this.y,
-            turnsUntilExplode: 8, // Explodes after 8 turns (2 full rounds with 4 players)
+            turnsUntilExplode: 10, // Explodes after 10 turns (2.5 full rounds with 4 players)
             range: 1, // 1 tile blast radius
             placedOnTurn: null // Will be set by game
         };

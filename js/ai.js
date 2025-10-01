@@ -49,8 +49,8 @@ MOVEMENT:
 
 BOMB MECHANICS:
 - Each player can have only ONE active bomb at a time
-- Bombs explode after 8 TURNS (turn-based countdown, NOT time-based)
-- With 4 players taking turns sequentially, 8 turns = 2 full rounds through all players
+- Bombs explode after 10 TURNS (turn-based countdown, NOT time-based)
+- With 4 players taking turns sequentially, 10 turns = 2.5 full rounds through all players
 - Explosion range: 1 tile in all 4 directions (cross pattern)
 - Explosions destroy soft blocks (🌳) but NOT hard blocks (🗿)
 - Explosions kill any player in the blast radius
@@ -77,8 +77,9 @@ STRATEGY TIPS:
 - Watch bomb turn countdown to avoid your own explosions
 - Corner opponents when they have a bomb active
 - Control center area for tactical advantage
-- With 8-turn timers, you get exactly 2 moves before your own bomb explodes
-- Smart play: Move forward while dropping bomb behind you, then move again to be 2 tiles away!
+- With 10-turn timers, you get 2 full moves before your own bomb explodes (at least 2 tiles away)
+- Smart play: Drop bomb, move away immediately, move again to be safe!
+- NEVER move back onto your own bomb after escaping!
 
 WINNING:
 - Last player alive wins automatically
@@ -322,11 +323,42 @@ Now choose your action (JSON only):`;
                 dropBomb = true;
             }
 
-            // If no direction found, randomize it
+            // If no direction found, pick a VALID random direction
             if (!direction) {
-                const directions = ['up', 'down', 'left', 'right'];
-                direction = directions[Math.floor(Math.random() * 4)];
-                console.log(`[AI P${playerId}] No direction found, randomized: ${direction}`);
+                const player = gameState.players.find(p => p.id === playerId);
+                const validDirections = [];
+
+                // Check each direction for validity
+                const checkDir = [
+                    {name: 'up', dx: 0, dy: -1},
+                    {name: 'down', dx: 0, dy: 1},
+                    {name: 'left', dx: -1, dy: 0},
+                    {name: 'right', dx: 1, dy: 0}
+                ];
+
+                for (const d of checkDir) {
+                    const newX = player.x + d.dx;
+                    const newY = player.y + d.dy;
+
+                    // Check bounds
+                    if (newX >= 0 && newX < 13 && newY >= 0 && newY < 11) {
+                        const cell = gameState.grid[newY][newX];
+                        // Valid if empty, soft block, or bomb (can pass through)
+                        if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
+                            validDirections.push(d.name);
+                        }
+                    }
+                }
+
+                // Pick random from valid directions, or any direction if none valid
+                if (validDirections.length > 0) {
+                    direction = validDirections[Math.floor(Math.random() * validDirections.length)];
+                    console.log(`[AI P${playerId}] No direction found, randomized from valid: ${direction}`);
+                } else {
+                    const allDirs = ['up', 'down', 'left', 'right'];
+                    direction = allDirs[Math.floor(Math.random() * 4)];
+                    console.log(`[AI P${playerId}] No valid moves, picked random: ${direction}`);
+                }
             }
 
             console.log(`[AI P${playerId}] Extracted: direction=${direction}, dropBomb=${dropBomb}`);
@@ -345,13 +377,15 @@ Now choose your action (JSON only):`;
     }
 
     // Fallback: generate random valid move (ALWAYS returns a move action)
+    // Prioritizes moves that AVOID bombs
     getRandomMove(gameState, playerId) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player || !player.alive) {
             return { action: 'move', direction: 'right', dropBomb: false };
         }
 
-        const validMoves = [];
+        const safeMoves = [];  // Moves that don't go onto a bomb
+        const validMoves = []; // All valid moves (including onto bombs)
 
         // Check all 4 directions
         const directions = ['up', 'down', 'left', 'right'];
@@ -369,17 +403,28 @@ Now choose your action (JSON only):`;
                 const cell = gameState.grid[y][x];
                 // Can move through empty, soft blocks, bombs
                 if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
-                    validMoves.push({ action: 'move', direction: dir, dropBomb: !player.hasBomb && Math.random() > 0.7 });
+                    const move = { action: 'move', direction: dir, dropBomb: !player.hasBomb && Math.random() > 0.7 };
+                    validMoves.push(move);
+
+                    // Prioritize moves that DON'T go onto bombs
+                    if (cell !== 'string' || !cell.startsWith('bomb')) {
+                        safeMoves.push(move);
+                    }
                 }
             }
         }
 
-        // Random choice from valid moves
-        if (validMoves.length > 0) {
+        // Prefer safe moves (avoiding bombs), fall back to any valid move
+        if (safeMoves.length > 0) {
+            console.log(`[AI P${playerId}] Random move: choosing from ${safeMoves.length} safe moves`);
+            return safeMoves[Math.floor(Math.random() * safeMoves.length)];
+        } else if (validMoves.length > 0) {
+            console.log(`[AI P${playerId}] Random move: no safe moves, choosing from ${validMoves.length} valid moves`);
             return validMoves[Math.floor(Math.random() * validMoves.length)];
         }
 
         // No valid moves - try any direction (will likely fail but that's ok)
+        console.log(`[AI P${playerId}] Random move: no valid moves at all, picking any direction`);
         return {
             action: 'move',
             direction: directions[Math.floor(Math.random() * 4)],
