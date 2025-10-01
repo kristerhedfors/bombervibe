@@ -199,31 +199,31 @@ body {
 
 .reset-prompt {
     position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 0.5rem;
+    top: 2rem;
     background: none;
-    border: 1px solid currentColor;
+    border: none;
     color: inherit;
     font-size: 1.2rem;
-    width: 24px;
-    height: 24px;
+    width: auto;
+    height: auto;
     padding: 0;
     cursor: pointer;
-    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
+    transition: transform 0.1s;
     font-family: 'Courier New', monospace;
     line-height: 1;
+    opacity: 0.6;
 }
 
 .reset-prompt:hover {
-    background: currentColor;
-    color: var(--bg-dark);
-    box-shadow: 0 0 10px currentColor;
-    transform: translateY(-50%) rotate(180deg);
+    opacity: 1;
+}
+
+.reset-prompt:active {
+    transform: scale(0.9);
 }
 
 .top-left .prompt-header { color: var(--cyan); }
