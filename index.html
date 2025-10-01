@@ -14,7 +14,7 @@
             <p>Enter your OpenAI API key to power the AI players</p>
             <input type="password" id="apiKeyInput" placeholder="sk-..." />
             <button id="saveApiKey">INITIALIZE</button>
-            <p class="model-info">Model: gpt-4o-mini</p>
+            <p class="model-info">Model: gpt-4.1-mini</p>
         </div>
     </div>
 
@@ -37,14 +37,12 @@
         <!-- Top Left Prompt -->
         <div class="prompt-editor top-left">
             <div class="prompt-header">PLAYER 1 [CYAN]</div>
-            <div class="thought-box" id="thought1">No previous thought</div>
             <textarea id="prompt1" placeholder="Enter AI strategy...">You are Player 1 (cyan). EXPLORE toward center (6,5). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don't repeat moves!</textarea>
         </div>
 
         <!-- Top Right Prompt -->
         <div class="prompt-editor top-right">
             <div class="prompt-header">PLAYER 2 [MAGENTA]</div>
-            <div class="thought-box" id="thought2">No previous thought</div>
             <textarea id="prompt2" placeholder="Enter AI strategy...">You are Player 2 (magenta). AGGRESSIVE play - move toward center, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!</textarea>
         </div>
 
@@ -77,14 +75,12 @@
         <!-- Bottom Left Prompt -->
         <div class="prompt-editor bottom-left">
             <div class="prompt-header">PLAYER 3 [YELLOW]</div>
-            <div class="thought-box" id="thought3">No previous thought</div>
             <textarea id="prompt3" placeholder="Enter AI strategy...">You are Player 3 (yellow). DEFENSIVE explorer - clear blocks for escape routes, maintain distance from opponents. Use DANGER ANALYSIS to stay safe and adapt plans!</textarea>
         </div>
 
         <!-- Bottom Right Prompt -->
         <div class="prompt-editor bottom-right">
             <div class="prompt-header">PLAYER 4 [GREEN]</div>
-            <div class="thought-box" id="thought4">No previous thought</div>
             <textarea id="prompt4" placeholder="Enter AI strategy...">You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!</textarea>
         </div>
     </div>

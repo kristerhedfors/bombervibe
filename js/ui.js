@@ -189,6 +189,7 @@ function resetGame() {
         cancelAnimationFrame(animationFrameId);
     }
     game.reset();
+    ai.clearAllMemories();
     manualControlEnabled = false;
     lastTurnTime = 0;
     renderGrid();
@@ -249,9 +250,6 @@ async function executeTurn() {
         log('All players thinking...');
         const allMoves = await ai.getAllPlayerMoves(gameState, game);
         console.log(`[ROUND ${round}] All AI moves received:`, allMoves);
-
-        // Update thought displays
-        updateThoughts();
 
         // Execute all moves sequentially to maintain game order
         for (let playerId = 1; playerId <= 4; playerId++) {
@@ -409,7 +407,7 @@ function renderFloatingThoughts() {
         if (!player.alive) continue;
 
         const thought = ai.getPlayerMemory(i);
-        if (!thought || thought === 'No previous thought') continue;
+        if (!thought || thought === 'No previous thought' || thought.trim() === '') continue;
 
         // Create floating thought bubble
         const bubble = document.createElement('div');
@@ -521,15 +519,4 @@ Using random move as fallback.`;
 
 function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
-}
-
-// Update thought displays for all players
-function updateThoughts() {
-    for (let i = 1; i <= 4; i++) {
-        const thoughtElement = document.getElementById(`thought${i}`);
-        if (thoughtElement) {
-            const thought = ai.getPlayerMemory(i);
-            thoughtElement.textContent = thought;
-        }
-    }
 }

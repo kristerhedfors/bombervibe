@@ -4,7 +4,7 @@ class AIController {
     constructor() {
         this.apiKey = null;
         this.apiUrl = 'https://api.openai.com/v1/chat/completions';
-        this.model = 'gpt-4o-mini';
+        this.model = 'gpt-4.1-mini';
         this.prompts = {
             1: '',
             2: '',
@@ -149,6 +149,14 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
 
     getPlayerMemory(playerId) {
         return this.playerMemory[playerId] || 'No previous thought';
+    }
+
+    clearAllMemories() {
+        console.log('[AI] Clearing all player memories for new round');
+        for (let i = 1; i <= 4; i++) {
+            this.playerMemory[i] = '';
+            localStorage.removeItem(`player_${i}_memory`);
+        }
     }
 
     // Generate game state description for LLM with danger analysis
