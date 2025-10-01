@@ -118,6 +118,18 @@ function setupEventListeners() {
         });
     }
 
+    // Reset prompt buttons
+    document.querySelectorAll('.reset-prompt').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const playerId = parseInt(e.target.getAttribute('data-player'));
+            const defaultPrompt = ai.resetPrompt(playerId);
+            if (defaultPrompt) {
+                document.getElementById(`prompt${playerId}`).value = defaultPrompt;
+                log(`Player ${playerId} prompt reset to default`);
+            }
+        });
+    });
+
     // Keyboard controls for manual play (Player 1)
     document.addEventListener('keydown', handleKeyPress);
 }
@@ -349,46 +361,34 @@ function endGame() {
 }
 
 function getPlayerEmoji(playerId) {
-    const emojis = ['⛷️', '🧑‍🌾', '🛒', '🧑‍🚀'];
+    const emojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
     return emojis[playerId - 1];
 }
 
 // Render the grid
 function renderGrid() {
     const gridElement = document.getElementById('grid');
-    gridElement.innerHTML = '';
 
+    // Clear only non-player elements (preserve player entities for smooth transitions)
+    const existingCells = gridElement.querySelectorAll('.cell');
+    existingCells.forEach(cell => cell.remove());
+    const existingThoughts = gridElement.querySelectorAll('.floating-thought');
+    existingThoughts.forEach(thought => thought.remove());
+
+    // Render grid cells (terrain, bombs, explosions only - players rendered separately)
     for (let y = 0; y < game.GRID_HEIGHT; y++) {
         for (let x = 0; x < game.GRID_WIDTH; x++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
 
-            // Check what's at this position
-            const player = game.players.find(p => p.alive && p.x === x && p.y === y);
             const bomb = game.bombs.find(b => b.x === x && b.y === y);
             const explosion = game.explosions.find(exp =>
                 exp.cells.some(c => c.x === x && c.y === y)
             );
 
-            // Priority: Explosion > Player+Bomb > Player > Bomb > Terrain
+            // Priority: Explosion > Bomb > Terrain
             if (explosion) {
                 cell.classList.add('explosion');
-                gridElement.appendChild(cell);
-                continue;
-            }
-
-            // Player on top of bomb - STACK THEM!
-            if (player && bomb) {
-                cell.classList.add('stacked');
-                cell.classList.add('bomb'); // Bomb as background
-                cell.classList.add(`player${player.id}`); // Player on top
-                gridElement.appendChild(cell);
-                continue;
-            }
-
-            // Just player
-            if (player) {
-                cell.classList.add(`player${player.id}`);
                 gridElement.appendChild(cell);
                 continue;
             }
@@ -414,8 +414,58 @@ function renderGrid() {
         }
     }
 
+    // Render players as separate absolutely positioned entities for smooth movement
+    renderPlayers();
+
     // Add floating thought bubbles for all alive players
     renderFloatingThoughts();
+}
+
+// Render players as absolutely positioned entities
+function renderPlayers() {
+    const gridElement = document.getElementById('grid');
+    const gridRect = gridElement.getBoundingClientRect();
+
+    // Calculate cell dimensions
+    const gapSize = 1; // 1px gap from CSS
+    const totalWidth = gridRect.width;
+    const totalHeight = gridRect.height;
+    const cellWidth = (totalWidth - (gapSize * (game.GRID_WIDTH - 1))) / game.GRID_WIDTH;
+    const cellHeight = (totalHeight - (gapSize * (game.GRID_HEIGHT - 1))) / game.GRID_HEIGHT;
+
+    for (let i = 0; i < game.players.length; i++) {
+        const player = game.players[i];
+        if (!player.alive) continue;
+
+        let playerEntity = gridElement.querySelector(`.player-entity.player${player.id}`);
+
+        // Create player entity if it doesn't exist
+        if (!playerEntity) {
+            playerEntity = document.createElement('div');
+            playerEntity.className = `player-entity player${player.id}`;
+            gridElement.appendChild(playerEntity);
+        }
+
+        // Calculate position including gaps
+        const left = player.x * (cellWidth + gapSize);
+        const top = player.y * (cellHeight + gapSize);
+
+        // Set position for smooth transition
+        playerEntity.style.left = `${left}px`;
+        playerEntity.style.top = `${top}px`;
+        playerEntity.style.width = `${cellWidth}px`;
+        playerEntity.style.height = `${cellHeight}px`;
+    }
+
+    // Remove dead players
+    const allPlayerEntities = gridElement.querySelectorAll('.player-entity');
+    allPlayerEntities.forEach(entity => {
+        const playerId = parseInt(entity.className.match(/player(\d)/)[1]);
+        const player = game.players[playerId - 1];
+        if (!player.alive) {
+            entity.remove();
+        }
+    });
 }
 
 // Render floating thought bubbles above players

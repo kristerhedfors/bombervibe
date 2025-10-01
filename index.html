@@ -37,13 +37,19 @@
     <div id="gameContainer">
         <!-- Top Left Prompt -->
         <div class="prompt-editor top-left">
-            <div class="prompt-header">PLAYER 1 [CYAN]</div>
+            <div class="prompt-header">
+                PLAYER 1 [CYAN]
+                <button class="reset-prompt" data-player="1" title="Reset to default">↻</button>
+            </div>
             <textarea id="prompt1" placeholder="Enter AI strategy...">You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don't repeat moves!</textarea>
         </div>
 
         <!-- Top Right Prompt -->
         <div class="prompt-editor top-right">
-            <div class="prompt-header">PLAYER 2 [MAGENTA]</div>
+            <div class="prompt-header">
+                PLAYER 2 [MAGENTA]
+                <button class="reset-prompt" data-player="2" title="Reset to default">↻</button>
+            </div>
             <textarea id="prompt2" placeholder="Enter AI strategy...">You are Player 2 (magenta). AGGRESSIVE play - move toward center G6, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!</textarea>
         </div>
 
@@ -79,13 +85,19 @@
 
         <!-- Bottom Left Prompt -->
         <div class="prompt-editor bottom-left">
-            <div class="prompt-header">PLAYER 3 [YELLOW]</div>
+            <div class="prompt-header">
+                PLAYER 3 [YELLOW]
+                <button class="reset-prompt" data-player="3" title="Reset to default">↻</button>
+            </div>
             <textarea id="prompt3" placeholder="Enter AI strategy...">You are Player 3 (yellow). DEFENSIVE explorer - clear blocks for escape routes, maintain distance from opponents. Use DANGER ANALYSIS to stay safe and adapt plans!</textarea>
         </div>
 
         <!-- Bottom Right Prompt -->
         <div class="prompt-editor bottom-right">
-            <div class="prompt-header">PLAYER 4 [GREEN]</div>
+            <div class="prompt-header">
+                PLAYER 4 [GREEN]
+                <button class="reset-prompt" data-player="4" title="Reset to default">↻</button>
+            </div>
             <textarea id="prompt4" placeholder="Enter AI strategy...">You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!</textarea>
         </div>
     </div>

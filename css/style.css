@@ -190,6 +190,40 @@ body {
     margin-bottom: 0.5rem;
     text-align: center;
     font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.reset-prompt {
+    position: absolute;
+    right: 0.5rem;
+    top: 2rem;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.2rem;
+    width: auto;
+    height: auto;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+    font-family: 'Courier New', monospace;
+    line-height: 1;
+    opacity: 0.6;
+}
+
+.reset-prompt:hover {
+    opacity: 1;
+}
+
+.reset-prompt:active {
+    transform: scale(0.9);
 }
 
 .top-left .prompt-header { color: var(--cyan); }
@@ -507,6 +541,54 @@ body {
     filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
 }
 
+/* Player entities - positioned absolutely for smooth movement */
+.player-entity {
+    position: absolute;
+    width: calc((100% - 12px) / 13); /* 13 columns, 12 gaps of 1px */
+    height: calc((100% - 10px) / 11); /* 11 rows, 10 gaps of 1px */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.2rem;
+    animation: pulse 1s infinite;
+    z-index: 10;
+    pointer-events: none;
+    transition: left 0.3s ease-out, top 0.3s ease-out;
+}
+
+.player-entity.player1 {
+    filter: drop-shadow(0 0 10px var(--cyan));
+}
+
+.player-entity.player1::after {
+    content: '⛷️';
+}
+
+.player-entity.player2 {
+    filter: drop-shadow(0 0 10px var(--magenta));
+}
+
+.player-entity.player2::after {
+    content: '🥷';
+}
+
+.player-entity.player3 {
+    filter: drop-shadow(0 0 10px var(--yellow));
+}
+
+.player-entity.player3::after {
+    content: '🛒';
+}
+
+.player-entity.player4 {
+    filter: drop-shadow(0 0 10px var(--green));
+}
+
+.player-entity.player4::after {
+    content: '🧑‍🚀';
+}
+
+/* Legacy cell-based player rendering (fallback) */
 .cell.player1 {
     background: #0d0d0d;
 }
@@ -525,7 +607,7 @@ body {
 }
 
 .cell.player2::after {
-    content: '🧑‍🌾';
+    content: '🥷';
     font-size: 2.2rem;
     animation: pulse 1s infinite;
     filter: drop-shadow(0 0 10px var(--magenta));
@@ -567,7 +649,6 @@ body {
     animation: bombPulse 0.5s infinite;
     filter: drop-shadow(0 0 15px var(--bomb-color));
     z-index: 1;
-    opacity: 0.7;
 }
 
 .cell.bomb {
@@ -582,13 +663,16 @@ body {
 }
 
 .cell.explosion {
-    background: var(--explosion) !important;
+    background: #0d0d0d !important;
     animation: explode 0.5s;
 }
 
 .cell.explosion::after {
-    content: '💥';
-    font-size: 2.5rem;
+    content: '⚡';
+    font-size: 3rem;
+    animation: electricFlash 0.2s infinite;
+    filter: drop-shadow(0 0 20px #ffff00);
+    color: #ffff00;
 }
 
 @keyframes pulse {
@@ -604,6 +688,11 @@ body {
 @keyframes explode {
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes electricFlash {
+    0%, 100% { opacity: 1; transform: rotate(0deg); }
+    50% { opacity: 0.3; transform: rotate(15deg); }
 }
 
 /* Score Board */
