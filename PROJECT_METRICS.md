@@ -67,60 +67,60 @@
 
 | Rank | File | Lines |
 |------|------|-------|
-| 1 | css/style.css | 1,180 |
-| 2 | js/ui.js | 956 |
-| 3 | js/history.js | 560 |
-| 4 | js/serialization.js | 551 |
-| 5 | js/ai.js | 550 |
-| 6 | js/game.js | 461 |
-| 7 | REFACTORING.md | 446 |
-| 8 | js/entities/item.js | 421 |
-| 9 | js/state.js | 403 |
-| 10 | js/entities/explosion.js | 374 |
+| 1 | [css/style.css](css/style.css) | 1,180 |
+| 2 | [js/ui.js](js/ui.js) | 956 |
+| 3 | [js/history.js](js/history.js) | 560 |
+| 4 | [js/serialization.js](js/serialization.js) | 551 |
+| 5 | [js/ai.js](js/ai.js) | 550 |
+| 6 | [js/game.js](js/game.js) | 461 |
+| 7 | [REFACTORING.md](REFACTORING.md) | 446 |
+| 8 | [js/entities/item.js](js/entities/item.js) | 421 |
+| 9 | [js/state.js](js/state.js) | 403 |
+| 10 | [js/entities/explosion.js](js/entities/explosion.js) | 374 |
 
 ### By Size
 
 | Rank | File | Size |
 |------|------|------|
-| 1 | js/ui.js | 30.3 KB |
-| 2 | css/style.css | 23.3 KB |
-| 3 | js/ai.js | 21.2 KB |
-| 4 | js/serialization.js | 15.0 KB |
-| 5 | js/history.js | 14.7 KB |
-| 6 | js/game.js | 13.5 KB |
-| 7 | js/entities/item.js | 12.7 KB |
-| 8 | REFACTORING.md | 12.5 KB |
-| 9 | js/state.js | 11.7 KB |
-| 10 | js/entities/explosion.js | 11.1 KB |
+| 1 | [js/ui.js](js/ui.js) | 30.3 KB |
+| 2 | [css/style.css](css/style.css) | 23.3 KB |
+| 3 | [js/ai.js](js/ai.js) | 21.2 KB |
+| 4 | [js/serialization.js](js/serialization.js) | 15.0 KB |
+| 5 | [js/history.js](js/history.js) | 14.7 KB |
+| 6 | [js/game.js](js/game.js) | 13.5 KB |
+| 7 | [js/entities/item.js](js/entities/item.js) | 12.7 KB |
+| 8 | [REFACTORING.md](REFACTORING.md) | 12.5 KB |
+| 9 | [js/state.js](js/state.js) | 11.7 KB |
+| 10 | [js/entities/explosion.js](js/entities/explosion.js) | 11.1 KB |
 
 ## Project Structure
 
-```
-├── .claude/
-│   └── settings.local.json (122 B)
-├── css/
-│   └── style.css (23.3 KB)
-├── js/
-│   ├── entities/
-│   │   ├── bomb.js (9.5 KB)
-│   │   ├── explosion.js (11.1 KB)
-│   │   ├── item.js (12.7 KB)
-│   │   └── player.js (8.0 KB)
-│   ├── actions.js (9.0 KB)
-│   ├── ai.js (21.2 KB)
-│   ├── game.js (13.5 KB)
-│   ├── history.js (14.7 KB)
-│   ├── player.js (2.3 KB)
-│   ├── serialization.js (15.0 KB)
-│   ├── state.js (11.7 KB)
-│   └── ui.js (30.3 KB)
-├── scripts/
-├── CLAUDE.md (7.4 KB)
-├── debug_game.py (5.1 KB)
-├── DEBUG.md (4.1 KB)
-├── favicon.svg (3.6 KB)
-├── index.html (5.9 KB)
-├── README.md (6.9 KB)
-├── REFACTORING.md (12.5 KB)
-└── requirements.txt (19 B)
-```
+<pre>
+├── **.claude/**
+│   └── [settings.local.json](.claude/settings.local.json) _(122 B)_
+├── **css/**
+│   └── [style.css](css/style.css) _(23.3 KB)_
+├── **js/**
+│   ├── **entities/**
+│   │   ├── [bomb.js](js/entities/bomb.js) _(9.5 KB)_
+│   │   ├── [explosion.js](js/entities/explosion.js) _(11.1 KB)_
+│   │   ├── [item.js](js/entities/item.js) _(12.7 KB)_
+│   │   └── [player.js](js/entities/player.js) _(8.0 KB)_
+│   ├── [actions.js](js/actions.js) _(9.0 KB)_
+│   ├── [ai.js](js/ai.js) _(21.2 KB)_
+│   ├── [game.js](js/game.js) _(13.5 KB)_
+│   ├── [history.js](js/history.js) _(14.7 KB)_
+│   ├── [player.js](js/player.js) _(2.3 KB)_
+│   ├── [serialization.js](js/serialization.js) _(15.0 KB)_
+│   ├── [state.js](js/state.js) _(11.7 KB)_
+│   └── [ui.js](js/ui.js) _(30.3 KB)_
+├── **scripts/**
+├── [CLAUDE.md](CLAUDE.md) _(7.4 KB)_
+├── [debug_game.py](debug_game.py) _(5.1 KB)_
+├── [DEBUG.md](DEBUG.md) _(4.1 KB)_
+├── [favicon.svg](favicon.svg) _(3.6 KB)_
+├── [index.html](index.html) _(5.9 KB)_
+├── [README.md](README.md) _(6.9 KB)_
+├── [REFACTORING.md](REFACTORING.md) _(12.5 KB)_
+└── [requirements.txt](requirements.txt) _(19 B)_
+</pre>

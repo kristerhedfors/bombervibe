@@ -250,7 +250,7 @@ class ProjectMetrics {
         md += `|------|------|-------|\n`;
         for (let i = 0; i < m.largest.byLines.length; i++) {
             const { path, value } = m.largest.byLines[i];
-            md += `| ${i + 1} | ${path} | ${value.toLocaleString()} |\n`;
+            md += `| ${i + 1} | [${path}](${path}) | ${value.toLocaleString()} |\n`;
         }
 
         md += `\n### By Size\n\n`;
@@ -258,13 +258,13 @@ class ProjectMetrics {
         md += `|------|------|------|\n`;
         for (let i = 0; i < m.largest.byBytes.length; i++) {
             const { path, value } = m.largest.byBytes[i];
-            md += `| ${i + 1} | ${path} | ${this.formatBytes(value)} |\n`;
+            md += `| ${i + 1} | [${path}](${path}) | ${this.formatBytes(value)} |\n`;
         }
 
         md += `\n## Project Structure\n\n`;
-        md += `\`\`\`\n`;
+        md += `<pre>\n`;
         md += this.generateTree(this.rootDir, '', new Set());
-        md += `\`\`\`\n`;
+        md += `</pre>\n`;
 
         return md;
     }
@@ -286,16 +286,17 @@ class ProjectMetrics {
             const entry = entries[i];
             const isLast = i === entries.length - 1;
             const fullPath = path.join(dir, entry.name);
+            const relativePath = path.relative(this.rootDir, fullPath);
 
-            tree += prefix + (isLast ? '└── ' : '├── ') + entry.name;
+            tree += prefix + (isLast ? '└── ' : '├── ');
 
             if (entry.isDirectory()) {
-                tree += '/\n';
+                tree += `**${entry.name}/**\n`;
                 const newPrefix = prefix + (isLast ? '    ' : '│   ');
                 tree += this.generateTree(fullPath, newPrefix, visited);
             } else {
                 const stats = fs.statSync(fullPath);
-                tree += ` (${this.formatBytes(stats.size)})\n`;
+                tree += `[${entry.name}](${relativePath}) _(${this.formatBytes(stats.size)})_\n`;
             }
         }
 
