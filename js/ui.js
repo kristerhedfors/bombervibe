@@ -49,6 +49,9 @@ function initializeGame() {
     // Initialize game
     game.initialize();
 
+    // Set up coordinate labels
+    initializeCoordinateLabels();
+
     // Set up event listeners
     setupEventListeners();
 
@@ -58,6 +61,28 @@ function initializeGame() {
     updateGameInfo();
 
     log('System initialized. Enter API key to begin.');
+}
+
+function initializeCoordinateLabels() {
+    // Row labels: 11 down to 1 (like chess ranks, with 11 at top)
+    const rowLabels = document.getElementById('rowLabels');
+    rowLabels.innerHTML = '';
+    for (let i = game.GRID_HEIGHT; i >= 1; i--) {
+        const label = document.createElement('div');
+        label.textContent = i;
+        label.className = 'coord-label';
+        rowLabels.appendChild(label);
+    }
+
+    // Column labels: A through M (13 columns)
+    const colLabels = document.getElementById('colLabels');
+    colLabels.innerHTML = '';
+    for (let i = 0; i < game.GRID_WIDTH; i++) {
+        const label = document.createElement('div');
+        label.textContent = String.fromCharCode(65 + i); // A=65 in ASCII
+        label.className = 'coord-label';
+        colLabels.appendChild(label);
+    }
 }
 
 function setupEventListeners() {
