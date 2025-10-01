@@ -214,8 +214,8 @@ DO NOT include explanations, only the JSON action.`;
             bombsInfo += 'None\n';
         } else {
             for (const b of gameState.bombs) {
-                const timeLeft = (b.timeLeft / 1000).toFixed(1);
-                bombsInfo += `Bomb ${b.playerId}: pos=(${b.x},${b.y}) explodes in ${timeLeft}s range=1\n`;
+                const turnsLeft = b.turnsUntilExplode;
+                bombsInfo += `Bomb ${b.playerId}: pos=(${b.x},${b.y}) explodes in ${turnsLeft} turns, range=1\n`;
             }
         }
 
@@ -283,12 +283,10 @@ Now choose your action (JSON only):`;
             const content = data.choices[0].message.content.trim();
             console.log(`[AI P${playerId}] Raw response:`, content);
 
-            // Parse JSON response - PERMISSIVE parsing
+            // Parse JSON response - SUPER PERMISSIVE parsing
             const jsonMatch = content.match(/\{[^}]+\}/);
             if (!jsonMatch) {
-                console.error(`[AI P${playerId}] No JSON found in response:`, content);
-                console.log(`[AI P${playerId}] Falling back to random move`);
-                this.showError(playerId, 'No JSON found', content, 'Expected JSON object with format: {"action":"move","direction":"up/down/left/right","dropBomb":true/false}');
+                console.log(`[AI P${playerId}] No JSON found, using random move`);
                 return this.getRandomMove(gameState, playerId);
             }
 
@@ -301,60 +299,48 @@ Now choose your action (JSON only):`;
                     const fixed = jsonMatch[0].replace(/'/g, '"');
                     move = JSON.parse(fixed);
                 } catch (e2) {
-                    console.error(`[AI P${playerId}] JSON parse failed:`, jsonMatch[0]);
-                    this.showError(playerId, 'JSON parsing failed', jsonMatch[0], 'Invalid JSON syntax. Common issues: use double quotes, not single quotes. Expected format: {"action":"move","direction":"up","dropBomb":false}');
+                    console.log(`[AI P${playerId}] JSON parse failed, using random move`);
                     return this.getRandomMove(gameState, playerId);
                 }
             }
 
             console.log(`[AI P${playerId}] Parsed move:`, move);
 
-            // PERMISSIVE keyword search - look for direction anywhere in the response
+            // SUPER PERMISSIVE keyword search - look for direction and bomb keywords anywhere
             const contentLower = JSON.stringify(move).toLowerCase();
             let direction = null;
 
-            // Search for direction keywords (case-insensitive)
+            // Search for direction keywords (case-insensitive) - prioritize full words
             if (contentLower.includes('up')) direction = 'up';
             else if (contentLower.includes('down')) direction = 'down';
             else if (contentLower.includes('left')) direction = 'left';
             else if (contentLower.includes('right')) direction = 'right';
 
-            // Search for dropBomb value (any truthy/falsy indicator)
+            // Search for bomb keyword - if "bomb" appears anywhere, drop a bomb
             let dropBomb = false;
-            if (contentLower.includes('true') || contentLower.includes('"dropbomb":true') || contentLower.includes("'dropbomb':true")) {
+            if (contentLower.includes('bomb') || contentLower.includes('true')) {
                 dropBomb = true;
             }
 
-            // If we found a direction, construct valid move
-            if (direction) {
-                console.log(`[AI P${playerId}] Extracted: direction=${direction}, dropBomb=${dropBomb}`);
-                return {
-                    action: 'move',
-                    direction: direction,
-                    dropBomb: dropBomb
-                };
+            // If no direction found, randomize it
+            if (!direction) {
+                const directions = ['up', 'down', 'left', 'right'];
+                direction = directions[Math.floor(Math.random() * 4)];
+                console.log(`[AI P${playerId}] No direction found, randomized: ${direction}`);
             }
 
-            // Invalid format - log and fallback
-            console.error(`[AI P${playerId}] Could not extract direction from:`, move);
-            console.log(`[AI P${playerId}] Expected direction keyword: up/down/left/right`);
-            console.log(`[AI P${playerId}] Falling back to random move`);
-            this.showError(playerId, 'No direction found', JSON.stringify(move, null, 2), 'Could not find direction keyword (up/down/left/right) in response. Expected format: {"action":"move","direction":"up","dropBomb":false}');
-            return this.getRandomMove(gameState, playerId);
+            console.log(`[AI P${playerId}] Extracted: direction=${direction}, dropBomb=${dropBomb}`);
+            return {
+                action: 'move',
+                direction: direction,
+                dropBomb: dropBomb
+            };
 
         } catch (error) {
             console.error(`[AI P${playerId}] Exception:`, error);
             // Fallback to random move
             console.log(`[AI P${playerId}] Using random move fallback`);
-            this.showError(playerId, 'Exception occurred', error.toString(), 'An unexpected error occurred while getting AI move. Check console for details.');
             return this.getRandomMove(gameState, playerId);
-        }
-    }
-
-    // Show error modal with details
-    showError(playerId, errorType, rawResponse, expectedFormat) {
-        if (this.errorCallback) {
-            this.errorCallback(playerId, errorType, rawResponse, expectedFormat);
         }
     }
 
