@@ -393,9 +393,45 @@ body {
     color: var(--yellow);
 }
 
+/* Grid Container with Coordinate Labels */
+#gridContainer {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    grid-template-rows: 1fr 30px;
+    gap: 5px;
+}
+
+#rowLabels {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    color: var(--cyan);
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 2px 0;
+}
+
+#colLabels {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    color: var(--cyan);
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 0 2px;
+}
+
 /* Grid */
 #grid {
-    flex: 1;
+    grid-column: 2;
+    grid-row: 1;
     display: grid;
     grid-template-columns: repeat(13, 1fr);
     grid-template-rows: repeat(11, 1fr);

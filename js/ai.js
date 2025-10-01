@@ -36,7 +36,8 @@ GAME OBJECTIVE:
 4. ELIMINATE - Trap opponents for +100 points
 
 GAME RULES:
-- 13x11 grid (x=0-12, y=0-10). You start in a corner, MOVE AWAY from edges!
+- 13x11 grid using chess notation: columns A-M (A=left, M=right), rows 1-11 (11=top, 1=bottom)
+- You start in a corner, MOVE AWAY from edges!
 - Bombs explode after 10 TURNS with 1-tile blast radius in all directions
 - You can walk through soft blocks (#) and bombs (💣)
 - Hard blocks (X) are indestructible and block movement
@@ -50,7 +51,7 @@ CRITICAL SURVIVAL RULES - READ CAREFULLY:
 
 STRATEGIC PLAY:
 - DON'T just move up/down repeatedly on the edge!
-- EXPLORE toward the CENTER of the board (around x=6, y=5)
+- EXPLORE toward the CENTER of the board (around G6)
 - DROP BOMBS near soft blocks (#) to destroy them for points
 - After dropping a bomb, ENSURE you can escape to a safe position (not blocked)
 - Use your previous thought to avoid repeating failed strategies
@@ -64,10 +65,10 @@ You MUST respond with valid JSON in this exact format:
 }
 
 EXAMPLES:
-{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at corner (0,0), moving right to escape. Safe move to (1,0). Will circle back to trap Player 2."}
-{"direction": "up", "dropBomb": false, "thought": "Moving toward center (6,5) to control territory and find soft blocks to destroy for points."}
+{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at corner A11, moving right to escape. Safe move to B11. Will circle back to trap Player 2."}
+{"direction": "up", "dropBomb": false, "thought": "Moving toward center G6 to control territory and find soft blocks to destroy for points."}
 {"direction": "down", "dropBomb": false, "thought": "Player 3 approaching from north. Moving south to avoid confrontation and position for counter-attack."}
-{"direction": "left", "dropBomb": true, "thought": "Soft block cluster at (4,5). Dropping bomb then escaping left. Will destroy 3+ blocks for 30+ points."}
+{"direction": "left", "dropBomb": true, "thought": "Soft block cluster at E6. Dropping bomb then escaping left. Will destroy 3+ blocks for 30+ points."}
 
 THOUGHT/MEMORY:
 Your previous thought is shown each turn - USE IT to maintain continuity and avoid repeating the same move forever!
@@ -159,21 +160,29 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         }
     }
 
+    // Convert grid coordinates (x,y) to chess notation (e.g., C5)
+    coordsToChess(x, y) {
+        const file = String.fromCharCode(65 + x); // A=65 in ASCII
+        const rank = 11 - y; // Invert y: y=0 is rank 11, y=10 is rank 1
+        return `${file}${rank}`;
+    }
+
     // Generate game state description for LLM with danger analysis
     generateGameStateDescription(gameState, playerId, game) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
-        // Build grid representation
-        let gridStr = 'GRID (13x11):\n';
-        gridStr += '  ';
+        // Build grid representation with chess notation
+        let gridStr = 'GRID (Chess notation: A-M = columns, 11-1 = rows):\n';
+        gridStr += '   ';
         for (let x = 0; x < 13; x++) {
-            gridStr += x.toString().padStart(2, ' ') + ' ';
+            gridStr += String.fromCharCode(65 + x) + '  ';
         }
         gridStr += '\n';
 
         for (let y = 0; y < 11; y++) {
-            gridStr += y.toString().padStart(2, ' ') + ' ';
+            const rank = 11 - y;
+            gridStr += rank.toString().padStart(2, ' ') + ' ';
             for (let x = 0; x < 13; x++) {
                 const cell = gameState.grid[y][x];
 
@@ -215,7 +224,8 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         for (const p of gameState.players) {
             const status = p.alive ? 'ALIVE' : 'DEAD';
             const hasBomb = p.hasBomb ? 'has bomb placed' : 'can place bomb';
-            playersInfo += `Player ${p.id} (${p.color}): pos=(${p.x},${p.y}) ${status} score=${p.score} ${hasBomb}\n`;
+            const pos = this.coordsToChess(p.x, p.y);
+            playersInfo += `Player ${p.id} (${p.color}): pos=${pos} ${status} score=${p.score} ${hasBomb}\n`;
         }
 
         // Bomb info
@@ -225,7 +235,8 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         } else {
             for (const b of gameState.bombs) {
                 const turnsLeft = b.turnsUntilExplode;
-                bombsInfo += `Bomb ${b.playerId}: pos=(${b.x},${b.y}) explodes in ${turnsLeft} turns, range=1\n`;
+                const pos = this.coordsToChess(b.x, b.y);
+                bombsInfo += `Bomb ${b.playerId}: pos=${pos} explodes in ${turnsLeft} turns, range=1\n`;
             }
         }
 
@@ -237,7 +248,8 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         } else {
             adjacentInfo += `${adjacentBombs.length} bomb(s) within 2 tiles of you:\n`;
             for (const bomb of adjacentBombs) {
-                adjacentInfo += `  - Bomb at (${bomb.x},${bomb.y}) by Player ${bomb.playerId}: ${bomb.turnsLeft} turns left, ${bomb.distance} tiles away\n`;
+                const pos = this.coordsToChess(bomb.x, bomb.y);
+                adjacentInfo += `  - Bomb at ${pos} by Player ${bomb.playerId}: ${bomb.turnsLeft} turns left, ${bomb.distance} tiles away\n`;
             }
         }
 
@@ -247,14 +259,16 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         const currentlySafe = !game.isPositionLethal(player.x, player.y, 1);
 
         let dangerInfo = '\n🚨 DANGER ANALYSIS:\n';
-        dangerInfo += `Current position (${player.x},${player.y}): ${currentlySafe ? '✅ SAFE' : '💀 LETHAL - YOU WILL DIE IF YOU STAY!'}\n\n`;
+        const currentPos = this.coordsToChess(player.x, player.y);
+        dangerInfo += `Current position ${currentPos}: ${currentlySafe ? '✅ SAFE' : '💀 LETHAL - YOU WILL DIE IF YOU STAY!'}\n\n`;
 
         dangerInfo += 'SAFE MOVES (will NOT kill you):\n';
         if (safeMoves.length === 0) {
             dangerInfo += '  ⚠️  NO SAFE MOVES AVAILABLE! All directions are lethal!\n';
         } else {
             for (const move of safeMoves) {
-                dangerInfo += `  ✅ ${move.direction.toUpperCase()} to (${move.x},${move.y}) - SAFE\n`;
+                const movePos = this.coordsToChess(move.x, move.y);
+                dangerInfo += `  ✅ ${move.direction.toUpperCase()} to ${movePos} - SAFE\n`;
             }
         }
 
@@ -263,13 +277,14 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
             dangerInfo += '  None - all valid moves are safe\n';
         } else {
             for (const move of dangerousMoves) {
-                dangerInfo += `  💀 ${move.direction.toUpperCase()} to (${move.x},${move.y}) - DEATH!\n`;
+                const movePos = this.coordsToChess(move.x, move.y);
+                dangerInfo += `  💀 ${move.direction.toUpperCase()} to ${movePos} - DEATH!\n`;
             }
         }
 
         // Your status
         const yourInfo = `\nYOU ARE PLAYER ${playerId}:\n`;
-        const yourStatus = `Position: (${player.x}, ${player.y})\n`;
+        const yourStatus = `Position: ${currentPos}\n`;
         const yourBomb = player.hasBomb ? 'You have a bomb placed - cannot place another until it explodes\n' : 'You can place a bomb\n';
         const yourScore = `Score: ${player.score}\n`;
 
@@ -293,7 +308,7 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         // Strategic recommendation
         let strategyHint = '\n💡 STRATEGIC HINT:\n';
         if (player.x <= 2 || player.x >= 10 || player.y <= 2 || player.y >= 8) {
-            strategyHint += '⚠️ You are near the EDGE! Move toward CENTER (6,5) for better positioning.\n';
+            strategyHint += '⚠️ You are near the EDGE! Move toward CENTER (G6) for better positioning.\n';
         } else {
             strategyHint += '✓ Good position. Look for soft blocks to destroy or opponents to trap.\n';
         }

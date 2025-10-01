@@ -37,13 +37,13 @@
         <!-- Top Left Prompt -->
         <div class="prompt-editor top-left">
             <div class="prompt-header">PLAYER 1 [CYAN]</div>
-            <textarea id="prompt1" placeholder="Enter AI strategy...">You are Player 1 (cyan). EXPLORE toward center (6,5). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don't repeat moves!</textarea>
+            <textarea id="prompt1" placeholder="Enter AI strategy...">You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don't repeat moves!</textarea>
         </div>
 
         <!-- Top Right Prompt -->
         <div class="prompt-editor top-right">
             <div class="prompt-header">PLAYER 2 [MAGENTA]</div>
-            <textarea id="prompt2" placeholder="Enter AI strategy...">You are Player 2 (magenta). AGGRESSIVE play - move toward center, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!</textarea>
+            <textarea id="prompt2" placeholder="Enter AI strategy...">You are Player 2 (magenta). AGGRESSIVE play - move toward center G6, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!</textarea>
         </div>
 
         <!-- Game Board -->
@@ -63,7 +63,11 @@
                     <button id="editSystemPrompt">SYSTEM PROMPT</button>
                 </div>
             </div>
-            <div id="grid"></div>
+            <div id="gridContainer">
+                <div id="rowLabels"></div>
+                <div id="grid"></div>
+                <div id="colLabels"></div>
+            </div>
             <div id="scoreBoard">
                 <div class="score">P1: <span id="score1">0</span></div>
                 <div class="score">P2: <span id="score2">0</span></div>
