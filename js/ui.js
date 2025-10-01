@@ -2,6 +2,9 @@
 
 let game;
 let ai;
+let gameHistory; // For replay functionality
+let replayPlayer; // Controls replay playback
+let isReplayMode = false; // Track if we're in replay mode
 let lastTurnTime = 0;
 let animationFrameId = null;
 let manualControlEnabled = false;
@@ -14,6 +17,9 @@ window.addEventListener('DOMContentLoaded', () => {
 function initializeGame() {
     game = new Game();
     ai = new AIController();
+    gameHistory = new GameHistory(); // Initialize history tracking
+    replayPlayer = null; // Will be created when entering replay mode
+    isReplayMode = false;
 
     // Set error callback for AI
     ai.setErrorCallback(showErrorModal);
@@ -212,6 +218,11 @@ function startGame() {
     }
 
     game.start();
+
+    // Record initial game state for replay
+    const initialState = captureGameState();
+    gameHistory.recordInitial(initialState);
+
     log('Game started!');
     gameLoop();
 }
@@ -231,7 +242,10 @@ function resetGame() {
     game.reset();
     ai.clearAllMemories();
     manualControlEnabled = false;
+    isReplayMode = false;
     lastTurnTime = 0;
+    gameHistory = new GameHistory(); // Reset history
+    replayPlayer = null;
     renderGrid();
     updateScores();
     updateGameInfo();
@@ -328,6 +342,13 @@ async function executeTurn() {
         for (let i = 0; i < 4; i++) {
             game.nextTurn();
         }
+
+        // Record state in history after turn execution
+        if (!isReplayMode && gameHistory) {
+            const newState = captureGameState();
+            const action = new Action('turn', {round, playerId: null}); // Simple turn action
+            gameHistory.record(newState, action);
+        }
     } catch (error) {
         console.error(`[ROUND ${round}] ERROR:`, error);
         log(`ERROR: ${error.message}`);
@@ -352,7 +373,11 @@ function endGame() {
             <h2>🏆 WINNER: ${winner.name} 🏆</h2>
             <p class="winner-emoji">${getPlayerEmoji(winner.id)}</p>
             <p>Score: ${winner.score} points</p>
-            <button onclick="document.getElementById('resetGame').click(); document.getElementById('gameOverOverlay').remove();">PLAY AGAIN</button>
+            <p class="game-stats">Total Turns: ${game.turnCount} | Recorded States: ${gameHistory.entries.length}</p>
+            <div class="game-over-buttons">
+                <button onclick="enterReplayMode()">⏮️ REPLAY</button>
+                <button onclick="document.getElementById('resetGame').click(); document.getElementById('gameOverOverlay').remove();">🔄 PLAY AGAIN</button>
+            </div>
         </div>
     `;
     gameBoard.appendChild(overlay);
@@ -609,4 +634,322 @@ Using random move as fallback.`;
 
 function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
+}
+
+// ===== REPLAY SYSTEM FUNCTIONS =====
+
+/**
+ * Capture current game state for history recording
+ * Converts legacy Game object to immutable GameState
+ */
+function captureGameState() {
+    const config = {
+        gridWidth: game.GRID_WIDTH,
+        gridHeight: game.GRID_HEIGHT,
+        turnDelay: game.turnDelay,
+        bombTimer: 10,
+        bombRange: 2,
+        explosionDuration: 500,
+        maxPlayers: 4
+    };
+
+    const entities = {
+        players: game.players.map(p => ({
+            id: p.id,
+            x: p.x,
+            y: p.y,
+            color: p.color,
+            name: p.name,
+            alive: p.alive,
+            score: p.score,
+            hasBomb: p.hasBomb,
+            bombX: p.bombX,
+            bombY: p.bombY,
+            activeItems: []
+        })),
+        bombs: game.bombs.map(b => ({
+            id: b.id,
+            x: b.x,
+            y: b.y,
+            playerId: b.playerId,
+            range: b.range,
+            turnsUntilExplode: b.turnsUntilExplode,
+            placedOnTurn: b.placedOnTurn
+        })),
+        items: [],
+        explosions: game.explosions.map(e => ({
+            cells: [...e.cells],
+            timestamp: e.timestamp,
+            duration: e.duration
+        }))
+    };
+
+    const metadata = {
+        turnCount: game.turnCount,
+        currentPlayerIndex: game.currentPlayerIndex,
+        running: game.running,
+        paused: game.paused,
+        gameStartTime: null,
+        gameEndTime: null,
+        winner: null
+    };
+
+    return new GameState(config, entities, game.grid.map(row => [...row]), metadata);
+}
+
+/**
+ * Restore game state from history entry (for replay)
+ */
+function restoreGameState(gameState) {
+    // Update grid
+    game.grid = gameState.grid.map(row => [...row]);
+
+    // Update players
+    game.players.forEach((player, i) => {
+        const savedPlayer = gameState.entities.players[i];
+        player.x = savedPlayer.x;
+        player.y = savedPlayer.y;
+        player.alive = savedPlayer.alive;
+        player.score = savedPlayer.score;
+        player.hasBomb = savedPlayer.hasBomb;
+        player.bombX = savedPlayer.bombX;
+        player.bombY = savedPlayer.bombY;
+    });
+
+    // Update bombs
+    game.bombs = gameState.entities.bombs.map(b => ({
+        id: b.id,
+        x: b.x,
+        y: b.y,
+        playerId: b.playerId,
+        range: b.range,
+        turnsUntilExplode: b.turnsUntilExplode,
+        placedOnTurn: b.placedOnTurn
+    }));
+
+    // Update explosions
+    game.explosions = gameState.entities.explosions.map(e => ({
+        cells: [...e.cells],
+        timestamp: e.timestamp,
+        duration: e.duration
+    }));
+
+    // Update metadata
+    game.turnCount = gameState.metadata.turnCount;
+    game.currentPlayerIndex = gameState.metadata.currentPlayerIndex;
+
+    // Re-render
+    renderGrid();
+    updateScores();
+    updateGameInfo();
+}
+
+/**
+ * Enter replay mode
+ */
+function enterReplayMode() {
+    isReplayMode = true;
+
+    // Jump to start of game
+    gameHistory.jumpToStart();
+    const startState = gameHistory.getCurrentState();
+    if (startState) {
+        restoreGameState(startState);
+    }
+
+    // Create replay player instance
+    replayPlayer = new ReplayPlayer(gameHistory);
+    replayPlayer.onStateChange = (state) => {
+        restoreGameState(state);
+        updateReplayUI();
+    };
+
+    // Show replay controls
+    showReplayControls();
+
+    log('Entered replay mode - use controls to navigate through game history');
+}
+
+/**
+ * Exit replay mode
+ */
+function exitReplayMode() {
+    isReplayMode = false;
+    replayPlayer = null;
+
+    // Hide replay controls
+    const replayPanel = document.getElementById('replayControlPanel');
+    if (replayPanel) {
+        replayPanel.remove();
+    }
+
+    // Jump back to end of game
+    gameHistory.jumpToEnd();
+    const finalState = gameHistory.getCurrentState();
+    if (finalState) {
+        restoreGameState(finalState);
+    }
+
+    log('Exited replay mode');
+}
+
+/**
+ * Show replay control panel
+ */
+function showReplayControls() {
+    // Remove game over overlay
+    const overlay = document.getElementById('gameOverOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+
+    // Create replay control panel
+    const gameBoard = document.getElementById('gameBoard');
+    const panel = document.createElement('div');
+    panel.id = 'replayControlPanel';
+    panel.className = 'replay-panel';
+
+    const totalTurns = gameHistory.entries.length - 1;
+
+    panel.innerHTML = `
+        <div class="replay-header">
+            <h2>⏮️ REPLAY MODE ⏮️</h2>
+            <button onclick="exitReplayAndShowGameOver()" class="exit-replay">EXIT REPLAY</button>
+        </div>
+        <div class="replay-info">
+            <span id="replayTurnInfo">Turn: 0 / ${totalTurns}</span>
+            <span id="replayProgress">Progress: 0%</span>
+        </div>
+        <div class="replay-timeline">
+            <input type="range" id="replaySlider" min="0" max="${totalTurns}" value="0" step="1" />
+        </div>
+        <div class="replay-controls">
+            <button onclick="replayJumpToStart()" title="Jump to start">⏮️</button>
+            <button onclick="replayStepBackward()" title="Previous turn">◀️</button>
+            <button onclick="replayStepForward()" title="Next turn">▶️</button>
+            <button onclick="replayJumpToEnd()" title="Jump to end">⏭️</button>
+        </div>
+        <div class="replay-speed">
+            <label>Speed:</label>
+            <button onclick="setReplaySpeed(0.5)" class="speed-btn">0.5x</button>
+            <button onclick="setReplaySpeed(1.0)" class="speed-btn active">1x</button>
+            <button onclick="setReplaySpeed(2.0)" class="speed-btn">2x</button>
+            <button onclick="setReplaySpeed(4.0)" class="speed-btn">4x</button>
+        </div>
+    `;
+
+    gameBoard.appendChild(panel);
+
+    // Add slider event listener
+    document.getElementById('replaySlider').addEventListener('input', (e) => {
+        const index = parseInt(e.target.value);
+        gameHistory.jumpToIndex(index);
+        const state = gameHistory.getCurrentState();
+        if (state) {
+            restoreGameState(state);
+            updateReplayUI();
+        }
+    });
+
+    updateReplayUI();
+}
+
+/**
+ * Update replay UI info
+ */
+function updateReplayUI() {
+    const current = gameHistory.currentIndex;
+    const total = gameHistory.entries.length - 1;
+    const progress = total > 0 ? Math.round((current / total) * 100) : 0;
+
+    const turnInfo = document.getElementById('replayTurnInfo');
+    const progressInfo = document.getElementById('replayProgress');
+    const slider = document.getElementById('replaySlider');
+
+    if (turnInfo) {
+        const currentEntry = gameHistory.getCurrentEntry();
+        const turnCount = currentEntry ? currentEntry.state.metadata.turnCount : 0;
+        turnInfo.textContent = `Turn: ${turnCount} (${current}/${total})`;
+    }
+
+    if (progressInfo) {
+        progressInfo.textContent = `Progress: ${progress}%`;
+    }
+
+    if (slider) {
+        slider.value = current;
+    }
+}
+
+/**
+ * Replay navigation functions
+ */
+function replayStepForward() {
+    if (gameHistory.canRedo()) {
+        const state = gameHistory.redo();
+        if (state) {
+            restoreGameState(state);
+            updateReplayUI();
+        }
+    }
+}
+
+function replayStepBackward() {
+    if (gameHistory.canUndo()) {
+        const state = gameHistory.undo();
+        if (state) {
+            restoreGameState(state);
+            updateReplayUI();
+        }
+    }
+}
+
+function replayJumpToStart() {
+    const state = gameHistory.jumpToStart();
+    if (state) {
+        restoreGameState(state);
+        updateReplayUI();
+    }
+}
+
+function replayJumpToEnd() {
+    const state = gameHistory.jumpToEnd();
+    if (state) {
+        restoreGameState(state);
+        updateReplayUI();
+    }
+}
+
+function setReplaySpeed(speed) {
+    if (replayPlayer) {
+        replayPlayer.setSpeed(speed);
+    }
+
+    // Update active button
+    document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function exitReplayAndShowGameOver() {
+    exitReplayMode();
+
+    // Recreate game over screen
+    const winner = game.getWinner();
+    const gameBoard = document.getElementById('gameBoard');
+    const overlay = document.createElement('div');
+    overlay.id = 'gameOverOverlay';
+    overlay.innerHTML = `
+        <div class="game-over-content">
+            <h1>🎮 GAME OVER! 🎮</h1>
+            <h2>🏆 WINNER: ${winner.name} 🏆</h2>
+            <p class="winner-emoji">${getPlayerEmoji(winner.id)}</p>
+            <p>Score: ${winner.score} points</p>
+            <p class="game-stats">Total Turns: ${game.turnCount} | Recorded States: ${gameHistory.entries.length}</p>
+            <div class="game-over-buttons">
+                <button onclick="enterReplayMode()">⏮️ REPLAY</button>
+                <button onclick="document.getElementById('resetGame').click(); document.getElementById('gameOverOverlay').remove();">🔄 PLAY AGAIN</button>
+            </div>
+        </div>
+    `;
+    gameBoard.appendChild(overlay);
 }
