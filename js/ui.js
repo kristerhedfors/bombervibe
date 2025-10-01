@@ -459,6 +459,16 @@ function updateScores() {
     for (let i = 1; i <= 4; i++) {
         const player = game.players[i - 1];
         document.getElementById(`score${i}`).textContent = player.score;
+
+        // Update dead player prompt overlays
+        const promptEditor = document.querySelector(`.prompt-editor:has(#prompt${i})`);
+        if (promptEditor) {
+            if (!player.alive) {
+                promptEditor.classList.add('dead');
+            } else {
+                promptEditor.classList.remove('dead');
+            }
+        }
     }
 }
 

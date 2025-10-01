@@ -159,6 +159,10 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: 0 0 15px;
+    position: relative; /* For skull overlay */
+    height: 100%; /* Fill grid cell exactly */
+    max-height: 250px; /* Match grid row height */
+    overflow: hidden; /* Prevent expansion */
 }
 
 .top-left {
@@ -290,12 +294,40 @@ body {
     padding: 0.5rem;
     resize: none;
     line-height: 1.4;
+    overflow-y: auto; /* Enable scrolling */
+    min-height: 0; /* Allow flex to control height */
 }
 
 .top-left textarea { color: var(--cyan); border-color: var(--cyan); }
 .top-right textarea { color: var(--magenta); border-color: var(--magenta); }
 .bottom-left textarea { color: var(--yellow); border-color: var(--yellow); }
 .bottom-right textarea { color: var(--green); border-color: var(--green); }
+
+/* Dead Player Skull Overlay */
+.prompt-editor.dead::before {
+    content: '☠️';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8rem;
+    z-index: 10;
+    opacity: 0.8;
+    pointer-events: none;
+    filter: drop-shadow(0 0 20px #ff0000);
+    animation: skullPulse 2s ease-in-out infinite;
+}
+
+@keyframes skullPulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
 
 /* Error Modal */
 #errorModal .modal-content {
@@ -599,7 +631,7 @@ body {
     bottom: 1rem;
     left: 1rem;
     width: 280px;
-    max-height: 200px;
+    max-height: calc(100vh - 250px - 250px - 3rem); /* Fill space between prompts: 100vh - top_row - bottom_row - all_gaps(3x1rem) */
     background: rgba(10, 10, 10, 0.95);
     border: 1px solid var(--green);
     padding: 0.5rem;
