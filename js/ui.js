@@ -387,6 +387,44 @@ function renderGrid() {
             gridElement.appendChild(cell);
         }
     }
+
+    // Add floating thought bubbles for all alive players
+    renderFloatingThoughts();
+}
+
+// Render floating thought bubbles above players
+function renderFloatingThoughts() {
+    const gridElement = document.getElementById('grid');
+    const gridRect = gridElement.getBoundingClientRect();
+
+    // Calculate cell size including gaps
+    const gapSize = 1; // 1px gap from CSS
+    const totalWidth = gridRect.width - (gapSize * (game.GRID_WIDTH - 1));
+    const totalHeight = gridRect.height - (gapSize * (game.GRID_HEIGHT - 1));
+    const cellWidth = totalWidth / game.GRID_WIDTH;
+    const cellHeight = totalHeight / game.GRID_HEIGHT;
+
+    for (let i = 1; i <= 4; i++) {
+        const player = game.players[i - 1];
+        if (!player.alive) continue;
+
+        const thought = ai.getPlayerMemory(i);
+        if (!thought || thought === 'No previous thought') continue;
+
+        // Create floating thought bubble
+        const bubble = document.createElement('div');
+        bubble.className = `floating-thought player${i}-thought`;
+        bubble.textContent = thought;
+
+        // Position it 1 cell left and 1 cell up from player
+        // Account for gaps between cells
+        const playerX = player.x * (cellWidth + gapSize);
+        const playerY = player.y * (cellHeight + gapSize);
+        bubble.style.left = `${playerX}px`;
+        bubble.style.top = `${playerY - cellHeight - 10}px`;
+
+        gridElement.appendChild(bubble);
+    }
 }
 
 function updateScores() {

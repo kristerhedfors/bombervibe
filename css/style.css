@@ -238,6 +238,92 @@ body {
     box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 
+/* Floating Thought Bubbles on Grid */
+.floating-thought {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    font-style: italic;
+    width: 180px;
+    min-height: 45px;
+    max-height: 80px;
+    line-height: 1.2;
+    z-index: 100;
+    pointer-events: none;
+    animation: thoughtFloat 2s ease-in-out infinite;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-y: auto;
+}
+
+.floating-thought::before {
+    content: '💭 ';
+    font-style: normal;
+}
+
+.floating-thought::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 10px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid;
+    border-top-color: inherit;
+}
+
+@keyframes thoughtFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.player1-thought {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+.player1-thought::after {
+    border-top-color: var(--cyan);
+}
+
+.player2-thought {
+    color: var(--magenta);
+    border-color: var(--magenta);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+}
+
+.player2-thought::after {
+    border-top-color: var(--magenta);
+}
+
+.player3-thought {
+    color: var(--yellow);
+    border-color: var(--yellow);
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
+}
+
+.player3-thought::after {
+    border-top-color: var(--yellow);
+}
+
+.player4-thought {
+    color: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.player4-thought::after {
+    border-top-color: var(--green);
+}
+
 .prompt-editor textarea {
     flex: 1;
     background: var(--bg-darker);
@@ -361,6 +447,7 @@ body {
     background: var(--grid-line);
     border: 2px solid var(--grid-line);
     box-shadow: 0 0 20px rgba(0, 255, 51, 0.2);
+    position: relative; /* For floating thought bubbles */
 }
 
 .cell {
