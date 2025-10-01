@@ -1,0 +1,95 @@
+// Player.js - Player state management
+
+class Player {
+    constructor(id, x, y, color, name) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.name = name;
+        this.alive = true;
+        this.score = 0;
+        this.hasBomb = false; // Can only place one bomb at a time
+        this.bombX = null;
+        this.bombY = null;
+    }
+
+    move(newX, newY, grid) {
+        // Check boundaries
+        if (newX < 0 || newX >= 13 || newY < 0 || newY >= 11) {
+            return false;
+        }
+
+        // Check if cell is empty
+        const cell = grid[newY][newX];
+        if (cell === 0 || cell === 'bomb' + this.id) {
+            this.x = newX;
+            this.y = newY;
+            return true;
+        }
+
+        return false;
+    }
+
+    placeBomb(grid, bombs) {
+        // Can only place one bomb at a time
+        if (this.hasBomb) {
+            return false;
+        }
+
+        // Check if there's already a bomb at this position
+        if (grid[this.y][this.x] === 'bomb' + this.id) {
+            return false;
+        }
+
+        // Place bomb
+        this.hasBomb = true;
+        this.bombX = this.x;
+        this.bombY = this.y;
+
+        const bomb = {
+            id: 'bomb' + this.id,
+            playerId: this.id,
+            x: this.x,
+            y: this.y,
+            timer: 3000, // 3 seconds
+            range: 2,
+            timestamp: Date.now()
+        };
+
+        bombs.push(bomb);
+        grid[this.y][this.x] = bomb.id;
+
+        return true;
+    }
+
+    die() {
+        this.alive = false;
+    }
+
+    respawn(x, y) {
+        this.x = x;
+        this.y = y;
+        this.alive = true;
+        this.hasBomb = false;
+        this.bombX = null;
+        this.bombY = null;
+    }
+
+    addScore(points) {
+        this.score += points;
+    }
+
+    getState() {
+        return {
+            id: this.id,
+            x: this.x,
+            y: this.y,
+            color: this.color,
+            name: this.name,
+            alive: this.alive,
+            score: this.score,
+            hasBomb: this.hasBomb
+        };
+    }
+}

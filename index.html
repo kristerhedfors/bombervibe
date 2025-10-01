@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BomberVibe - AI Bomberman</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- API Key Modal -->
+    <div id="apiModal" class="modal">
+        <div class="modal-content">
+            <h2>⚡ GROQ CLOUD ACCESS ⚡</h2>
+            <p>Enter your Groq API key to power the AI players</p>
+            <input type="password" id="apiKeyInput" placeholder="gsk_..." />
+            <button id="saveApiKey">INITIALIZE</button>
+            <p class="model-info">Model: openai/gpt-oss-20b</p>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="gameContainer">
+        <!-- Top Left Prompt -->
+        <div class="prompt-editor top-left">
+            <div class="prompt-header">PLAYER 1 [CYAN]</div>
+            <textarea id="prompt1" placeholder="Enter AI strategy...">You are Player 1 (cyan). Your goal is to survive and eliminate other players. Analyze the grid, avoid bombs, and strategically place your own bombs to trap opponents.</textarea>
+        </div>
+
+        <!-- Top Right Prompt -->
+        <div class="prompt-editor top-right">
+            <div class="prompt-header">PLAYER 2 [MAGENTA]</div>
+            <textarea id="prompt2" placeholder="Enter AI strategy...">You are Player 2 (magenta). Play aggressively - chase down opponents and use bombs to control territory. Move towards the center for better positioning.</textarea>
+        </div>
+
+        <!-- Game Board -->
+        <div id="gameBoard">
+            <div id="gameInfo">
+                <div class="info-left">
+                    <span id="turnCounter">TURN: 0</span>
+                    <span id="currentPlayer">CURRENT: P1</span>
+                </div>
+                <div class="info-center">
+                    <h1>╔═══ BOMBERVIBE ═══╗</h1>
+                </div>
+                <div class="info-right">
+                    <button id="startGame">START</button>
+                    <button id="pauseGame">PAUSE</button>
+                    <button id="resetGame">RESET</button>
+                </div>
+            </div>
+            <div id="grid"></div>
+            <div id="scoreBoard">
+                <div class="score">P1: <span id="score1">0</span></div>
+                <div class="score">P2: <span id="score2">0</span></div>
+                <div class="score">P3: <span id="score3">0</span></div>
+                <div class="score">P4: <span id="score4">0</span></div>
+            </div>
+        </div>
+
+        <!-- Bottom Left Prompt -->
+        <div class="prompt-editor bottom-left">
+            <div class="prompt-header">PLAYER 3 [YELLOW]</div>
+            <textarea id="prompt3" placeholder="Enter AI strategy...">You are Player 3 (yellow). Play defensively - keep your distance from enemies, destroy soft blocks to create escape routes, and strike when opponents are vulnerable.</textarea>
+        </div>
+
+        <!-- Bottom Right Prompt -->
+        <div class="prompt-editor bottom-right">
+            <div class="prompt-header">PLAYER 4 [GREEN]</div>
+            <textarea id="prompt4" placeholder="Enter AI strategy...">You are Player 4 (green). Balance offense and defense. Clear paths through blocks, predict enemy movements, and place bombs to cut off their escape routes.</textarea>
+        </div>
+    </div>
+
+    <!-- Game Log (optional debug info) -->
+    <div id="gameLog">
+        <div class="log-header">SYSTEM LOG</div>
+        <div id="logContent"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/player.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

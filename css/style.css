@@ -1,0 +1,423 @@
+/* BomberVibe - Cypherpunk Theme */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --cyan: #00ffff;
+    --magenta: #ff00ff;
+    --yellow: #ffff00;
+    --green: #00ff00;
+    --bg-dark: #0a0a0a;
+    --bg-darker: #050505;
+    --grid-line: #0f3;
+    --soft-block: #1a3a1a;
+    --hard-block: #2a2a2a;
+    --bomb-color: #ff3300;
+    --explosion: #ff6600;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: var(--bg-darker);
+    color: var(--green);
+    overflow: hidden;
+    height: 100vh;
+    background-image:
+        repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 255, 0, 0.03) 3px),
+        repeating-linear-gradient(90deg, rgba(0, 255, 0, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 255, 0, 0.03) 3px);
+    animation: scanlines 8s linear infinite;
+}
+
+@keyframes scanlines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: var(--bg-dark);
+    border: 2px solid var(--cyan);
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 0 30px var(--cyan);
+    animation: glow 2s ease-in-out infinite;
+}
+
+.modal-content h2 {
+    color: var(--cyan);
+    margin-bottom: 1rem;
+    text-shadow: 0 0 10px var(--cyan);
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 0.5rem;
+    margin: 1rem 0;
+    background: var(--bg-darker);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.modal-content button {
+    padding: 0.75rem 2rem;
+    background: var(--green);
+    color: var(--bg-dark);
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+.modal-content button:hover {
+    background: var(--cyan);
+    box-shadow: 0 0 20px var(--cyan);
+}
+
+.model-info {
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--yellow);
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 30px var(--cyan); }
+    50% { box-shadow: 0 0 50px var(--cyan); }
+}
+
+/* Game Container */
+#gameContainer {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    grid-template-rows: 250px 1fr 250px;
+    gap: 1rem;
+    padding: 1rem;
+    height: 100vh;
+}
+
+/* Prompt Editors */
+.prompt-editor {
+    background: var(--bg-dark);
+    border: 1px solid;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 15px;
+}
+
+.top-left {
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px var(--cyan);
+}
+
+.top-right {
+    border-color: var(--magenta);
+    box-shadow: 0 0 15px var(--magenta);
+}
+
+.bottom-left {
+    border-color: var(--yellow);
+    box-shadow: 0 0 15px var(--yellow);
+}
+
+.bottom-right {
+    border-color: var(--green);
+    box-shadow: 0 0 15px var(--green);
+}
+
+.prompt-header {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.top-left .prompt-header { color: var(--cyan); }
+.top-right .prompt-header { color: var(--magenta); }
+.bottom-left .prompt-header { color: var(--yellow); }
+.bottom-right .prompt-header { color: var(--green); }
+
+.prompt-editor textarea {
+    flex: 1;
+    background: var(--bg-darker);
+    border: 1px solid currentColor;
+    color: inherit;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    resize: none;
+    line-height: 1.4;
+}
+
+.top-left textarea { color: var(--cyan); border-color: var(--cyan); }
+.top-right textarea { color: var(--magenta); border-color: var(--magenta); }
+.bottom-left textarea { color: var(--yellow); border-color: var(--yellow); }
+.bottom-right textarea { color: var(--green); border-color: var(--green); }
+
+/* Game Board */
+#gameBoard {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-dark);
+    border: 2px solid var(--green);
+    padding: 1rem;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+}
+
+#gameInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--green);
+}
+
+.info-left, .info-right {
+    display: flex;
+    gap: 1rem;
+}
+
+.info-center h1 {
+    font-size: 1.5rem;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan);
+    letter-spacing: 2px;
+}
+
+#gameInfo button {
+    padding: 0.5rem 1rem;
+    background: var(--bg-darker);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#gameInfo button:hover {
+    background: var(--green);
+    color: var(--bg-dark);
+    box-shadow: 0 0 10px var(--green);
+}
+
+#turnCounter, #currentPlayer {
+    color: var(--yellow);
+}
+
+/* Grid */
+#grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    grid-template-rows: repeat(11, 1fr);
+    gap: 1px;
+    background: var(--grid-line);
+    border: 2px solid var(--grid-line);
+    box-shadow: 0 0 20px rgba(0, 255, 51, 0.2);
+}
+
+.cell {
+    background: var(--bg-darker);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    position: relative;
+}
+
+.cell.empty {
+    background: #0d0d0d;
+}
+
+.cell.soft-block {
+    background: var(--soft-block);
+    color: var(--green);
+}
+
+.cell.soft-block::after {
+    content: '▓';
+    opacity: 0.6;
+}
+
+.cell.hard-block {
+    background: var(--hard-block);
+    color: #444;
+}
+
+.cell.hard-block::after {
+    content: '█';
+}
+
+.cell.player1 {
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan);
+}
+
+.cell.player1::after {
+    content: '◆';
+    font-size: 1.5rem;
+    animation: pulse 1s infinite;
+}
+
+.cell.player2 {
+    color: var(--magenta);
+    text-shadow: 0 0 10px var(--magenta);
+}
+
+.cell.player2::after {
+    content: '◆';
+    font-size: 1.5rem;
+    animation: pulse 1s infinite;
+}
+
+.cell.player3 {
+    color: var(--yellow);
+    text-shadow: 0 0 10px var(--yellow);
+}
+
+.cell.player3::after {
+    content: '◆';
+    font-size: 1.5rem;
+    animation: pulse 1s infinite;
+}
+
+.cell.player4 {
+    color: var(--green);
+    text-shadow: 0 0 10px var(--green);
+}
+
+.cell.player4::after {
+    content: '◆';
+    font-size: 1.5rem;
+    animation: pulse 1s infinite;
+}
+
+.cell.bomb {
+    color: var(--bomb-color);
+    text-shadow: 0 0 15px var(--bomb-color);
+}
+
+.cell.bomb::after {
+    content: '●';
+    font-size: 1.3rem;
+    animation: bombPulse 0.5s infinite;
+}
+
+.cell.explosion {
+    background: var(--explosion) !important;
+    animation: explode 0.5s;
+}
+
+.cell.explosion::after {
+    content: '✱';
+    color: #fff;
+    font-size: 2rem;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes bombPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes explode {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* Score Board */
+#scoreBoard {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--green);
+}
+
+.score {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+.score:nth-child(1) { color: var(--cyan); }
+.score:nth-child(2) { color: var(--magenta); }
+.score:nth-child(3) { color: var(--yellow); }
+.score:nth-child(4) { color: var(--green); }
+
+/* Game Log */
+#gameLog {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    width: 280px;
+    max-height: 200px;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid var(--green);
+    padding: 0.5rem;
+    overflow-y: auto;
+    font-size: 0.75rem;
+}
+
+.log-header {
+    color: var(--cyan);
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--green);
+    padding-bottom: 0.25rem;
+}
+
+#logContent {
+    color: var(--green);
+}
+
+#logContent div {
+    margin: 0.25rem 0;
+    opacity: 0.8;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--green);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--cyan);
+}
