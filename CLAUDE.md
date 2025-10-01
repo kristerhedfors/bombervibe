@@ -1,20 +1,20 @@
-# BomberVibe - Claude Code Project Notes
+# Electric Boogaloo - Claude Code Project Notes
 
 ## Project Overview
 
-**BomberVibe** is an AI-powered Bomberman game built as a GitHub Pages site. Four players compete in turn-based bomb-dropping action, with each player controlled by an LLM via Groq Cloud API.
+**Electric Boogaloo** is an AI-powered Bomberman game built as a GitHub Pages site. Four players compete in turn-based bomb-dropping action, with each player controlled by an LLM via Groq Cloud API.
 
 ## Tech Stack
 
 - **Frontend**: Pure HTML5, CSS3, JavaScript (no build tools)
-- **AI**: Groq Cloud API with `openai/gpt-oss-20b` model
+- **AI**: Groq Cloud API with `moonshotai/kimi-k2-instruct-0905` model
 - **Hosting**: GitHub Pages (static site)
 - **Storage**: localStorage for API keys and prompts
 
 ## Project Structure
 
 ```
-bombervibe/
+electric-boogaloo/
 ├── index.html           # Main game page
 ├── css/
 │   └── style.css       # Cypherpunk Matrix theme
@@ -77,15 +77,15 @@ bombervibe/
    ```
 
 2. **Enable GitHub Pages:**
-   - Go to: `https://github.com/kristerhedfors/bombervibe/settings/pages`
+   - Go to: `https://github.com/kristerhedfors/electric-boogaloo/settings/pages`
    - Source: Deploy from branch
    - Branch: `main`
    - Folder: `/ (root)`
    - Click "Save"
 
 3. **Access site:**
-   - URL: `https://kristerhedfors.github.io/bombervibe/`
-   - With API key: `https://kristerhedfors.github.io/bombervibe/#gsk_your_key_here`
+   - URL: `https://kristerhedfors.github.io/electric-boogaloo/`
+   - With API key: `https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_key_here`
    - Wait 1-2 minutes for deployment
 
 4. **Get Groq API Key:**
@@ -98,7 +98,7 @@ bombervibe/
 The site supports passing the Groq API key via URL fragment (hash):
 
 ```
-https://kristerhedfors.github.io/bombervibe/#gsk_your_api_key_here
+https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_api_key_here
 ```
 
 **Benefits:**
@@ -119,7 +119,7 @@ https://kristerhedfors.github.io/bombervibe/#gsk_your_api_key_here
 
 ```javascript
 API Endpoint: https://api.groq.com/openai/v1/chat/completions
-Model: openai/gpt-oss-20b
+Model: moonshotai/kimi-k2-instruct-0905
 Cost: ~$0.00002 per turn (very cheap)
 Speed: ~100-300ms response time
 ```
@@ -232,7 +232,7 @@ In `css/style.css`:
 
 In `js/ai.js`:
 ```javascript
-this.model = 'gpt-oss-20b';
+this.model = 'moonshotai/kimi-k2-instruct-0905';
 // Try: llama-3.1-8b-instant, llama-3.1-70b-versatile, etc.
 ```
 
@@ -293,6 +293,6 @@ MIT License - Free to use and modify
 ---
 
 **Repository**: https://github.com/kristerhedfors/bombervibe
-**Live Site**: https://kristerhedfors.github.io/bombervibe/ (after Human enables GitHub Pages)
+**Live Site**: https://kristerhedfors.github.io/electric-boogaloo/ (after Human enables GitHub Pages)
 **Created**: October 2025
 **Built with**: Claude Code

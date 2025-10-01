@@ -15,7 +15,7 @@ class AIController {
     }
 
     getDefaultSystemPrompt() {
-        return `You are playing BOMBERVIBE, an AI-powered Bomberman game.
+        return `You are playing ELECTRIC BOOGALOO, an AI-powered Bomberman game.
 
 GAME OBJECTIVE:
 - Survive longer than other players

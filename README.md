@@ -1,10 +1,10 @@
-# 💣 BomberVibe
+# 💣 Electric Boogaloo
 
-An AI-powered Bomberman game where players are controlled by LLMs through Groq Cloud API. Classic Bomberman gameplay meets modern AI - watch as GPT-OSS-20B agents compete in strategic bomb-dropping battles!
+An AI-powered Bomberman game where players are controlled by LLMs through Groq Cloud API. Classic Bomberman gameplay meets modern AI - watch as Kimi K2 agents compete in strategic bomb-dropping battles!
 
 ## 🎮 Features
 
-- **AI-Powered Gameplay**: 4 players controlled by Groq Cloud's `openai/gpt-oss-20b` model
+- **AI-Powered Gameplay**: 4 players controlled by Groq Cloud's `moonshotai/kimi-k2-instruct-0905` model
 - **Customizable Strategies**: Edit each player's AI prompt to change their behavior
 - **Manual Override**: Control Player 1 with keyboard (Arrow keys + Spacebar for bombs)
 - **Classic Mechanics**: 13x11 grid, bombs with 2-tile range, destructible blocks
@@ -20,14 +20,14 @@ An AI-powered Bomberman game where players are controlled by LLMs through Groq C
 
 Visit with your API key in the URL fragment:
 ```
-https://kristerhedfors.github.io/bombervibe/#gsk_your_api_key_here
+https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_api_key_here
 ```
 
 This automatically loads your API key and skips the modal prompt!
 
 **Option 2: Manual Entry**
 
-Visit: **[https://kristerhedfors.github.io/bombervibe](https://kristerhedfors.github.io/bombervibe)**
+Visit: **[https://kristerhedfors.github.io/electric-boogaloo](https://kristerhedfors.github.io/electric-boogaloo)**
 
 Then enter your API key when prompted.
 
@@ -36,8 +36,8 @@ Then enter your API key when prompted.
 1. **Fork or clone this repository**
 
 ```bash
-git clone https://github.com/yourusername/bombervibe.git
-cd bombervibe
+git clone https://github.com/yourusername/electric-boogaloo.git
+cd electric-boogaloo
 ```
 
 2. **Enable GitHub Pages**
@@ -56,7 +56,7 @@ cd bombervibe
 
    **Method A (URL Fragment):**
    ```
-   https://yourusername.github.io/bombervibe/#gsk_your_api_key_here
+   https://yourusername.github.io/electric-boogaloo/#gsk_your_api_key_here
    ```
 
    **Method B (Manual):**
@@ -121,13 +121,13 @@ Edit prompts in the corner text boxes and they'll save automatically to localSto
 
 - Pure HTML5/CSS3/JavaScript (no build tools)
 - Groq Cloud API for LLM inference
-- Model: `openai/gpt-oss-20b` (fast, good for gameplay)
+- Model: `moonshotai/kimi-k2-instruct-0905` (fast, good for gameplay)
 - localStorage for API key and prompt persistence
 
 ### Project Structure
 
 ```
-bombervibe/
+electric-boogaloo/
 ├── index.html          # Main page structure
 ├── css/
 │   └── style.css      # Cypherpunk theme styling
@@ -142,7 +142,7 @@ bombervibe/
 ### API Usage
 
 Each AI turn makes one API call to Groq:
-- **Model**: `openai/gpt-oss-20b`
+- **Model**: `moonshotai/kimi-k2-instruct-0905`
 - **Cost**: ~$0.00002 per turn (very cheap)
 - **Speed**: ~100-300ms per response
 - **Input**: Game state + player strategy prompt
@@ -188,7 +188,7 @@ this.GRID_HEIGHT = 11; // Default: 11
 In `js/ai.js`, change:
 
 ```javascript
-this.model = 'gpt-oss-20b'; // Try: llama-3.1-8b-instant, etc.
+this.model = 'moonshotai/kimi-k2-instruct-0905'; // Try: llama-3.1-8b-instant, etc.
 ```
 
 Check [Groq documentation](https://console.groq.com/docs/models) for available models.
