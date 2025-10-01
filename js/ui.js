@@ -43,6 +43,9 @@ function initializeGame() {
         }
     }
 
+    // Clear all player memories on page load (fresh start)
+    ai.clearAllMemories();
+
     // Initialize game
     game.initialize();
 
