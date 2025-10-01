@@ -346,7 +346,14 @@ async function executeTurn() {
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
             const newState = captureGameState();
-            const action = new Action('turn', {round, playerId: null}); // Simple turn action
+            // Capture current player thoughts for replay
+            const thoughts = {
+                1: ai.playerMemory[1] || '',
+                2: ai.playerMemory[2] || '',
+                3: ai.playerMemory[3] || '',
+                4: ai.playerMemory[4] || ''
+            };
+            const action = new Action('turn', {round, playerId: null, thoughts});
             gameHistory.record(newState, action);
         }
     } catch (error) {
@@ -745,6 +752,26 @@ function restoreGameState(gameState) {
 }
 
 /**
+ * Restore player thoughts from history action (for replay)
+ */
+function restoreThoughtsFromHistory() {
+    const currentEntry = gameHistory.getCurrentEntry();
+    if (!currentEntry || !currentEntry.action) {
+        return;
+    }
+
+    const action = currentEntry.action;
+    if (action.payload && action.payload.thoughts) {
+        const thoughts = action.payload.thoughts;
+        for (let i = 1; i <= 4; i++) {
+            if (thoughts[i] !== undefined) {
+                ai.playerMemory[i] = thoughts[i];
+            }
+        }
+    }
+}
+
+/**
  * Enter replay mode
  */
 function enterReplayMode() {
@@ -755,12 +782,14 @@ function enterReplayMode() {
     const startState = gameHistory.getCurrentState();
     if (startState) {
         restoreGameState(startState);
+        restoreThoughtsFromHistory();
     }
 
     // Create replay player instance
     replayPlayer = new ReplayPlayer(gameHistory);
     replayPlayer.onStateChange = (state) => {
         restoreGameState(state);
+        restoreThoughtsFromHistory();
         updateReplayUI();
     };
 
@@ -847,6 +876,7 @@ function showReplayControls() {
         const state = gameHistory.getCurrentState();
         if (state) {
             restoreGameState(state);
+            restoreThoughtsFromHistory();
             updateReplayUI();
         }
     });
@@ -889,6 +919,7 @@ function replayStepForward() {
         const state = gameHistory.redo();
         if (state) {
             restoreGameState(state);
+            restoreThoughtsFromHistory();
             updateReplayUI();
         }
     }
@@ -899,6 +930,7 @@ function replayStepBackward() {
         const state = gameHistory.undo();
         if (state) {
             restoreGameState(state);
+            restoreThoughtsFromHistory();
             updateReplayUI();
         }
     }
@@ -908,6 +940,7 @@ function replayJumpToStart() {
     const state = gameHistory.jumpToStart();
     if (state) {
         restoreGameState(state);
+        restoreThoughtsFromHistory();
         updateReplayUI();
     }
 }
@@ -916,6 +949,7 @@ function replayJumpToEnd() {
     const state = gameHistory.jumpToEnd();
     if (state) {
         restoreGameState(state);
+        restoreThoughtsFromHistory();
         updateReplayUI();
     }
 }
