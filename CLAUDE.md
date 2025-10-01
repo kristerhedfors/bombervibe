@@ -84,12 +84,33 @@ bombervibe/
 
 3. **Access site:**
    - URL: `https://kristerhedfors.github.io/bombervibe/`
+   - With API key: `https://kristerhedfors.github.io/bombervibe/#gsk_your_key_here`
    - Wait 1-2 minutes for deployment
 
 4. **Get Groq API Key:**
    - Visit: `https://console.groq.com`
    - Sign up (free tier available)
    - Generate API key (starts with `gsk_...`)
+
+### URL Fragment API Key Feature
+
+The site supports passing the Groq API key via URL fragment (hash):
+
+```
+https://kristerhedfors.github.io/bombervibe/#gsk_your_api_key_here
+```
+
+**Benefits:**
+- No need to manually enter API key each visit
+- Shareable links (but keep your key private!)
+- Bypasses modal prompt for faster game start
+- Still saves to localStorage for subsequent visits
+
+**Implementation:**
+- On page load, checks `window.location.hash` for API key
+- If fragment starts with `gsk_`, automatically sets it
+- Falls back to localStorage if no fragment
+- Falls back to modal prompt if neither exists
 
 ## API Integration
 

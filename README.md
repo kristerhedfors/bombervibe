@@ -10,12 +10,26 @@ An AI-powered Bomberman game where players are controlled by LLMs through Groq C
 - **Classic Mechanics**: 13x11 grid, bombs with 2-tile range, destructible blocks
 - **Cypherpunk Aesthetic**: Matrix-style terminal visuals with glowing effects
 - **Pure Frontend**: No backend required - runs entirely in the browser
+- **URL Fragment API Key**: Pass your Groq API key in the URL hash for instant access
 
 ## 🚀 Quick Start
 
 ### Play Online
 
-Visit: **[https://yourusername.github.io/bombervibe](https://yourusername.github.io/bombervibe)**
+**Option 1: URL Fragment (Recommended)**
+
+Visit with your API key in the URL fragment:
+```
+https://kristerhedfors.github.io/bombervibe/#gsk_your_api_key_here
+```
+
+This automatically loads your API key and skips the modal prompt!
+
+**Option 2: Manual Entry**
+
+Visit: **[https://kristerhedfors.github.io/bombervibe](https://kristerhedfors.github.io/bombervibe)**
+
+Then enter your API key when prompted.
 
 ### Setup GitHub Pages
 
@@ -39,6 +53,13 @@ cd bombervibe
    - Copy your key (starts with `gsk_...`)
 
 4. **Play!**
+
+   **Method A (URL Fragment):**
+   ```
+   https://yourusername.github.io/bombervibe/#gsk_your_api_key_here
+   ```
+
+   **Method B (Manual):**
    - Visit your GitHub Pages URL
    - Enter your Groq API key when prompted
    - Click START to begin

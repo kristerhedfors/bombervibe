@@ -15,10 +15,19 @@ function initializeGame() {
     game = new Game();
     ai = new AIController();
 
-    // Check for stored API key
-    if (ai.loadApiKey()) {
+    // Check for API key in URL fragment (e.g., #gsk_abc123...)
+    const fragment = window.location.hash.substring(1); // Remove '#'
+    if (fragment && fragment.startsWith('gsk_')) {
+        ai.setApiKey(fragment);
         document.getElementById('apiModal').classList.add('hidden');
         document.getElementById('apiKeyInput').value = '***';
+        log('API key loaded from URL fragment');
+    }
+    // Otherwise check for stored API key
+    else if (ai.loadApiKey()) {
+        document.getElementById('apiModal').classList.add('hidden');
+        document.getElementById('apiKeyInput').value = '***';
+        log('API key loaded from localStorage');
     }
 
     // Load stored prompts
