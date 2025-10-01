@@ -230,14 +230,17 @@ function gameLoop() {
 // Execute one turn
 async function executeTurn() {
     const currentPlayer = game.getCurrentPlayer();
+    console.log(`[TURN ${game.turnCount}] Current player: ${currentPlayer.id} at (${currentPlayer.x}, ${currentPlayer.y})`);
 
     if (!currentPlayer.alive) {
+        console.log(`[TURN ${game.turnCount}] Player ${currentPlayer.id} is dead, skipping`);
         game.nextTurn();
         return;
     }
 
     // Player 1 can be controlled manually - skip AI if manual control was used
     if (currentPlayer.id === 1 && manualControlEnabled) {
+        console.log(`[TURN ${game.turnCount}] Player 1 manual control - skipping AI`);
         // Manual control already handled by keyboard
         // Just advance turn
         game.nextTurn();
@@ -247,27 +250,41 @@ async function executeTurn() {
     // Get AI move
     try {
         log(`Player ${currentPlayer.id} thinking...`);
-        const move = await ai.getAIMove(game.getGameState(), currentPlayer.id);
+        console.log(`[TURN ${game.turnCount}] Requesting AI move for Player ${currentPlayer.id}`);
 
-        if (move) {
-            if (move.action === 'move') {
-                // Drop bomb first if requested (at current position)
-                let bombMsg = '';
-                if (move.dropBomb) {
-                    const bombSuccess = game.playerPlaceBomb(currentPlayer.id);
-                    bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb failed)';
-                }
+        const gameState = game.getGameState();
+        console.log(`[TURN ${game.turnCount}] Game state:`, {
+            players: gameState.players.map(p => `P${p.id}:(${p.x},${p.y}) ${p.alive?'alive':'dead'}`),
+            bombs: gameState.bombs.length,
+            currentPlayerHasBomb: currentPlayer.hasBomb
+        });
 
-                // Then move
-                const success = game.movePlayer(currentPlayer.id, move.direction);
-                log(`Player ${currentPlayer.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
-            } else if (move.action === 'bomb') {
-                // Legacy support: just bomb without moving
-                const success = game.playerPlaceBomb(currentPlayer.id);
-                log(`Player ${currentPlayer.id} ${success ? 'placed' : 'tried to place'} BOMB`);
+        const move = await ai.getAIMove(gameState, currentPlayer.id);
+        console.log(`[TURN ${game.turnCount}] AI returned move:`, move);
+
+        if (move && move.action === 'move') {
+            const startPos = {x: currentPlayer.x, y: currentPlayer.y};
+
+            // Drop bomb first if requested (at current position)
+            let bombMsg = '';
+            if (move.dropBomb) {
+                console.log(`[TURN ${game.turnCount}] Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
+                const bombSuccess = game.playerPlaceBomb(currentPlayer.id);
+                bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
+                console.log(`[TURN ${game.turnCount}] Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED (already have one)'}`);
             }
+
+            // Then move
+            console.log(`[TURN ${game.turnCount}] Attempting to move ${move.direction} from (${startPos.x}, ${startPos.y})`);
+            const success = game.movePlayer(currentPlayer.id, move.direction);
+            console.log(`[TURN ${game.turnCount}] Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${currentPlayer.x}, ${currentPlayer.y})`);
+            log(`Player ${currentPlayer.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
+        } else {
+            console.warn(`[TURN ${game.turnCount}] Invalid or missing move from AI:`, move);
+            log(`Player ${currentPlayer.id} received invalid move - skipping turn`);
         }
     } catch (error) {
+        console.error(`[TURN ${game.turnCount}] ERROR for Player ${currentPlayer.id}:`, error);
         log(`ERROR: Player ${currentPlayer.id} - ${error.message}`);
     }
 

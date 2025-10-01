@@ -30,9 +30,10 @@ GAME RULES:
 - Players can occupy the same square
 
 YOUR ACTIONS (per turn):
-You can MOVE and optionally DROP A BOMB at the same time!
-1. MOVE: Go up/down/left/right one square
-2. MOVE + BOMB: Move AND place a bomb at your starting position simultaneously
+You MUST ALWAYS MOVE. You can optionally drop a bomb while moving.
+- EVERY turn you must pick a direction: up/down/left/right
+- You can set dropBomb: true to place a bomb at your CURRENT position BEFORE moving
+- If you already have a bomb placed, the dropBomb will fail but you'll still move
 
 MOVEMENT:
 - You can move to adjacent squares (up, down, left, right)
@@ -78,14 +79,17 @@ WINNING:
 - If time runs out, highest score wins
 - Being strategic > being aggressive
 
-YOU MUST RESPOND WITH VALID JSON:
+YOU MUST RESPOND WITH VALID JSON (MOVE IS REQUIRED):
 {"action": "move", "direction": "up", "dropBomb": false}
 {"action": "move", "direction": "down", "dropBomb": true}
 {"action": "move", "direction": "left", "dropBomb": false}
 {"action": "move", "direction": "right", "dropBomb": true}
 
-The "dropBomb" field is optional (defaults to false).
-If dropBomb is true, you'll place a bomb at your STARTING position before moving.
+IMPORTANT:
+- "action" MUST be "move"
+- "direction" MUST be one of: "up", "down", "left", "right"
+- "dropBomb" is optional (defaults to false)
+- NO other action types allowed
 
 DO NOT include explanations, only the JSON action.`;
     }
@@ -241,6 +245,9 @@ ${playerStrategy}
 Now choose your action (JSON only):`;
 
         try {
+            console.log(`[AI P${playerId}] Sending request to ${this.model}`);
+            console.log(`[AI P${playerId}] User prompt length: ${userPrompt.length} chars`);
+
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
                 headers: {
@@ -258,48 +265,61 @@ Now choose your action (JSON only):`;
                 })
             });
 
+            console.log(`[AI P${playerId}] Response status: ${response.status}`);
+
             if (!response.ok) {
                 const error = await response.text();
+                console.error(`[AI P${playerId}] API error ${response.status}:`, error);
                 throw new Error(`API error: ${response.status} - ${error}`);
             }
 
             const data = await response.json();
             const content = data.choices[0].message.content.trim();
+            console.log(`[AI P${playerId}] Raw response:`, content);
 
             // Parse JSON response
             const jsonMatch = content.match(/\{[^}]+\}/);
             if (!jsonMatch) {
-                console.error('No JSON found in response:', content);
+                console.error(`[AI P${playerId}] No JSON found in response:`, content);
+                console.log(`[AI P${playerId}] Falling back to random move`);
                 return this.getRandomMove(gameState, playerId);
             }
 
             const move = JSON.parse(jsonMatch[0]);
+            console.log(`[AI P${playerId}] Parsed move:`, move);
 
-            // Validate move
-            if (move.action === 'move' && ['up', 'down', 'left', 'right'].includes(move.direction)) {
-                return move;
-            } else if (move.action === 'bomb') {
+            // Validate move - MUST have action=move and valid direction
+            if (move.action === 'move' && move.direction && ['up', 'down', 'left', 'right'].includes(move.direction)) {
+                console.log(`[AI P${playerId}] Valid move action: ${move.direction} (dropBomb: ${move.dropBomb || false})`);
+                // Ensure dropBomb is boolean
+                move.dropBomb = Boolean(move.dropBomb);
                 return move;
             }
 
-            console.error('Invalid move format:', move);
+            // Invalid format - log and fallback
+            console.error(`[AI P${playerId}] Invalid move format:`, move);
+            console.log(`[AI P${playerId}] Expected: {action:"move", direction:"up/down/left/right", dropBomb:true/false}`);
+            console.log(`[AI P${playerId}] Falling back to random move`);
             return this.getRandomMove(gameState, playerId);
 
         } catch (error) {
-            console.error('AI move error:', error);
+            console.error(`[AI P${playerId}] Exception:`, error);
             // Fallback to random move
+            console.log(`[AI P${playerId}] Using random move fallback`);
             return this.getRandomMove(gameState, playerId);
         }
     }
 
-    // Fallback: generate random valid move
+    // Fallback: generate random valid move (ALWAYS returns a move action)
     getRandomMove(gameState, playerId) {
         const player = gameState.players.find(p => p.id === playerId);
-        if (!player || !player.alive) return null;
+        if (!player || !player.alive) {
+            return { action: 'move', direction: 'right', dropBomb: false };
+        }
 
-        const moves = [];
+        const validMoves = [];
 
-        // Check possible moves
+        // Check all 4 directions
         const directions = ['up', 'down', 'left', 'right'];
         for (const dir of directions) {
             let x = player.x;
@@ -310,26 +330,26 @@ Now choose your action (JSON only):`;
             else if (dir === 'left') x--;
             else if (dir === 'right') x++;
 
-            // Check if valid
+            // Check if valid (within bounds and passable)
             if (x >= 0 && x < 13 && y >= 0 && y < 11) {
                 const cell = gameState.grid[y][x];
-                if (cell === 0 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
-                    moves.push({ action: 'move', direction: dir });
+                // Can move through empty, soft blocks, bombs
+                if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
+                    validMoves.push({ action: 'move', direction: dir, dropBomb: !player.hasBomb && Math.random() > 0.7 });
                 }
             }
         }
 
-        // Can place bomb?
-        if (!player.hasBomb) {
-            moves.push({ action: 'bomb' });
+        // Random choice from valid moves
+        if (validMoves.length > 0) {
+            return validMoves[Math.floor(Math.random() * validMoves.length)];
         }
 
-        // Random choice
-        if (moves.length > 0) {
-            return moves[Math.floor(Math.random() * moves.length)];
-        }
-
-        // No valid moves - stay in place
-        return { action: 'move', direction: 'up' }; // Will fail but safe
+        // No valid moves - try any direction (will likely fail but that's ok)
+        return {
+            action: 'move',
+            direction: directions[Math.floor(Math.random() * 4)],
+            dropBomb: false
+        };
     }
 }
