@@ -45,17 +45,23 @@ GAME RULES:
 - 1 ROUND = all 4 players move once (not individual turns!)
 - Bombs explode after 3 ROUNDS (plenty of time to escape)
 - Bomb countdown shows: 💣3 = 3 rounds left, 💣2 = 2 rounds left, 💣1 = 1 round left
-- Each bomb destroys 1 tile in all 4 directions (up/down/left/right)
+- Each bomb destroys 1 tile in all 4 CARDINAL directions (up/down/left/right ONLY - NOT diagonals!)
 - Soft blocks (🟫) stop the explosion but get destroyed (+10 points to bomb owner)
 
+🔥 BOMB BLAST PATTERN (CRITICAL FOR SURVIVAL):
+- Bombs explode in a + (PLUS) pattern: UP, DOWN, LEFT, RIGHT only
+- Bombs DO NOT explode diagonally!
+- SAFE: Moving diagonally from a bomb (e.g., if bomb at C5, moving to D6 or B4 is SAFE)
+- LETHAL: Being directly up/down/left/right of a bomb (e.g., if bomb at C5, positions C4/C6/B5/D5 are LETHAL)
+
 DECISION PROCESS (follow this order):
-1. Check your bomb status (💣0 or 💣1) - if 💣1, DON'T try to drop another!
-2. Check "✅ VALID MOVES" or "📊 Local Area Summary" - which directions are legal? (soft blocks 🟫 are NOT walkable!)
-3. Check "⏰ GAME TIMING" - what round is it? How many rounds until bombs explode?
-4. Check "🚨 DANGER ANALYSIS" - is your current position safe?
-5. If current position shows "💀 LETHAL", you MUST move to a SAFE square
-6. ONLY choose moves that are both VALID and SAFE
-7. If no safe moves exist, you're trapped - choose least bad option
+1. Check "🚨 DANGER ANALYSIS" - is your current position safe? If "💀 LETHAL", ESCAPE IMMEDIATELY!
+2. Check your bomb status (💣0 or 💣1) - if 💣1, DON'T try to drop another!
+3. Check "📊 Local Area Summary" for "Breakable Blocks: X adjacent" - if X > 0 AND you can escape diagonally, consider bombing!
+4. Check "✅ VALID MOVES" - which directions are legal? (soft blocks 🟫 are NOT walkable!)
+5. If current position is safe AND 💣0 AND breakable blocks exist, DROP BOMB and move to diagonal safety
+6. If current position is LETHAL or no breakable blocks, MOVE to safety (prioritize diagonal positions from bombs)
+7. If no safe moves exist, you're trapped - choose least bad option and pray
 
 STRATEGIC PLAY (CRITICAL):
 - FIRST 1-2 MOVES: Get off the starting corner (move 1-2 steps away)
@@ -67,13 +73,26 @@ STRATEGIC PLAY (CRITICAL):
 - Review your previous thought to avoid repeating mistakes
 - Don't waste moves trying to place bombs when you already have one active!
 
+⚠️ CRITICAL ESCAPE PLANNING:
+- WHEN YOU DROP A BOMB: Your "thought" MUST specify WHERE to move next to escape
+- DIAGONAL IS SAFE! If you drop bomb at C5, moving to D6 or B4 (diagonal) is immediately safe!
+- Avoid being UP/DOWN/LEFT/RIGHT of ANY bomb (check all 💣1-3 in your 7x7 view)
+- Consider positions of OTHER PLAYERS (P1-P4) - don't trap yourself or get trapped
+- Plan escape route that uses DIAGONAL SAFETY when possible
+- Example: "Dropped bomb at C5. Moving RIGHT then UP to D6 (diagonal = safe from my bomb at C5)"
+
 BOMB PLACEMENT STRATEGY:
-✅ GOOD: Drop bomb when 2+ soft blocks (🟫) adjacent AND you have clear escape path
-✅ GOOD: Drop bomb in position where blast will hit multiple blocks
-✅ GOOD: Check "📊 Local Area Summary" to see adjacent breakable blocks and valid moves
+⚠️ ONLY DROP BOMBS WHEN THERE ARE BREAKABLE BLOCKS! ⚠️
+
+✅ GOOD: Drop bomb when 1+ soft blocks (🟫) directly adjacent (up/down/left/right) AND diagonal escape exists
+✅ GOOD: Check "📊 Local Area Summary" - it tells you EXACTLY how many breakable blocks are adjacent!
+✅ GOOD: If summary says "Breakable Blocks: 2 adjacent (up, right)" - DROP BOMB and escape diagonally!
+✅ GOOD: After bombing, move to diagonal position for instant safety
+
+❌ BAD: Drop bomb when summary says "Breakable Blocks: None directly adjacent" - TOTAL WASTE!
 ❌ BAD: Drop bomb with no escape route (you'll die!)
 ❌ BAD: Drop bomb when 💣1 (you already have one active - wastes turn!)
-❌ BAD: Drop bomb in corner or dead end
+❌ BAD: Drop bomb when NO soft blocks nearby - you get ZERO points!
 
 RESPONSE FORMAT:
 You MUST respond with valid JSON in this exact format:
@@ -84,13 +103,16 @@ You MUST respond with valid JSON in this exact format:
 }
 
 EXAMPLES:
-{"direction": "right", "dropBomb": false, "thought": "In corner A11. Moving right to B11, one step off edge."}
-{"direction": "up", "dropBomb": true, "thought": "At B11, off corner. 2 soft blocks adjacent! Dropping bomb for 20 points, moving up to B10. Can escape up/right for 3 rounds."}
-{"direction": "down", "dropBomb": false, "thought": "Bomb active! Moving down to escape blast. Will bomb again once this explodes."}
-{"direction": "left", "dropBomb": false, "thought": "Bomb explodes in 1 round! Position LETHAL. Escaping left to safety."}
+{"direction": "right", "dropBomb": false, "thought": "In corner A11. Moving right to B11, one step off edge. No blocks adjacent - not bombing yet."}
+{"direction": "up", "dropBomb": true, "thought": "At C5. Summary shows 2 blocks adjacent (up, right)! Dropping bomb. Moving UP to C6, then RIGHT to D7 (DIAGONAL=SAFE from C5 bomb)."}
+{"direction": "down", "dropBomb": false, "thought": "Bomb 💣2 at C5. Currently at C6. Moving DOWN-RIGHT toward D5 (diagonal from C5 = safe). Executing escape plan."}
+{"direction": "left", "dropBomb": false, "thought": "Bomb 💣1 at D4! I'm at D5 (LETHAL - directly below). Moving LEFT to C5 (safe - diagonal from D4)."}
+{"direction": "right", "dropBomb": false, "thought": "At D6. Summary: 0 blocks adjacent. NOT bombing - would waste it! Moving right to explore and find blocks."}
 
-MEMORY:
-Your previous thought is shown each turn - USE IT to maintain continuity and adapt your strategy!
+MEMORY & CONTINUITY:
+Your previous thought is shown each turn - USE IT to maintain continuity and execute your planned strategy!
+When you drop a bomb, your thought MUST include your escape route considering other players/bombs.
+Next turn, EXECUTE that escape plan and update based on new positions.
 
 WINNING: Last player alive. Play smart - get to center early, plan escapes before bombing, and understand the timing!`;
     }
