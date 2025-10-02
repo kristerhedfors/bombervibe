@@ -142,10 +142,13 @@ function handleDrop(e) {
 
 // Spawn NPC at position
 function spawnNPC(npc, x, y) {
-    if (!game || !game.running) {
-        log('⚠️ Cannot spawn NPC - game not running');
+    if (!game) {
+        log('⚠️ Cannot spawn NPC - game not initialized');
         return;
     }
+
+    // Allow spawning anytime - whether game is running or not
+    console.log(`[NPC] Spawning ${npc.name} at (${x}, ${y}), game.running=${game.running}`);
 
     // Check if NPC already spawned
     if (spawnedNPCs.includes(npc.id)) {

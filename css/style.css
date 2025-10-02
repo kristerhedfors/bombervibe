@@ -372,7 +372,7 @@ body {
 .npc-palette {
     position: fixed;
     bottom: 1rem;
-    right: 1rem;
+    right: calc(1rem - 7px);
     width: 280px;
     background: var(--bg-dark);
     border: 2px solid var(--cyan);
