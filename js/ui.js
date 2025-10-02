@@ -721,7 +721,11 @@ function captureGameState() {
             hasBomb: p.hasBomb,
             bombX: p.bombX,
             bombY: p.bombY,
-            activeItems: []
+            activeItems: [],
+            // Battle Royale NPC special fields
+            isNPC: p.isNPC || false,
+            npcEmoji: p.npcEmoji || null,
+            npcId: p.npcId || null
         })),
         bombs: game.bombs.map(b => ({
             id: b.id,
@@ -760,16 +764,22 @@ function restoreGameState(gameState) {
     // Update grid
     game.grid = gameState.grid.map(row => [...row]);
 
-    // Update players
-    game.players.forEach((player, i) => {
-        const savedPlayer = gameState.entities.players[i];
-        player.x = savedPlayer.x;
-        player.y = savedPlayer.y;
-        player.alive = savedPlayer.alive;
-        player.score = savedPlayer.score;
-        player.hasBomb = savedPlayer.hasBomb;
-        player.bombX = savedPlayer.bombX;
-        player.bombY = savedPlayer.bombY;
+    // Update players (match by ID, not index, to handle Battle Royale NPCs)
+    game.players.forEach((player) => {
+        const savedPlayer = gameState.entities.players.find(p => p.id === player.id);
+        if (savedPlayer) {
+            player.x = savedPlayer.x;
+            player.y = savedPlayer.y;
+            player.alive = savedPlayer.alive;
+            player.score = savedPlayer.score;
+            player.hasBomb = savedPlayer.hasBomb;
+            player.bombX = savedPlayer.bombX;
+            player.bombY = savedPlayer.bombY;
+            // Restore Battle Royale NPC special fields
+            player.isNPC = savedPlayer.isNPC || false;
+            player.npcEmoji = savedPlayer.npcEmoji || null;
+            player.npcId = savedPlayer.npcId || null;
+        }
     });
 
     // Update bombs
@@ -812,7 +822,8 @@ function restoreThoughtsFromHistory() {
     const action = currentEntry.action;
     if (action.payload && action.payload.thoughts) {
         const thoughts = action.payload.thoughts;
-        for (let i = 1; i <= 4; i++) {
+        // Restore thoughts for ALL players including Battle Royale NPCs (1-10)
+        for (let i = 1; i <= 10; i++) {
             if (thoughts[i] !== undefined) {
                 ai.playerMemory[i] = thoughts[i];
             }
