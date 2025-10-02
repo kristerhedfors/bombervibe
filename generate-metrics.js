@@ -31,6 +31,7 @@ class ProjectMetrics {
         };
 
         this.ignorePatterns = [
+            // Dependencies & environments
             'node_modules',
             '.git',
             '.venv',
@@ -41,10 +42,16 @@ class ProjectMetrics {
             'coverage',
             '.pytest_cache',
             '.mypy_cache',
+
+            // System files
             '.DS_Store',
+
+            // Lock files
             'package-lock.json',
             'yarn.lock',
             'pnpm-lock.yaml',
+
+            // Binary/compiled files
             '.pyc',
             '.pyo',
             '.so',
@@ -57,7 +64,27 @@ class ProjectMetrics {
             '.lib',
             '.bin',
             '.class',
+
+            // Media files (not code)
+            '.mp4',
+            '.mov',
+            '.avi',
+            '.webm',
+            '.mp3',
+            '.wav',
+            '.ogg',
+            '.jpg',
+            '.jpeg',
+            '.png',
+            '.gif',
+            '.bmp',
+            '.ico',
+            '.webp',
+
+            // Cache
             '.cache',
+
+            // Self-reference
             'generate-metrics.js',
             'PROJECT_METRICS.md'
         ];
@@ -208,6 +235,12 @@ class ProjectMetrics {
 
         let md = `# Project Metrics\n\n`;
         md += `**Generated:** ${now}\n\n`;
+        md += `> **Note:** This report excludes non-code files including:\n`;
+        md += `> - Dependencies (.venv, node_modules)\n`;
+        md += `> - Media files (.mp4, .jpg, .png, etc.)\n`;
+        md += `> - Binary/compiled files (.pyc, .so, .dll, etc.)\n`;
+        md += `> - Lock files (package-lock.json, etc.)\n`;
+        md += `> - System files (.DS_Store, .git, __pycache__, etc.)\n\n`;
         md += `## Overview\n\n`;
         md += `| Metric | Value |\n`;
         md += `|--------|-------|\n`;
