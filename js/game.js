@@ -1,7 +1,20 @@
 // Game.js - Core game logic
 
 class Game {
-    constructor() {
+    constructor(seed = null, options = {}) {
+        // Initialize RNG with seed (null = random)
+        this.rng = new SeededRNG(seed !== null ? seed : Date.now());
+        this.seed = this.rng.getSeed();
+
+        // Game options for world generation
+        this.options = {
+            softBlockDensity: options.softBlockDensity || 0.4,
+            lootSpawnChance: options.lootSpawnChance || 0.125,
+            testingMode: options.testingMode || false, // Fast mode for tests
+            initialLoot: options.initialLoot || [], // [{x, y, type}]
+            initialBombs: options.initialBombs || [] // [{x, y, playerId, stage}]
+        };
+
         this.grid = [];
         this.players = [];
         this.bombs = [];
@@ -12,7 +25,7 @@ class Game {
         this.currentPlayerIndex = 0;
         this.running = false;
         this.paused = false;
-        this.turnDelay = 1000; // 1 second between turns
+        this.turnDelay = this.options.testingMode ? 0 : 1000; // 1 second between turns (0 in test mode)
 
         this.GRID_WIDTH = 13;
         this.GRID_HEIGHT = 11;
@@ -61,10 +74,42 @@ class Game {
             for (let x = 0; x < this.GRID_WIDTH; x++) {
                 if (this.grid[y][x] === 0) {
                     const isSafe = safeZones.some(([sx, sy]) => sx === x && sy === y);
-                    if (!isSafe && Math.random() < 0.4) {
+                    // Use seeded RNG instead of Math.random()
+                    if (!isSafe && this.rng.random() < this.options.softBlockDensity) {
                         this.grid[y][x] = 1; // Soft block
                     }
                 }
+            }
+        }
+
+        // Place initial loot if specified (for testing)
+        for (const lootSpec of this.options.initialLoot) {
+            this.loot.push({
+                type: lootSpec.type || 'flash_radius',
+                x: lootSpec.x,
+                y: lootSpec.y,
+                spawnedRound: 0
+            });
+            if (this.options.testingMode) {
+                console.log(`[TEST] Initial loot ${lootSpec.type} at (${lootSpec.x}, ${lootSpec.y})`);
+            }
+        }
+
+        // Place initial bombs if specified (for testing)
+        for (const bombSpec of this.options.initialBombs) {
+            const bomb = {
+                id: `bomb${bombSpec.playerId}_test`,
+                playerId: bombSpec.playerId,
+                x: bombSpec.x,
+                y: bombSpec.y,
+                roundsUntilExplode: bombSpec.stage || 4,
+                range: bombSpec.range || 1,
+                placedOnRound: this.roundCount
+            };
+            this.bombs.push(bomb);
+            this.grid[bombSpec.y][bombSpec.x] = bomb.id;
+            if (this.options.testingMode) {
+                console.log(`[TEST] Initial bomb at (${bombSpec.x}, ${bombSpec.y}) stage ${bombSpec.stage}`);
             }
         }
     }
@@ -123,8 +168,8 @@ class Game {
             this.roundCount++;
         }
 
-        // 1/8 chance of spawning loot each turn
-        if (Math.random() < 0.125) {
+        // Loot spawn chance per turn (use seeded RNG)
+        if (this.rng.random() < this.options.lootSpawnChance) {
             this.spawnLoot();
         }
     }
@@ -148,7 +193,8 @@ class Game {
         }
 
         if (emptyPositions.length > 0) {
-            const pos = emptyPositions[Math.floor(Math.random() * emptyPositions.length)];
+            // Use seeded RNG instead of Math.random()
+            const pos = this.rng.choice(emptyPositions);
             this.loot.push({
                 type: 'flash_radius',
                 x: pos.x,
@@ -537,5 +583,58 @@ class Game {
         }
 
         return dangerousMoves;
+    }
+
+    // ===== TESTING/SERIALIZATION METHODS =====
+
+    /**
+     * Get complete game state including RNG state (for testing/serialization)
+     * @returns {Object} Complete game state
+     */
+    getCompleteState() {
+        return {
+            seed: this.seed,
+            rngState: this.rng.getState(),
+            options: this.options,
+            grid: this.grid.map(row => [...row]),
+            players: this.players.map(p => p.getState()),
+            bombs: this.bombs,
+            explosions: this.explosions,
+            loot: this.loot,
+            turnCount: this.turnCount,
+            roundCount: this.roundCount,
+            currentPlayerIndex: this.currentPlayerIndex,
+            running: this.running,
+            paused: this.paused
+        };
+    }
+
+    /**
+     * Restore complete game state including RNG (for testing/serialization)
+     * @param {Object} state - Complete game state
+     */
+    restoreCompleteState(state) {
+        this.seed = state.seed;
+        this.rng.setState(state.rngState);
+        this.options = state.options;
+        this.grid = state.grid.map(row => [...row]);
+        // Note: Players need to be reconstructed properly with Player class
+        // This is a simplified version - full implementation would require more work
+        this.bombs = state.bombs;
+        this.explosions = state.explosions;
+        this.loot = state.loot;
+        this.turnCount = state.turnCount;
+        this.roundCount = state.roundCount;
+        this.currentPlayerIndex = state.currentPlayerIndex;
+        this.running = state.running;
+        this.paused = state.paused;
+    }
+
+    /**
+     * Get seed for reproducibility
+     * @returns {number} Current seed
+     */
+    getSeed() {
+        return this.seed;
     }
 }
