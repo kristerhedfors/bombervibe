@@ -475,20 +475,24 @@ class Game {
             const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
 
             // Check if position is in blast radius
-            // Center of bomb - need extra time to escape
+            // Center of bomb - standing on it means you're trapped
             if (bomb.x === x && bomb.y === y) {
-                // If standing on bomb, need at least 2 rounds to be safe:
-                // Round N: move onto bomb (roundsLeft -= 1)
-                // Round N+1: move away (roundsLeft -= 1, must still be > 0)
-                // So safe if roundsLeft > afterRounds + 1
-                if (roundsLeft <= afterRounds + 1) {
+                // If moving onto a bomb, you need time to escape before it explodes:
+                // - This round: move onto bomb (uses 1 round)
+                // - Next round: escape (uses 1 round)
+                // - Bomb must not explode during or after escape
+                // So need: roundsLeft > 2
+                if (roundsLeft <= 2) {
                     return true;
                 }
-                // If bomb won't explode soon, continue checking blast radius
+                // If bomb has 3+ rounds, it's safe to stand on temporarily
                 continue;
             }
 
-            // Will this bomb explode within the specified rounds?
+            // Will this bomb explode soon enough to hit this position?
+            // For positions in blast radius (not on bomb center):
+            // - This round: move to position (uses 1 round)
+            // - Bomb explodes if roundsLeft <= 1
             if (roundsLeft <= afterRounds) {
                 // Check 4 directions
                 const directions = [
