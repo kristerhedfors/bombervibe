@@ -38,8 +38,8 @@ def main():
         page.click('#startGame')
         print('Game started, waiting for 5 rounds...')
 
-        # Wait for 5 rounds (about 15 seconds)
-        page.wait_for_timeout(15000)
+        # Wait for 20 rounds (about 60 seconds)
+        page.wait_for_timeout(60000)
 
         browser.close()
 

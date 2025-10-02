@@ -574,7 +574,7 @@ class Game {
             // Check if passable (stay is always passable)
             if (dir !== 'stay') {
                 const cell = this.grid[y][x];
-                if (cell === 2) { // Hard block
+                if (cell === 1 || cell === 2) { // Soft or hard block
                     continue;
                 }
             }
@@ -619,7 +619,7 @@ class Game {
             // Check if passable (stay is always passable)
             if (dir !== 'stay') {
                 const cell = this.grid[y][x];
-                if (cell === 2) { // Hard block
+                if (cell === 1 || cell === 2) { // Soft or hard block
                     continue;
                 }
             }
