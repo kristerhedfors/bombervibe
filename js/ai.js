@@ -39,11 +39,13 @@ RULES:
 • Scoring: +10 per 🟫 destroyed, +100 per kill
 • 1 ROUND = all 4 players move once
 
-CRITICAL - TURN ORDER:
-1. If dropBomb=true: Drop bomb at CURRENT position FIRST
-2. Then attempt move in chosen direction
-3. If move is BLOCKED, you stay at current position WITH bomb (dangerous!)
-⚠️ ONLY drop bomb if your chosen move direction is VALID (not blocked)!
+CRITICAL - BOMB MECHANICS:
+1. Bombs drop at YOUR CURRENT POSITION, then you move
+2. "Breakable: 1 (up)" means soft block is UP from you - bomb will hit it from HERE
+3. After dropping bomb, move to EMPTY space (NOT into the soft block!)
+4. Example: At A2 with "Breakable: 1 (up)", block is at A3
+   - ✅ CORRECT: dropBomb:true + direction:"down" (escape to A1)
+   - ❌ WRONG: dropBomb:true + direction:"up" (BLOCKED by soft block at A3!)
 
 SURVIVAL:
 • DIAGONAL = SAFE from bombs (only cardinal directions lethal)
@@ -51,16 +53,18 @@ SURVIVAL:
 • Higher range = escape further! Range 2 = 2 tiles, Range 3 = 3 tiles
 
 STRATEGY:
-1. Check DANGER - if lethal position, ESCAPE NOW
-2. Check LOOT (⚡) - prioritize collecting (increases range)
-3. Check bomb status (💣0 or 💣1) - don't waste turn if 💣1
-4. Check VALID MOVES - which directions are NOT blocked
-5. If breakable blocks adjacent AND escape move is VALID, DROP BOMB then move
-6. Move to safety or toward center (G6)
+1. Check DANGER - if lethal, pick SAFE move from list
+2. Check LOOT (⚡) - move toward it if nearby
+3. Check "Breakable: N (directions)" - these show ADJACENT soft blocks
+4. To bomb adjacent block: dropBomb:true + move to DIFFERENT EMPTY direction
+5. Check VALID MOVES - only these directions are legal
+6. NEVER move toward the soft block you're trying to bomb!
 
 BOMB PLACEMENT:
-✅ Drop when: breakable blocks adjacent + escape move is VALID + 💣0
-❌ Don't drop when: escape move BLOCKED, no breakable blocks, or 💣1
+✅ Drop when: "Breakable: N (dir1,dir2)" shows blocks + you move to EMPTY space + 💣0
+❌ WRONG: Trying to move INTO the soft block direction
+❌ WRONG: No breakable blocks nearby
+❌ WRONG: Already have bomb (💣1)
 
 RESPONSE (JSON):
 {
@@ -373,8 +377,6 @@ RESPONSE (JSON):
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return '';
 
-        let summary = '**Breakable:** ';
-
         // Count adjacent breakable blocks
         const adjacentBlocks = [];
         const directions = [
@@ -394,8 +396,14 @@ RESPONSE (JSON):
             }
         }
 
-        summary += adjacentBlocks.length === 0 ? 'None adjacent' : `${adjacentBlocks.length} (${adjacentBlocks.join(',')})`;
-        summary += '\n';
+        let summary = '**Breakable blocks ADJACENT to you:** ';
+        if (adjacentBlocks.length === 0) {
+            summary += 'None (don\'t drop bomb here!)\n';
+        } else {
+            summary += `${adjacentBlocks.length} at: ${adjacentBlocks.join(',')}`;
+            summary += '\n⚠️ To bomb them: dropBomb:true + move to DIFFERENT empty direction!\n';
+        }
+
         return summary;
     }
 
