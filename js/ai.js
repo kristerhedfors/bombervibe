@@ -264,83 +264,167 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         return `${file}${rank}`;
     }
 
-    // Generate 7x7 limited vision grid centered on player
-    generate7x7Grid(gameState, playerId, game) {
+    // Generate 7x7 limited vision grid centered on player (markdown table format)
+    generate7x7Grid(gameState, playerId) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
         const VISION_RADIUS = 3; // 3 tiles in each direction = 7x7 grid
-        let gridStr = 'LIMITED VISION (7x7 grid centered on you):\n';
-        gridStr += '   ';
+        let gridStr = '## 🔍 YOUR 7x7 LOCAL VIEW (centered on you):\n\n';
 
-        // Column headers
+        // Build markdown table
+        // Header row with column letters
+        gridStr += '| Rank |';
         for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
             const x = player.x + dx;
             if (x >= 0 && x < 13) {
-                gridStr += String.fromCharCode(65 + x) + '  ';
+                gridStr += ` ${String.fromCharCode(65 + x)} |`;
             } else {
-                gridStr += '   '; // Out of bounds
+                gridStr += ' ❌ |'; // Out of bounds
             }
+        }
+        gridStr += '\n';
+
+        // Separator row
+        gridStr += '|------|';
+        for (let i = 0; i < 7; i++) {
+            gridStr += '---|';
         }
         gridStr += '\n';
 
         // Grid rows
         for (let dy = -VISION_RADIUS; dy <= VISION_RADIUS; dy++) {
             const y = player.y + dy;
-            const rank = (y >= 0 && y < 11) ? (11 - y) : '  ';
-            gridStr += rank.toString().padStart(2, ' ') + ' ';
+            const rank = (y >= 0 && y < 11) ? (11 - y) : '❌';
+            gridStr += `| **${rank.toString().padStart(2, ' ')}** |`;
 
             for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
                 const x = player.x + dx;
 
                 // Out of bounds
                 if (x < 0 || x >= 13 || y < 0 || y >= 11) {
-                    gridStr += '   ';
+                    gridStr += ' ❌ |';
                     continue;
                 }
 
                 const cell = gameState.grid[y][x];
+                let cellContent = '';
 
                 // Check if this is the current player
                 if (x === player.x && y === player.y) {
-                    gridStr += '@@  '; // YOU ARE HERE
-                    continue;
+                    cellContent = '🎯'; // YOU ARE HERE
                 }
-
                 // Check if any other player is at this position
-                const playerHere = gameState.players.find(p => p.alive && p.x === x && p.y === y);
-                if (playerHere) {
-                    gridStr += 'P' + playerHere.id + ' ';
-                    continue;
+                else {
+                    const playerHere = gameState.players.find(p => p.alive && p.x === x && p.y === y);
+                    if (playerHere) {
+                        cellContent = `P${playerHere.id}`;
+                    }
                 }
 
                 // Check if bomb is here
                 const bombHere = gameState.bombs.find(b => b.x === x && b.y === y);
                 if (bombHere) {
                     const roundsLeft = bombHere.roundsUntilExplode;
-                    gridStr += 'B' + roundsLeft + ' '; // Show rounds until explosion
-                    continue;
+                    cellContent = cellContent ? `${cellContent}💣${roundsLeft}` : `💣${roundsLeft}`;
+                } else if (!cellContent) {
+                    // Cell type (only if no player/bomb)
+                    if (cell === 0) {
+                        cellContent = '·'; // Empty
+                    } else if (cell === 1) {
+                        cellContent = '🟫'; // Soft block (breakable)
+                    } else if (cell === 2) {
+                        cellContent = '⬛'; // Hard block
+                    } else {
+                        cellContent = '?';
+                    }
                 }
 
-                // Cell type
-                if (cell === 0) {
-                    gridStr += ' . ';
-                } else if (cell === 1) {
-                    gridStr += ' # ';
-                } else if (cell === 2) {
-                    gridStr += ' X ';
-                } else {
-                    gridStr += ' ? ';
-                }
+                gridStr += ` ${cellContent} |`;
             }
             gridStr += '\n';
         }
 
-        gridStr += '\nLegend:\n';
-        gridStr += ' @@ = YOU  P1-P4 = players  B1-B3 = bomb (number = rounds until explosion)\n';
-        gridStr += ' . = empty  # = soft block (walk through, destroyable)  X = hard block (impassable)\n\n';
+        gridStr += '\n**Legend:** 🎯=YOU | P1-P4=Players | 💣1-3=Bomb (rounds left) | ·=Empty | 🟫=Soft Block (breakable) | ⬛=Hard Block | ❌=Out of Bounds\n\n';
+
+        // Add natural language summary
+        gridStr += this.generateLocalSummary(gameState, playerId);
 
         return gridStr;
+    }
+
+    // Generate natural language summary of local area
+    generateLocalSummary(gameState, playerId) {
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player) return '';
+
+        let summary = '### 📊 Local Area Summary:\n\n';
+
+        // Count adjacent breakable blocks
+        const adjacentBlocks = [];
+        const directions = [
+            { dir: 'up', dx: 0, dy: -1 },
+            { dir: 'down', dx: 0, dy: 1 },
+            { dir: 'left', dx: -1, dy: 0 },
+            { dir: 'right', dx: 1, dy: 0 }
+        ];
+
+        for (const {dir, dx, dy} of directions) {
+            const x = player.x + dx;
+            const y = player.y + dy;
+            if (x >= 0 && x < 13 && y >= 0 && y < 11) {
+                if (gameState.grid[y][x] === 1) {
+                    adjacentBlocks.push(dir);
+                }
+            }
+        }
+
+        // Breakable blocks summary
+        if (adjacentBlocks.length === 0) {
+            summary += '**Breakable Blocks:** None directly adjacent to you.\n';
+        } else {
+            summary += `**Breakable Blocks:** ${adjacentBlocks.length} adjacent (${adjacentBlocks.join(', ')})\n`;
+        }
+
+        // Valid moves summary
+        const validMoves = [];
+        for (const {dir, dx, dy} of directions) {
+            const x = player.x + dx;
+            const y = player.y + dy;
+
+            // Check bounds
+            if (x < 0 || x >= 13 || y < 0 || y >= 11) {
+                continue;
+            }
+
+            // Check if passable
+            const cell = gameState.grid[y][x];
+            if (cell === 0 || cell === 1) { // Empty or soft block
+                // Can walk through empty, but NOT soft blocks
+                if (cell === 0) {
+                    validMoves.push(dir);
+                }
+            } else if (typeof cell === 'string' && cell.startsWith('bomb')) {
+                validMoves.push(dir); // Can walk through bombs
+            }
+            // Check for other players (can walk through)
+            const playerHere = gameState.players.find(p => p.alive && p.x === x && p.y === y);
+            if (playerHere && cell === 0) {
+                validMoves.push(dir);
+            }
+        }
+
+        if (validMoves.length === 0) {
+            summary += '**Valid Moves:** ⚠️ TRAPPED! No valid moves available.\n';
+        } else {
+            summary += `**Valid Moves:** You CAN move: ${validMoves.join(', ')}\n`;
+            if (validMoves.length === 1) {
+                summary += `⚠️ Only ONE escape route available!\n`;
+            }
+        }
+
+        summary += '\n';
+        return summary;
     }
 
     // Generate game state description for LLM with danger analysis
@@ -349,15 +433,15 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         if (!player) return null;
 
         // Use 7x7 limited vision grid
-        const gridStr = this.generate7x7Grid(gameState, playerId, game);
+        const gridStr = this.generate7x7Grid(gameState, playerId);
 
         // Player info
         let playersInfo = 'PLAYERS:\n';
         for (const p of gameState.players) {
-            const status = p.alive ? 'ALIVE' : 'DEAD';
-            const hasBomb = p.hasBomb ? 'has bomb placed' : 'can place bomb';
+            const status = p.alive ? '✅ ALIVE' : '💀 DEAD';
+            const bombStatus = p.hasBomb ? '💣1' : '💣0'; // Bomb symbol + count
             const pos = this.coordsToChess(p.x, p.y);
-            playersInfo += `Player ${p.id} (${p.color}): pos=${pos} ${status} score=${p.score} ${hasBomb}\n`;
+            playersInfo += `Player ${p.id} (${p.color}): ${pos} | ${status} | Score: ${p.score} | ${bombStatus}\n`;
         }
 
         // Bomb info with visual countdown
@@ -466,7 +550,8 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         // Your status
         const yourInfo = `\nYOU ARE PLAYER ${playerId}:\n`;
         const yourStatus = `Position: ${currentPos}\n`;
-        const yourBomb = player.hasBomb ? 'You have a bomb placed - cannot place another until it explodes\n' : 'You can place a bomb\n';
+        const bombCount = player.hasBomb ? '💣1' : '💣0';
+        const yourBomb = player.hasBomb ? `${bombCount} - You have a bomb placed - cannot place another until it explodes\n` : `${bombCount} - You can place a bomb\n`;
         const yourScore = `Score: ${player.score}\n`;
 
         // Find nearby soft blocks for strategic info
@@ -565,6 +650,7 @@ Respond with JSON containing your move decision and strategic thought.`;
 
         try {
             console.log(`[AI P${playerId}] Sending request to ${this.model}`);
+            console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',

@@ -833,13 +833,27 @@ function updatePromptWindowContent() {
 
     console.log('[Prompt Window] System prompt length:', systemPrompt.length);
 
+    // Generate the current game state description (user prompt)
+    const gameState = {
+        grid: game.grid,
+        players: game.players,
+        bombs: game.bombs,
+        roundCount: game.roundCount
+    };
+    const gameDescription = ai.generateGameStateDescription(gameState, playerId, game);
+
     const completePrompt = `=== SYSTEM PROMPT ===
 
 ${systemPrompt}
 
-=== PLAYER STRATEGY ===
+=== USER PROMPT (GAME STATE) ===
 
-${playerStrategy}`;
+${gameDescription}
+
+YOUR STRATEGY:
+${playerStrategy}
+
+Respond with JSON containing your move decision and strategic thought.`;
 
     console.log('[Prompt Window] Complete prompt length:', completePrompt.length);
 
