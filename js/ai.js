@@ -13,9 +13,11 @@ class AIController {
             4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Check timing info. Use 7x7 vision to plan 2-3 moves ahead. Control center territory!'
         };
         this.playerMemory = {}; // Dynamic memory for all players
+        this.promptHistory = {}; // Track prompt changes over time: {playerId: [{prompt, turnNumber, timestamp}]}
         this.systemPrompt = this.getDefaultSystemPrompt();
         this.errorCallback = null; // Callback to show error modal
         this.loadPlayerMemories();
+        this.loadPromptHistory();
     }
 
     setErrorCallback(callback) {
@@ -127,9 +129,12 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         return false;
     }
 
-    setPrompt(playerId, prompt) {
+    setPrompt(playerId, prompt, turnNumber = 0) {
         this.prompts[playerId] = prompt;
         localStorage.setItem(`player_${playerId}_prompt`, prompt);
+
+        // Record prompt change in history
+        this.recordPromptChange(playerId, prompt, turnNumber);
     }
 
     loadPrompts() {
@@ -145,14 +150,81 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         return this.defaultPrompts[playerId] || '';
     }
 
-    resetPrompt(playerId) {
+    resetPrompt(playerId, turnNumber = 0) {
         const defaultPrompt = this.defaultPrompts[playerId];
         if (defaultPrompt) {
             this.prompts[playerId] = defaultPrompt;
             localStorage.setItem(`player_${playerId}_prompt`, defaultPrompt);
+            this.recordPromptChange(playerId, defaultPrompt, turnNumber);
             return defaultPrompt;
         }
         return null;
+    }
+
+    recordPromptChange(playerId, prompt, turnNumber = 0) {
+        if (!this.promptHistory[playerId]) {
+            this.promptHistory[playerId] = [];
+        }
+
+        const entry = {
+            prompt: prompt,
+            turnNumber: turnNumber,
+            timestamp: Date.now()
+        };
+
+        this.promptHistory[playerId].push(entry);
+
+        // Save to localStorage
+        localStorage.setItem(`player_${playerId}_prompt_history`, JSON.stringify(this.promptHistory[playerId]));
+    }
+
+    loadPromptHistory() {
+        for (let i = 1; i <= 10; i++) {
+            const stored = localStorage.getItem(`player_${i}_prompt_history`);
+            if (stored) {
+                try {
+                    this.promptHistory[i] = JSON.parse(stored);
+                } catch (e) {
+                    console.error(`Failed to parse prompt history for player ${i}:`, e);
+                    this.promptHistory[i] = [];
+                }
+            }
+        }
+    }
+
+    getPromptHistory(playerId) {
+        return this.promptHistory[playerId] || [];
+    }
+
+    getPromptAtTurn(playerId, turnNumber) {
+        const history = this.getPromptHistory(playerId);
+        if (history.length === 0) {
+            return this.prompts[playerId] || this.defaultPrompts[playerId] || '';
+        }
+
+        // Find the most recent prompt at or before the given turn
+        let activePrompt = history[0].prompt;
+        for (const entry of history) {
+            if (entry.turnNumber <= turnNumber) {
+                activePrompt = entry.prompt;
+            } else {
+                break;
+            }
+        }
+        return activePrompt;
+    }
+
+    clearPromptHistory(playerId = null) {
+        if (playerId) {
+            this.promptHistory[playerId] = [];
+            localStorage.removeItem(`player_${playerId}_prompt_history`);
+        } else {
+            // Clear all histories
+            for (let i = 1; i <= 10; i++) {
+                this.promptHistory[i] = [];
+                localStorage.removeItem(`player_${i}_prompt_history`);
+            }
+        }
     }
 
     savePlayerMemory(playerId, thought) {

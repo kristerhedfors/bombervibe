@@ -33,6 +33,28 @@
         </div>
     </div>
 
+    <!-- Prompt History Modal -->
+    <div id="promptHistoryModal" class="modal hidden">
+        <div class="modal-content prompt-history-modal">
+            <div class="prompt-history-header">
+                <h2 id="promptHistoryTitle">Player Prompt</h2>
+                <button id="closePromptHistory" class="close-btn">✕</button>
+            </div>
+            <div class="prompt-history-info">
+                <span id="promptPlayerInfo"></span>
+                <span id="promptTurnInfo"></span>
+            </div>
+            <div class="prompt-current-section">
+                <h3>Current Strategy Prompt</h3>
+                <textarea id="promptHistoryCurrentText" readonly></textarea>
+            </div>
+            <div id="promptHistoryTimelineSection" class="prompt-timeline-section hidden">
+                <h3>Prompt History Timeline</h3>
+                <div id="promptHistoryTimeline" class="prompt-timeline"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Game Container -->
     <div id="gameContainer">
         <!-- Top Left Prompt -->

@@ -117,6 +117,9 @@ function setupEventListeners() {
     // Error modal
     document.getElementById('closeError').addEventListener('click', closeErrorModal);
 
+    // Prompt history modal
+    document.getElementById('closePromptHistory').addEventListener('click', closePromptHistoryModal);
+
     // Prompt editors - save on change
     for (let i = 1; i <= 4; i++) {
         document.getElementById(`prompt${i}`).addEventListener('change', (e) => {
@@ -243,6 +246,7 @@ function resetGame() {
     }
     game.reset();
     ai.clearAllMemories();
+    ai.clearPromptHistory(); // Clear prompt history
     manualControlEnabled = false;
     isReplayMode = false;
     gameOverDetected = false; // Reset game over flag
@@ -255,6 +259,7 @@ function resetGame() {
     for (let i = 1; i <= 10; i++) {
         localStorage.removeItem(`player_${i}_prompt`);
         localStorage.removeItem(`player_${i}_memory`);
+        localStorage.removeItem(`player_${i}_prompt_history`);
     }
     // System prompt
     localStorage.removeItem('system_prompt');
@@ -377,12 +382,14 @@ async function executeTurn() {
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
             const newState = captureGameState();
-            // Capture all player thoughts for replay (dynamic)
+            // Capture all player thoughts and prompts for replay (dynamic)
             const thoughts = {};
+            const prompts = {};
             game.players.forEach(p => {
                 thoughts[p.id] = ai.playerMemory[p.id] || '';
+                prompts[p.id] = ai.prompts[p.id] || ai.defaultPrompts[p.id] || '';
             });
-            const action = new Action('turn', {round, playerId: null, thoughts});
+            const action = new Action('turn', {round, playerId: null, thoughts, prompts});
             gameHistory.record(newState, action);
         }
     } catch (error) {
@@ -519,6 +526,14 @@ function renderPlayers() {
                 playerEntity.style.setProperty('--emoji', `"${player.npcEmoji}"`);
             }
 
+            // Add click handler to show prompt history
+            playerEntity.style.cursor = 'pointer';
+            playerEntity.style.pointerEvents = 'auto';
+            playerEntity.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showPromptHistoryModal(player.id);
+            });
+
             gridElement.appendChild(playerEntity);
         }
 
@@ -573,6 +588,14 @@ function renderFloatingThoughts() {
             bubble.style.borderColor = player.color;
             bubble.style.boxShadow = `0 0 15px ${player.color}`;
         }
+
+        // Add click handler to show prompt history
+        bubble.style.cursor = 'pointer';
+        bubble.style.pointerEvents = 'auto';
+        bubble.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPromptHistoryModal(player.id);
+        });
 
         // Position bubble above player (bubble grows upward from this point)
         // Account for gaps between cells
@@ -707,6 +730,108 @@ function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
 }
 
+// ===== PROMPT HISTORY MODAL FUNCTIONS =====
+
+/**
+ * Show prompt history modal for a player
+ */
+function showPromptHistoryModal(playerId) {
+    const player = game.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const modal = document.getElementById('promptHistoryModal');
+    const modalContent = modal.querySelector('.modal-content');
+
+    // Remove all player classes and add current player class
+    modalContent.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
+    modalContent.classList.add(`player-${playerId}`);
+
+    // Get player info
+    const playerEmojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
+    const playerColors = ['CYAN', 'MAGENTA', 'YELLOW', 'GREEN'];
+    const playerEmoji = player.isNPC && player.npcEmoji ? player.npcEmoji : playerEmojis[playerId - 1];
+    const playerColor = playerColors[playerId - 1];
+
+    // Update title
+    document.getElementById('promptHistoryTitle').textContent = `${playerEmoji} Player ${playerId} [${playerColor}]`;
+
+    // Update player info
+    const playerName = player.name || `Player ${playerId}`;
+    document.getElementById('promptPlayerInfo').textContent = `${playerName} • Score: ${player.score}`;
+
+    // Get current turn info
+    const currentTurn = game.turnCount;
+    const turnInfo = isReplayMode
+        ? `Replay Mode • Turn ${currentTurn}`
+        : `Live Game • Turn ${currentTurn}`;
+    document.getElementById('promptTurnInfo').textContent = turnInfo;
+
+    // Get current prompt (in replay mode, get prompt at current turn)
+    let currentPrompt;
+    if (isReplayMode) {
+        const currentEntry = gameHistory.getCurrentEntry();
+        if (currentEntry && currentEntry.action && currentEntry.action.payload && currentEntry.action.payload.prompts) {
+            currentPrompt = currentEntry.action.payload.prompts[playerId];
+        }
+    }
+
+    if (!currentPrompt) {
+        currentPrompt = ai.prompts[playerId] || ai.defaultPrompts[playerId] || '';
+    }
+
+    // Display current prompt
+    document.getElementById('promptHistoryCurrentText').value = currentPrompt;
+
+    // Get prompt history
+    const history = ai.getPromptHistory(playerId);
+
+    // Show/hide timeline section
+    const timelineSection = document.getElementById('promptHistoryTimelineSection');
+    const timelineContainer = document.getElementById('promptHistoryTimeline');
+
+    if (history.length > 1) {
+        timelineSection.classList.remove('hidden');
+
+        // Build timeline HTML
+        let timelineHTML = '';
+        for (let i = history.length - 1; i >= 0; i--) {
+            const entry = history[i];
+            const date = new Date(entry.timestamp);
+            const timeStr = date.toLocaleTimeString();
+            const dateStr = date.toLocaleDateString();
+
+            // Truncate prompt for display
+            const truncated = entry.prompt.length > 150
+                ? entry.prompt.substring(0, 150) + '...'
+                : entry.prompt;
+
+            timelineHTML += `
+                <div class="timeline-entry">
+                    <div class="timeline-entry-header">
+                        <span>Turn ${entry.turnNumber}</span>
+                        <span class="timeline-entry-time">${dateStr} ${timeStr}</span>
+                    </div>
+                    <div class="timeline-entry-text">${truncated}</div>
+                </div>
+            `;
+        }
+
+        timelineContainer.innerHTML = timelineHTML;
+    } else {
+        timelineSection.classList.add('hidden');
+    }
+
+    // Show modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Close prompt history modal
+ */
+function closePromptHistoryModal() {
+    document.getElementById('promptHistoryModal').classList.add('hidden');
+}
+
 // ===== REPLAY SYSTEM FUNCTIONS =====
 
 /**
@@ -826,7 +951,7 @@ function restoreGameState(gameState) {
 }
 
 /**
- * Restore player thoughts from history action (for replay)
+ * Restore player thoughts and prompts from history action (for replay)
  */
 function restoreThoughtsFromHistory() {
     const currentEntry = gameHistory.getCurrentEntry();
@@ -835,12 +960,25 @@ function restoreThoughtsFromHistory() {
     }
 
     const action = currentEntry.action;
+
+    // Restore thoughts
     if (action.payload && action.payload.thoughts) {
         const thoughts = action.payload.thoughts;
         // Restore thoughts for ALL players including Battle Royale NPCs (1-10)
         for (let i = 1; i <= 10; i++) {
             if (thoughts[i] !== undefined) {
                 ai.playerMemory[i] = thoughts[i];
+            }
+        }
+    }
+
+    // Restore prompts
+    if (action.payload && action.payload.prompts) {
+        const prompts = action.payload.prompts;
+        // Restore prompts for ALL players including Battle Royale NPCs (1-10)
+        for (let i = 1; i <= 10; i++) {
+            if (prompts[i] !== undefined) {
+                ai.prompts[i] = prompts[i];
             }
         }
     }
