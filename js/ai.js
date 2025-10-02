@@ -7,10 +7,10 @@ class AIController {
         this.model = 'gpt-4.1';
         this.prompts = {}; // Dynamic prompts for all players
         this.defaultPrompts = {
-            1: 'You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don\'t repeat moves!',
-            2: 'You are Player 2 (magenta). AGGRESSIVE play - move toward center G6, destroy blocks, hunt opponents. Review SAFE MOVES and adapt your strategy each turn!',
-            3: 'You are Player 3 (yellow). DEFENSIVE explorer - clear blocks for escape routes, maintain distance from opponents. Use DANGER ANALYSIS to stay safe and adapt plans!',
-            4: 'You are Player 4 (green). BALANCED tactician - mix offense/defense, explore center area, trap opponents strategically. Follow SAFE MOVES and evolve your plan!'
+            1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Use your 7x7 vision to find soft blocks. Remember: 3 rounds per bomb is plenty of escape time!',
+            2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
+            3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically. Use DANGER ANALYSIS. Plan escape routes. Don\'t rush - 3 rounds is enough time!',
+            4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Check timing info. Use 7x7 vision to plan 2-3 moves ahead. Control center territory!'
         };
         this.playerMemory = {}; // Dynamic memory for all players
         this.systemPrompt = this.getDefaultSystemPrompt();
@@ -32,25 +32,32 @@ GAME OBJECTIVE:
 4. ELIMINATE - Trap opponents for +100 points
 
 GAME RULES:
-- 13x11 grid using chess notation: columns A-M (A=left, M=right), rows 1-11 (11=top, 1=bottom)
+- You see a 7x7 grid centered on your position (limited vision)
+- Grid uses chess notation: columns A-M, rows 1-11 (11=top, 1=bottom)
 - You start in a corner, MOVE AWAY from edges!
-- Bombs explode after 10 TURNS with 1-tile blast radius in all directions
 - You can walk through soft blocks (#) and bombs (💣)
 - Hard blocks (X) are indestructible and block movement
 
-CRITICAL SURVIVAL RULES - READ CAREFULLY:
-1. Check "🚨 DANGER ANALYSIS" section FIRST
-2. If current position shows "💀 LETHAL", you WILL DIE if you don't move
-3. ONLY choose moves marked "✅ SAFE"
-4. If "⚠️ NO SAFE MOVES", you're trapped - try to minimize damage
-5. NEVER move back to where you just were (causes repetitive behavior)
+⏰ CRITICAL TIMING RULES:
+- 1 ROUND = all 4 players move once (not individual turns!)
+- Bombs explode after 3 ROUNDS (plenty of time to escape)
+- Bomb countdown shows: 💥💥💥 = 3 rounds left, 💥💥__ = 2 rounds left, etc.
+- Each bomb destroys 1 tile in all 4 directions (up/down/left/right)
+
+DECISION PROCESS (follow this order):
+1. Check "✅ VALID MOVES" - which directions are legal?
+2. Check "⏰ GAME TIMING" - what round is it? How many rounds until bombs explode?
+3. Check "🚨 DANGER ANALYSIS" - is your current position safe?
+4. If current position shows "💀 LETHAL", you MUST move to a safe square
+5. ONLY choose moves that are both VALID and SAFE
+6. If no safe moves exist, you're trapped - choose best option
 
 STRATEGIC PLAY:
-- DON'T just move up/down repeatedly on the edge!
-- EXPLORE toward the CENTER of the board (around G6)
+- DON'T stay on edges! Move toward CENTER (around G6)
 - DROP BOMBS near soft blocks (#) to destroy them for points
-- After dropping a bomb, ENSURE you can escape to a safe position (not blocked)
-- Use your previous thought to avoid repeating failed strategies
+- After dropping a bomb, ENSURE you can escape (3 rounds is enough time)
+- Use your 7x7 vision to plan ahead
+- Review your previous thought to avoid repeating mistakes
 
 RESPONSE FORMAT:
 You MUST respond with valid JSON in this exact format:
@@ -61,21 +68,21 @@ You MUST respond with valid JSON in this exact format:
 }
 
 EXAMPLES:
-{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at corner A11, moving right to escape. Safe move to B11. Will circle back to trap Player 2."}
-{"direction": "up", "dropBomb": false, "thought": "Moving toward center G6 to control territory and find soft blocks to destroy for points."}
-{"direction": "down", "dropBomb": false, "thought": "Player 3 approaching from north. Moving south to avoid confrontation and position for counter-attack."}
-{"direction": "left", "dropBomb": true, "thought": "Soft block cluster at E6. Dropping bomb then escaping left. Will destroy 3+ blocks for 30+ points."}
+{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at A11, moving right to B11. Soft block adjacent - will get points. 3 rounds to escape is plenty."}
+{"direction": "up", "dropBomb": false, "thought": "Moving toward center G6. No immediate threats. Will explore for soft blocks and positioning."}
+{"direction": "down", "dropBomb": false, "thought": "Bomb at D8 has 1 round left! Current position LETHAL. Moving down to E7 which is SAFE per danger analysis."}
+{"direction": "left", "dropBomb": true, "thought": "3 soft blocks in vision. Dropping bomb then escaping left. Will destroy blocks for 30+ points in 3 rounds."}
 
-THOUGHT/MEMORY:
-Your previous thought is shown each turn - USE IT to maintain continuity and avoid repeating the same move forever!
+MEMORY:
+Your previous thought is shown each turn - USE IT to maintain continuity and adapt your strategy!
 
 BOMB SAFETY:
-If dropBomb is true, VERIFY your direction move leads to a position that:
-1. Is not blocked by walls or hard blocks
-2. Is not lethal (check DANGER ANALYSIS)
-3. Allows you to escape the bomb's blast radius (1 tile in all directions)
+If dropBomb is true, VERIFY your direction move:
+1. Is VALID (check ✅ VALID MOVES section)
+2. Is SAFE (check 🚨 DANGER ANALYSIS section)
+3. Allows escape from bomb blast (1 tile in all directions, but you have 3 rounds)
 
-WINNING: Last player alive. Play smart, explore the board, and don't get stuck in repetitive patterns!`;
+WINNING: Last player alive. Play smart, use your limited vision effectively, and understand the timing!`;
     }
 
     setSystemPrompt(prompt) {
@@ -178,26 +185,50 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         return `${file}${rank}`;
     }
 
-    // Generate game state description for LLM with danger analysis
-    generateGameStateDescription(gameState, playerId, game) {
+    // Generate 7x7 limited vision grid centered on player
+    generate7x7Grid(gameState, playerId, game) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
-        // Build grid representation with chess notation
-        let gridStr = 'GRID (Chess notation: A-M = columns, 11-1 = rows):\n';
+        const VISION_RADIUS = 3; // 3 tiles in each direction = 7x7 grid
+        let gridStr = 'LIMITED VISION (7x7 grid centered on you):\n';
         gridStr += '   ';
-        for (let x = 0; x < 13; x++) {
-            gridStr += String.fromCharCode(65 + x) + '  ';
+
+        // Column headers
+        for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
+            const x = player.x + dx;
+            if (x >= 0 && x < 13) {
+                gridStr += String.fromCharCode(65 + x) + '  ';
+            } else {
+                gridStr += '   '; // Out of bounds
+            }
         }
         gridStr += '\n';
 
-        for (let y = 0; y < 11; y++) {
-            const rank = 11 - y;
+        // Grid rows
+        for (let dy = -VISION_RADIUS; dy <= VISION_RADIUS; dy++) {
+            const y = player.y + dy;
+            const rank = (y >= 0 && y < 11) ? (11 - y) : '  ';
             gridStr += rank.toString().padStart(2, ' ') + ' ';
-            for (let x = 0; x < 13; x++) {
+
+            for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
+                const x = player.x + dx;
+
+                // Out of bounds
+                if (x < 0 || x >= 13 || y < 0 || y >= 11) {
+                    gridStr += '   ';
+                    continue;
+                }
+
                 const cell = gameState.grid[y][x];
 
-                // Check if any player is at this position
+                // Check if this is the current player
+                if (x === player.x && y === player.y) {
+                    gridStr += '@@  '; // YOU ARE HERE
+                    continue;
+                }
+
+                // Check if any other player is at this position
                 const playerHere = gameState.players.find(p => p.alive && p.x === x && p.y === y);
                 if (playerHere) {
                     gridStr += 'P' + playerHere.id + ' ';
@@ -207,11 +238,12 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
                 // Check if bomb is here
                 const bombHere = gameState.bombs.find(b => b.x === x && b.y === y);
                 if (bombHere) {
-                    gridStr += 'B' + bombHere.playerId + ' ';
+                    const roundsLeft = bombHere.roundsUntilExplode;
+                    gridStr += 'B' + roundsLeft + ' '; // Show rounds until explosion
                     continue;
                 }
 
-                // Check cell type
+                // Cell type
                 if (cell === 0) {
                     gridStr += ' . ';
                 } else if (cell === 1) {
@@ -225,10 +257,20 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
             gridStr += '\n';
         }
 
-        // Legend
         gridStr += '\nLegend:\n';
-        gridStr += ' . = empty  # = soft block (destructible)  X = hard block\n';
-        gridStr += ' P1-P4 = players  B1-B4 = bombs\n\n';
+        gridStr += ' @@ = YOU  P1-P4 = players  B1-B3 = bomb (number = rounds until explosion)\n';
+        gridStr += ' . = empty  # = soft block (walk through, destroyable)  X = hard block (impassable)\n\n';
+
+        return gridStr;
+    }
+
+    // Generate game state description for LLM with danger analysis
+    generateGameStateDescription(gameState, playerId, game) {
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player) return null;
+
+        // Use 7x7 limited vision grid
+        const gridStr = this.generate7x7Grid(gameState, playerId, game);
 
         // Player info
         let playersInfo = 'PLAYERS:\n';
@@ -239,28 +281,77 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
             playersInfo += `Player ${p.id} (${p.color}): pos=${pos} ${status} score=${p.score} ${hasBomb}\n`;
         }
 
-        // Bomb info
-        let bombsInfo = '\nACTIVE BOMBS:\n';
+        // Bomb info with visual countdown
+        let bombsInfo = '\n💣 ACTIVE BOMBS:\n';
         if (gameState.bombs.length === 0) {
-            bombsInfo += 'None\n';
+            bombsInfo += 'None - no active bombs on the board\n';
         } else {
             for (const b of gameState.bombs) {
-                const turnsLeft = b.turnsUntilExplode;
+                const roundsLeft = b.roundsUntilExplode;
                 const pos = this.coordsToChess(b.x, b.y);
-                bombsInfo += `Bomb ${b.playerId}: pos=${pos} explodes in ${turnsLeft} turns, range=1\n`;
+                const countdown = '💥'.repeat(roundsLeft) + '__'.repeat(Math.max(0, 3 - roundsLeft));
+                bombsInfo += `  Bomb by P${b.playerId} at ${pos}: ${countdown} (${roundsLeft} rounds until explosion)\n`;
+                bombsInfo += `    Will destroy: 1 tile in all 4 directions (up/down/left/right)\n`;
             }
         }
 
-        // Adjacent bombs warning
-        const adjacentBombs = game.getAdjacentBombs(player.x, player.y, 2);
-        let adjacentInfo = '\n⚠️  ADJACENT BOMBS WARNING:\n';
-        if (adjacentBombs.length === 0) {
-            adjacentInfo += 'No bombs nearby - you are safe from immediate danger\n';
-        } else {
-            adjacentInfo += `${adjacentBombs.length} bomb(s) within 2 tiles of you:\n`;
-            for (const bomb of adjacentBombs) {
-                const pos = this.coordsToChess(bomb.x, bomb.y);
-                adjacentInfo += `  - Bomb at ${pos} by Player ${bomb.playerId}: ${bomb.turnsLeft} turns left, ${bomb.distance} tiles away\n`;
+        // Game timing info
+        let timingInfo = '\n⏰ GAME TIMING (IMPORTANT):\n';
+        timingInfo += '  - Current round: ' + gameState.roundCount + '\n';
+        timingInfo += '  - 1 ROUND = all 4 players move once\n';
+        timingInfo += '  - Bombs explode after 3 rounds (not turns!)\n';
+        timingInfo += '  - You have time to plan, but don\'t wait too long!\n';
+
+        // VALID MOVES - check all 4 directions
+        let validMovesInfo = '\n✅ VALID MOVES (check this FIRST):\n';
+        const directions = ['up', 'down', 'left', 'right'];
+        for (const dir of directions) {
+            let x = player.x;
+            let y = player.y;
+
+            if (dir === 'up') y--;
+            else if (dir === 'down') y++;
+            else if (dir === 'left') x--;
+            else if (dir === 'right') x++;
+
+            const destPos = this.coordsToChess(x, y);
+
+            // Check bounds
+            if (x < 0 || x >= 13 || y < 0 || y >= 11) {
+                validMovesInfo += `  ${dir.toUpperCase()}: ❌ OUT OF BOUNDS\n`;
+                continue;
+            }
+
+            // Check cell type
+            const cell = gameState.grid[y][x];
+            let cellType = '';
+            let passable = false;
+
+            if (cell === 0) {
+                cellType = 'empty';
+                passable = true;
+            } else if (cell === 1) {
+                cellType = 'soft block';
+                passable = true; // Can walk through soft blocks
+            } else if (cell === 2) {
+                cellType = 'hard block';
+                passable = false;
+            } else if (typeof cell === 'string' && cell.startsWith('bomb')) {
+                cellType = 'bomb';
+                passable = true; // Can walk through bombs
+            }
+
+            // Check for other players
+            const playerHere = gameState.players.find(p => p.alive && p.x === x && p.y === y);
+            if (playerHere) {
+                cellType = `Player ${playerHere.id}`;
+                passable = true; // Can walk through other players
+            }
+
+            if (passable) {
+                validMovesInfo += `  ${dir.toUpperCase()} to ${destPos}: ✅ Legal (${cellType})\n`;
+            } else {
+                validMovesInfo += `  ${dir.toUpperCase()} to ${destPos}: ❌ BLOCKED (${cellType})\n`;
             }
         }
 
@@ -283,7 +374,7 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
             }
         }
 
-        dangerInfo += '\nLETHAL MOVES (will kill you next turn):\n';
+        dangerInfo += '\nLETHAL MOVES (will kill you in next round):\n';
         if (dangerousMoves.length === 0) {
             dangerInfo += '  None - all valid moves are safe\n';
         } else {
@@ -333,7 +424,7 @@ WINNING: Last player alive. Play smart, explore the board, and don't get stuck i
         let memoryInfo = `\n💭 YOUR PREVIOUS THOUGHT:\n"${previousThought}"\n`;
         memoryInfo += '⚡ UPDATE your thought based on new game state - don\'t repeat it! Adjust your strategy as the situation changes.\n';
 
-        const fullDescription = gridStr + playersInfo + bombsInfo + adjacentInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + strategyHint + memoryInfo;
+        const fullDescription = gridStr + playersInfo + bombsInfo + timingInfo + validMovesInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + strategyHint + memoryInfo;
         return fullDescription;
     }
 
