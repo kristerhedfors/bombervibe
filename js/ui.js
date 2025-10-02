@@ -117,8 +117,9 @@ function setupEventListeners() {
     // Error modal
     document.getElementById('closeError').addEventListener('click', closeErrorModal);
 
-    // Prompt history modal
-    document.getElementById('closePromptHistory').addEventListener('click', closePromptHistoryModal);
+    // Prompt window
+    document.getElementById('closePromptWindow').addEventListener('click', closePromptWindow);
+    initializePromptWindowDragging();
 
     // Prompt editors - save on change
     for (let i = 1; i <= 4; i++) {
@@ -526,12 +527,12 @@ function renderPlayers() {
                 playerEntity.style.setProperty('--emoji', `"${player.npcEmoji}"`);
             }
 
-            // Add click handler to show prompt history
+            // Add click handler to show prompt window
             playerEntity.style.cursor = 'pointer';
             playerEntity.style.pointerEvents = 'auto';
             playerEntity.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showPromptHistoryModal(player.id);
+                showPromptWindow(player.id);
             });
 
             gridElement.appendChild(playerEntity);
@@ -589,12 +590,12 @@ function renderFloatingThoughts() {
             bubble.style.boxShadow = `0 0 15px ${player.color}`;
         }
 
-        // Add click handler to show prompt history
+        // Add click handler to show prompt window
         bubble.style.cursor = 'pointer';
         bubble.style.pointerEvents = 'auto';
         bubble.addEventListener('click', (e) => {
             e.stopPropagation();
-            showPromptHistoryModal(player.id);
+            showPromptWindow(player.id);
         });
 
         // Position bubble above player (bubble grows upward from this point)
@@ -730,21 +731,31 @@ function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
 }
 
-// ===== PROMPT HISTORY MODAL FUNCTIONS =====
+// ===== PROMPT WINDOW FUNCTIONS =====
+
+let activePromptWindow = null; // Track which player's window is open
+let promptWindowUpdateInterval = null;
 
 /**
- * Show prompt history modal for a player
+ * Show prompt window for a player
  */
-function showPromptHistoryModal(playerId) {
+function showPromptWindow(playerId) {
     const player = game.players.find(p => p.id === playerId);
     if (!player) return;
 
-    const modal = document.getElementById('promptHistoryModal');
-    const modalContent = modal.querySelector('.modal-content');
+    const window = document.getElementById('promptWindow');
+
+    // If already showing this player's window, just bring it to front
+    if (activePromptWindow === playerId && !window.classList.contains('hidden')) {
+        return;
+    }
+
+    // Set active player
+    activePromptWindow = playerId;
 
     // Remove all player classes and add current player class
-    modalContent.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
-    modalContent.classList.add(`player-${playerId}`);
+    window.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
+    window.classList.add(`player-${playerId}`);
 
     // Get player info
     const playerEmojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
@@ -753,18 +764,47 @@ function showPromptHistoryModal(playerId) {
     const playerColor = playerColors[playerId - 1];
 
     // Update title
-    document.getElementById('promptHistoryTitle').textContent = `${playerEmoji} Player ${playerId} [${playerColor}]`;
+    document.getElementById('promptWindowTitle').textContent = `${playerEmoji} Player ${playerId} [${playerColor}]`;
+
+    // Position window centered if first time showing
+    if (window.classList.contains('hidden')) {
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const windowWidth = 500;
+        const windowHeight = 400;
+
+        window.style.left = `${Math.max(0, (viewportWidth - windowWidth) / 2)}px`;
+        window.style.top = `${Math.max(0, (viewportHeight - windowHeight) / 2)}px`;
+    }
+
+    // Update content
+    updatePromptWindowContent();
+
+    // Show window
+    window.classList.remove('hidden');
+
+    // Start live updates (refresh every second)
+    if (promptWindowUpdateInterval) {
+        clearInterval(promptWindowUpdateInterval);
+    }
+    promptWindowUpdateInterval = setInterval(updatePromptWindowContent, 1000);
+}
+
+/**
+ * Update prompt window content (called periodically for live updates)
+ */
+function updatePromptWindowContent() {
+    if (activePromptWindow === null) return;
+
+    const playerId = activePromptWindow;
+    const player = game.players.find(p => p.id === playerId);
+    if (!player) return;
 
     // Update player info
     const playerName = player.name || `Player ${playerId}`;
-    document.getElementById('promptPlayerInfo').textContent = `${playerName} • Score: ${player.score}`;
-
-    // Get current turn info
-    const currentTurn = game.turnCount;
-    const turnInfo = isReplayMode
-        ? `Replay Mode • Turn ${currentTurn}`
-        : `Live Game • Turn ${currentTurn}`;
-    document.getElementById('promptTurnInfo').textContent = turnInfo;
+    const score = player.score;
+    const status = player.alive ? '✅ ALIVE' : '☠️ DEAD';
+    document.getElementById('promptWindowPlayerInfo').textContent = `${playerName} • Score: ${score} • ${status}`;
 
     // Get current prompt (in replay mode, get prompt at current turn)
     let currentPrompt;
@@ -780,56 +820,74 @@ function showPromptHistoryModal(playerId) {
     }
 
     // Display current prompt
-    document.getElementById('promptHistoryCurrentText').value = currentPrompt;
-
-    // Get prompt history
-    const history = ai.getPromptHistory(playerId);
-
-    // Show/hide timeline section
-    const timelineSection = document.getElementById('promptHistoryTimelineSection');
-    const timelineContainer = document.getElementById('promptHistoryTimeline');
-
-    if (history.length > 1) {
-        timelineSection.classList.remove('hidden');
-
-        // Build timeline HTML
-        let timelineHTML = '';
-        for (let i = history.length - 1; i >= 0; i--) {
-            const entry = history[i];
-            const date = new Date(entry.timestamp);
-            const timeStr = date.toLocaleTimeString();
-            const dateStr = date.toLocaleDateString();
-
-            // Truncate prompt for display
-            const truncated = entry.prompt.length > 150
-                ? entry.prompt.substring(0, 150) + '...'
-                : entry.prompt;
-
-            timelineHTML += `
-                <div class="timeline-entry">
-                    <div class="timeline-entry-header">
-                        <span>Turn ${entry.turnNumber}</span>
-                        <span class="timeline-entry-time">${dateStr} ${timeStr}</span>
-                    </div>
-                    <div class="timeline-entry-text">${truncated}</div>
-                </div>
-            `;
-        }
-
-        timelineContainer.innerHTML = timelineHTML;
-    } else {
-        timelineSection.classList.add('hidden');
-    }
-
-    // Show modal
-    modal.classList.remove('hidden');
+    document.getElementById('promptWindowCurrentText').textContent = currentPrompt;
 }
 
 /**
- * Close prompt history modal
+ * Close prompt window
  */
-function closePromptHistoryModal() {
-    document.getElementById('promptHistoryModal').classList.add('hidden');
+function closePromptWindow() {
+    document.getElementById('promptWindow').classList.add('hidden');
+    activePromptWindow = null;
+
+    // Stop live updates
+    if (promptWindowUpdateInterval) {
+        clearInterval(promptWindowUpdateInterval);
+        promptWindowUpdateInterval = null;
+    }
+}
+
+/**
+ * Initialize draggable functionality for prompt window
+ */
+function initializePromptWindowDragging() {
+    const window = document.getElementById('promptWindow');
+    const header = window.querySelector('.prompt-window-header');
+
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+
+    header.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    function dragStart(e) {
+        // Don't drag if clicking close button
+        if (e.target.classList.contains('window-close-btn') || e.target.closest('.window-close-btn')) {
+            return;
+        }
+
+        initialX = e.clientX - (parseInt(window.style.left) || 0);
+        initialY = e.clientY - (parseInt(window.style.top) || 0);
+
+        isDragging = true;
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+
+        e.preventDefault();
+
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+
+        // Keep window within viewport
+        const maxX = (window.innerWidth || document.documentElement.clientWidth) - window.offsetWidth;
+        const maxY = (window.innerHeight || document.documentElement.clientHeight) - window.offsetHeight;
+
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+
+        window.style.left = `${currentX}px`;
+        window.style.top = `${currentY}px`;
+    }
+
+    function dragEnd() {
+        isDragging = false;
+    }
 }
 
 // ===== REPLAY SYSTEM FUNCTIONS =====
