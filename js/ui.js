@@ -247,13 +247,29 @@ function resetGame() {
     gameHistory = new GameHistory(); // Reset history
     replayPlayer = null;
 
+    // Clear ALL localStorage items related to the game
+    // Player prompts
+    for (let i = 1; i <= 10; i++) {
+        localStorage.removeItem(`player_${i}_prompt`);
+        localStorage.removeItem(`player_${i}_memory`);
+    }
+    // System prompt
+    localStorage.removeItem('system_prompt');
+    // Serialization data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+        if (key.startsWith('bombervibe_') || key.startsWith('gameState_')) {
+            localStorage.removeItem(key);
+        }
+    });
+
     // Trigger gameReset event for NPC system
     window.dispatchEvent(new Event('gameReset'));
 
     renderGrid();
     updateScores();
     updateGameInfo();
-    log('Game reset');
+    log('🧹 Complete reset - all data cleared');
 }
 
 // Main game loop

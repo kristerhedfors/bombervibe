@@ -636,6 +636,7 @@ body {
     position: relative; /* For floating thought bubbles */
     width: 100%;
     height: 100%;
+    contain: layout style; /* Prevent layout reflows */
 }
 
 .cell {
@@ -645,6 +646,9 @@ body {
     align-items: center;
     font-size: 2rem;
     position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .cell.empty {
