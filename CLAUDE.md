@@ -315,6 +315,12 @@ This section MUST be updated whenever:
 - UI Instance: `window.ui`
 - Game State: `window.game.getGameState()`
 
+**Game Over Detection (CRITICAL for tests):**
+- **DOM element**: `div#gameOverOverlay` (appears when game ends)
+- **Detection method**: `page.locator('#gameOverOverlay').count() > 0`
+- ⚠️ Console logs showing "GAME OVER" are NOT available until browser closes
+- ⚠️ ALWAYS check DOM for game over, not console logs during test execution
+
 **Console Log Patterns:**
 - Round start: `[ROUND N] START - Players: X alive, Bombs: Y active`
 - Player moves: `[ROUND N] PX: DIRECTION (x,y)->(x,y) OK|BLOCKED`
