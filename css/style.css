@@ -253,6 +253,12 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: normal;
+    transition: opacity 0.2s ease-out;
+}
+
+/* Hide thought bubbles when hovering over the top button bar */
+#gameInfo:hover ~ #gridContainer #grid .floating-thought {
+    opacity: 0;
 }
 
 .floating-thought::before {
