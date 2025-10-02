@@ -561,25 +561,17 @@ body {
     flex: 1;
 }
 
-.prompt-window-info {
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    background: var(--bg-darker);
-    border: 1px solid;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
 .prompt-window-text {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .prompt-window-text label {
     font-weight: bold;
-    font-size: 0.95rem;
-    opacity: 0.9;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    text-align: center;
 }
 
 .prompt-window-text #promptWindowCurrentText {
@@ -587,9 +579,9 @@ body {
     background: var(--bg-darker);
     border: 2px solid;
     font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    max-height: 400px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    max-height: 500px;
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;

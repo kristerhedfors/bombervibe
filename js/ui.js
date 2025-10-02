@@ -743,10 +743,10 @@ function showPromptWindow(playerId) {
     const player = game.players.find(p => p.id === playerId);
     if (!player) return;
 
-    const window = document.getElementById('promptWindow');
+    const promptWindowEl = document.getElementById('promptWindow');
 
     // If already showing this player's window, just bring it to front
-    if (activePromptWindow === playerId && !window.classList.contains('hidden')) {
+    if (activePromptWindow === playerId && !promptWindowEl.classList.contains('hidden')) {
         return;
     }
 
@@ -754,8 +754,8 @@ function showPromptWindow(playerId) {
     activePromptWindow = playerId;
 
     // Remove all player classes and add current player class
-    window.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
-    window.classList.add(`player-${playerId}`);
+    promptWindowEl.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
+    promptWindowEl.classList.add(`player-${playerId}`);
 
     // Get player info
     const playerEmojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
@@ -767,60 +767,90 @@ function showPromptWindow(playerId) {
     document.getElementById('promptWindowTitle').textContent = `${playerEmoji} Player ${playerId} [${playerColor}]`;
 
     // Position window centered if first time showing
-    if (window.classList.contains('hidden')) {
+    if (promptWindowEl.classList.contains('hidden')) {
         const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         const windowWidth = 500;
         const windowHeight = 400;
 
-        window.style.left = `${Math.max(0, (viewportWidth - windowWidth) / 2)}px`;
-        window.style.top = `${Math.max(0, (viewportHeight - windowHeight) / 2)}px`;
+        promptWindowEl.style.left = `${Math.max(0, (viewportWidth - windowWidth) / 2)}px`;
+        promptWindowEl.style.top = `${Math.max(0, (viewportHeight - windowHeight) / 2)}px`;
     }
 
     // Update content
     updatePromptWindowContent();
 
     // Show window
-    window.classList.remove('hidden');
+    promptWindowEl.classList.remove('hidden');
 
-    // Start live updates (refresh every second)
+    // Start live updates (refresh every 2 seconds to reduce overhead)
     if (promptWindowUpdateInterval) {
         clearInterval(promptWindowUpdateInterval);
     }
-    promptWindowUpdateInterval = setInterval(updatePromptWindowContent, 1000);
+    promptWindowUpdateInterval = setInterval(updatePromptWindowContent, 2000);
 }
 
 /**
  * Update prompt window content (called periodically for live updates)
  */
 function updatePromptWindowContent() {
-    if (activePromptWindow === null) return;
+    if (activePromptWindow === null) {
+        console.log('[Prompt Window] No active window');
+        return;
+    }
+
+    const promptWindowEl = document.getElementById('promptWindow');
+    if (promptWindowEl.classList.contains('hidden')) {
+        console.log('[Prompt Window] Window is hidden');
+        return;
+    }
 
     const playerId = activePromptWindow;
     const player = game.players.find(p => p.id === playerId);
-    if (!player) return;
+    if (!player) {
+        console.log('[Prompt Window] Player not found:', playerId);
+        return;
+    }
 
-    // Update player info
-    const playerName = player.name || `Player ${playerId}`;
-    const score = player.score;
-    const status = player.alive ? '✅ ALIVE' : '☠️ DEAD';
-    document.getElementById('promptWindowPlayerInfo').textContent = `${playerName} • Score: ${score} • ${status}`;
-
-    // Get current prompt (in replay mode, get prompt at current turn)
-    let currentPrompt;
+    // Get player strategy prompt (in replay mode, get prompt at current turn)
+    let playerStrategy;
     if (isReplayMode) {
         const currentEntry = gameHistory.getCurrentEntry();
         if (currentEntry && currentEntry.action && currentEntry.action.payload && currentEntry.action.payload.prompts) {
-            currentPrompt = currentEntry.action.payload.prompts[playerId];
+            playerStrategy = currentEntry.action.payload.prompts[playerId];
         }
     }
 
-    if (!currentPrompt) {
-        currentPrompt = ai.prompts[playerId] || ai.defaultPrompts[playerId] || '';
+    if (!playerStrategy) {
+        playerStrategy = ai.prompts[playerId] || ai.defaultPrompts[playerId] || '';
     }
 
-    // Display current prompt
-    document.getElementById('promptWindowCurrentText').textContent = currentPrompt;
+    console.log('[Prompt Window] Player strategy:', playerStrategy ? playerStrategy.substring(0, 50) + '...' : 'EMPTY');
+
+    // Assemble the COMPLETE prompt as sent to OpenAI
+    // This matches exactly what's in ai.js getAIMove()
+    const systemPrompt = ai.getSystemPrompt();
+
+    console.log('[Prompt Window] System prompt length:', systemPrompt.length);
+
+    const completePrompt = `=== SYSTEM PROMPT ===
+
+${systemPrompt}
+
+=== PLAYER STRATEGY ===
+
+${playerStrategy}`;
+
+    console.log('[Prompt Window] Complete prompt length:', completePrompt.length);
+
+    // Display complete assembled prompt
+    const textEl = document.getElementById('promptWindowCurrentText');
+    if (textEl) {
+        textEl.textContent = completePrompt;
+        console.log('[Prompt Window] Updated text element');
+    } else {
+        console.error('[Prompt Window] Text element not found!');
+    }
 }
 
 /**
@@ -841,8 +871,8 @@ function closePromptWindow() {
  * Initialize draggable functionality for prompt window
  */
 function initializePromptWindowDragging() {
-    const window = document.getElementById('promptWindow');
-    const header = window.querySelector('.prompt-window-header');
+    const promptWindowEl = document.getElementById('promptWindow');
+    const header = promptWindowEl.querySelector('.prompt-window-header');
 
     let isDragging = false;
     let currentX;
@@ -860,8 +890,8 @@ function initializePromptWindowDragging() {
             return;
         }
 
-        initialX = e.clientX - (parseInt(window.style.left) || 0);
-        initialY = e.clientY - (parseInt(window.style.top) || 0);
+        initialX = e.clientX - (parseInt(promptWindowEl.style.left) || 0);
+        initialY = e.clientY - (parseInt(promptWindowEl.style.top) || 0);
 
         isDragging = true;
     }
@@ -875,14 +905,14 @@ function initializePromptWindowDragging() {
         currentY = e.clientY - initialY;
 
         // Keep window within viewport
-        const maxX = (window.innerWidth || document.documentElement.clientWidth) - window.offsetWidth;
-        const maxY = (window.innerHeight || document.documentElement.clientHeight) - window.offsetHeight;
+        const maxX = (window.innerWidth || document.documentElement.clientWidth) - promptWindowEl.offsetWidth;
+        const maxY = (window.innerHeight || document.documentElement.clientHeight) - promptWindowEl.offsetHeight;
 
         currentX = Math.max(0, Math.min(currentX, maxX));
         currentY = Math.max(0, Math.min(currentY, maxY));
 
-        window.style.left = `${currentX}px`;
-        window.style.top = `${currentY}px`;
+        promptWindowEl.style.left = `${currentX}px`;
+        promptWindowEl.style.top = `${currentY}px`;
     }
 
     function dragEnd() {
