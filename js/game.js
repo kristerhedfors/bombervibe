@@ -173,13 +173,35 @@ class Game {
         // Don't spawn on existing loot
         const hasLoot = this.loot.some(l => l.x === x && l.y === y);
         if (!hasLoot) {
+            // Weighted random loot selection
+            const lootTypes = [
+                {type: 'flash_radius', weight: 50},    // Blast range increase
+                {type: 'bomb_pickup', weight: 30},     // Pickup/throw bombs
+            ];
+
+            // Calculate total weight
+            const totalWeight = lootTypes.reduce((sum, item) => sum + item.weight, 0);
+
+            // Random selection
+            const roll = this.rng.random() * totalWeight;
+            let cumulative = 0;
+            let selectedType = 'flash_radius'; // Default fallback
+
+            for (const item of lootTypes) {
+                cumulative += item.weight;
+                if (roll < cumulative) {
+                    selectedType = item.type;
+                    break;
+                }
+            }
+
             this.loot.push({
-                type: 'flash_radius',
+                type: selectedType,
                 x: x,
                 y: y,
                 spawnedRound: this.roundCount
             });
-            console.log(`[LOOT] Spawned flash_radius at (${x}, ${y})`);
+            console.log(`[LOOT] Spawned ${selectedType} at (${x}, ${y})`);
         }
     }
 
@@ -281,6 +303,146 @@ class Game {
         return success;
     }
 
+    // Player picks up a bomb (requires bomb_pickup power-up)
+    playerPickupBomb(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return false;
+
+        // Check if player has pickup power-up
+        if (!player.canPickupBombs) {
+            console.log(`[P${playerId}] Cannot pickup bomb - needs bomb_pickup power-up`);
+            return false;
+        }
+
+        // Check if player is already carrying a bomb
+        if (player.carriedBomb) {
+            console.log(`[P${playerId}] Already carrying a bomb`);
+            return false;
+        }
+
+        // Find bomb at player's position
+        const bomb = this.bombs.find(b => b.x === player.x && b.y === player.y && !b.isBeingCarried);
+        if (!bomb) {
+            console.log(`[P${playerId}] No bomb at position (${player.x}, ${player.y})`);
+            return false;
+        }
+
+        // Pick up the bomb
+        player.carriedBomb = bomb;
+        bomb.isBeingCarried = true;
+        bomb.carriedByPlayerId = playerId;
+
+        // Remove from grid but keep in bombs array (still ticking down!)
+        if (this.grid[bomb.y][bomb.x] === bomb.id) {
+            this.grid[bomb.y][bomb.x] = 0;
+        }
+
+        console.log(`[P${playerId}] Picked up bomb at (${player.x}, ${player.y}), ${bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound)} rounds until explode`);
+        return true;
+    }
+
+    // Player throws carried bomb in a direction (with wrap-around)
+    playerThrowBomb(playerId, direction) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return false;
+
+        // Check if player is carrying a bomb
+        if (!player.carriedBomb) {
+            console.log(`[P${playerId}] Not carrying a bomb to throw`);
+            return false;
+        }
+
+        const bomb = player.carriedBomb;
+
+        // Calculate throw trajectory
+        let dx = 0, dy = 0;
+        switch (direction) {
+            case 'up': dy = -1; break;
+            case 'down': dy = 1; break;
+            case 'left': dx = -1; break;
+            case 'right': dx = 1; break;
+            default:
+                console.log(`[P${playerId}] Invalid throw direction: ${direction}`);
+                return false;
+        }
+
+        // Start from player's position
+        let x = player.x;
+        let y = player.y;
+        let wrappedAround = false;
+
+        // Throw bomb - it travels until hitting obstacle
+        while (true) {
+            // Move one step
+            x += dx;
+            y += dy;
+
+            // WRAP-AROUND: If bomb exits grid edge, re-enter from opposite edge
+            if (x < 0) {
+                x = this.GRID_WIDTH - 1;
+                wrappedAround = true;
+                console.log(`[P${playerId}] Bomb wrapped around LEFT edge to x=${x}`);
+            } else if (x >= this.GRID_WIDTH) {
+                x = 0;
+                wrappedAround = true;
+                console.log(`[P${playerId}] Bomb wrapped around RIGHT edge to x=${x}`);
+            }
+
+            if (y < 0) {
+                y = this.GRID_HEIGHT - 1;
+                wrappedAround = true;
+                console.log(`[P${playerId}] Bomb wrapped around TOP edge to y=${y}`);
+            } else if (y >= this.GRID_HEIGHT) {
+                y = 0;
+                wrappedAround = true;
+                console.log(`[P${playerId}] Bomb wrapped around BOTTOM edge to y=${y}`);
+            }
+
+            // Check if we hit an obstacle (soft/hard block)
+            const cell = this.grid[y][x];
+            if (cell === 1 || cell === 2) {
+                // Stop before the obstacle (place at previous position)
+                x -= dx;
+                y -= dy;
+
+                // Re-check wrap-around for final position
+                if (x < 0) x = this.GRID_WIDTH - 1;
+                else if (x >= this.GRID_WIDTH) x = 0;
+                if (y < 0) y = this.GRID_HEIGHT - 1;
+                else if (y >= this.GRID_HEIGHT) y = 0;
+
+                break;
+            }
+
+            // Check if we wrapped around AND came back to starting position (infinite throw)
+            if (wrappedAround && x === player.x && y === player.y) {
+                console.log(`[P${playerId}] Bomb wrapped full circle, placing at player position`);
+                break;
+            }
+
+            // Safety check: If we've traveled more than grid perimeter, stop
+            const traveled = Math.abs(x - player.x) + Math.abs(y - player.y);
+            if (traveled > this.GRID_WIDTH + this.GRID_HEIGHT) {
+                break;
+            }
+        }
+
+        // Place bomb at final position
+        bomb.x = x;
+        bomb.y = y;
+        bomb.isBeingCarried = false;
+        bomb.carriedByPlayerId = null;
+
+        // Place on grid
+        this.grid[y][x] = bomb.id;
+
+        // Clear player's carried bomb
+        player.carriedBomb = null;
+
+        console.log(`[P${playerId}] Threw bomb ${direction} to (${x}, ${y})${wrappedAround ? ' [WRAPPED]' : ''}`);
+        return true;
+    }
+
     // Update bombs and check for explosions (round-based)
     updateBombs() {
         const bombsToExplode = [];
@@ -290,6 +452,18 @@ class Game {
             const bomb = this.bombs[i];
             const roundsSincePlaced = this.roundCount - bomb.placedOnRound;
             if (roundsSincePlaced >= bomb.roundsUntilExplode) {
+                // If bomb is being carried, explode at player's current position
+                if (bomb.isBeingCarried && bomb.carriedByPlayerId) {
+                    const carrier = this.players.find(p => p.id === bomb.carriedByPlayerId);
+                    if (carrier) {
+                        console.log(`[P${bomb.carriedByPlayerId}] Carried bomb exploded in hands at (${carrier.x}, ${carrier.y})!`);
+                        bomb.x = carrier.x;
+                        bomb.y = carrier.y;
+                        bomb.isBeingCarried = false;
+                        carrier.carriedBomb = null;
+                    }
+                }
+
                 bombsToExplode.push(bomb);
                 this.bombs.splice(i, 1);
             }

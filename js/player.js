@@ -13,6 +13,10 @@ class Player {
         this.bombX = null;
         this.bombY = null;
         this.bombRange = 1; // Blast radius (can be increased by loot)
+
+        // Power-ups
+        this.canPickupBombs = false; // Bomb pickup/throw power-up
+        this.carriedBomb = null; // Reference to bomb being carried
     }
 
     move(newX, newY, grid) {
@@ -87,6 +91,9 @@ class Player {
         if (lootType === 'flash_radius') {
             this.bombRange += 1;
             console.log(`[P${this.id}] Picked up Flash Radius! Bomb range now: ${this.bombRange}`);
+        } else if (lootType === 'bomb_pickup') {
+            this.canPickupBombs = true;
+            console.log(`[P${this.id}] Picked up Bomb Pickup! Can now pickup and throw bombs`);
         }
     }
 
@@ -100,7 +107,9 @@ class Player {
             alive: this.alive,
             score: this.score,
             hasBomb: this.hasBomb,
-            bombRange: this.bombRange
+            bombRange: this.bombRange,
+            canPickupBombs: this.canPickupBombs,
+            carriedBomb: this.carriedBomb ? this.carriedBomb.id : null
         };
     }
 }
