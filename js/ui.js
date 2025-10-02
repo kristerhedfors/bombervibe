@@ -25,13 +25,34 @@ function initializeGame() {
     // Set error callback for AI
     ai.setErrorCallback(showErrorModal);
 
-    // Check for API key in URL fragment (e.g., #sk-abc123...)
+    // Check for API key in URL fragment (e.g., #gsk-abc123&maxRounds=20)
     const fragment = window.location.hash.substring(1); // Remove '#'
-    if (fragment && fragment.startsWith('sk-')) {
-        ai.setApiKey(fragment);
-        document.getElementById('apiModal').classList.add('hidden');
-        document.getElementById('apiKeyInput').value = '***';
-        log('API key loaded from URL fragment');
+    let apiKeyFromURL = null;
+    let maxRoundsFromURL = null;
+
+    if (fragment) {
+        // Parse fragment for API key and optional parameters
+        const parts = fragment.split('&');
+        const apiKeyPart = parts[0];
+
+        if (apiKeyPart && (apiKeyPart.startsWith('gsk_') || apiKeyPart.startsWith('sk-'))) {
+            apiKeyFromURL = apiKeyPart;
+
+            // Parse additional parameters
+            for (let i = 1; i < parts.length; i++) {
+                const [key, value] = parts[i].split('=');
+                if (key === 'maxRounds' && !isNaN(parseInt(value))) {
+                    maxRoundsFromURL = parseInt(value);
+                    window.maxRoundsForTesting = maxRoundsFromURL;
+                    console.log(`[TEST MODE] Will auto-stop after ${maxRoundsFromURL} rounds`);
+                }
+            }
+
+            ai.setApiKey(apiKeyFromURL);
+            document.getElementById('apiModal').classList.add('hidden');
+            document.getElementById('apiKeyInput').value = '***';
+            log('API key loaded from URL fragment');
+        }
     }
     // Otherwise check for stored API key
     else if (ai.loadApiKey()) {
@@ -329,22 +350,33 @@ async function executeTurn() {
     const round = Math.floor(game.turnCount / playerCount) + 1;
     console.log(`[ROUND ${round}] Processing ${playerCount} players in parallel`);
 
+    // Check if we should auto-stop for testing
+    if (window.maxRoundsForTesting && round > window.maxRoundsForTesting) {
+        console.log(`[TEST MODE] Reached maxRounds=${window.maxRoundsForTesting}, stopping game`);
+        gameRunning = false;
+        turnInProgress = false;
+
+        // Dispatch event for Playwright to detect
+        window.dispatchEvent(new CustomEvent('testComplete', {
+            detail: { round, maxRounds: window.maxRoundsForTesting }
+        }));
+
+        return;
+    }
+
     try {
         const gameState = game.getGameState();
-        console.log(`[ROUND ${round}] Game state:`, {
-            players: gameState.players.map(p => `P${p.id}:(${p.x},${p.y}) ${p.alive?'alive':'dead'}`),
-            bombs: gameState.bombs.length
-        });
+
+        // GAMEPLAY VALIDATION LOG: Round summary
+        console.log(`[ROUND ${round}] START - Players: ${gameState.players.filter(p => p.alive).length} alive, Bombs: ${gameState.bombs.length} active`);
 
         // Get all AI moves in parallel (one API call per alive player)
         log('All players thinking...');
         const allMoves = await ai.getAllPlayerMoves(gameState, game);
-        console.log(`[ROUND ${round}] All AI moves received:`, allMoves);
 
         // Execute all moves sequentially for all players
         for (const player of game.players) {
             if (!player.alive) {
-                console.log(`[ROUND ${round}] Player ${player.id} is dead, skipping`);
                 continue;
             }
 
@@ -355,19 +387,19 @@ async function executeTurn() {
                 // Drop bomb first if requested (at current position)
                 let bombMsg = '';
                 if (move.dropBomb) {
-                    console.log(`[ROUND ${round}] P${player.id}: Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
                     const bombSuccess = game.playerPlaceBomb(player.id);
-                    bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
-                    console.log(`[ROUND ${round}] P${player.id}: Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED'}`);
+                    bombMsg = bombSuccess ? ' +BOMB' : '';
                 }
 
                 // Then move
-                console.log(`[ROUND ${round}] P${player.id}: Moving ${move.direction} from (${startPos.x}, ${startPos.y})`);
                 const success = game.movePlayer(player.id, move.direction);
-                console.log(`[ROUND ${round}] P${player.id}: Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${player.x}, ${player.y})`);
+
+                // GAMEPLAY VALIDATION LOG: Player action
+                console.log(`[ROUND ${round}] P${player.id}: ${move.direction.toUpperCase()}${bombMsg} (${startPos.x},${startPos.y})->(${player.x},${player.y}) ${success ? 'OK' : 'BLOCKED'}`);
+
                 log(`Player ${player.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
             } else {
-                console.warn(`[ROUND ${round}] P${player.id}: Invalid or missing move:`, move);
+                console.warn(`[ROUND ${round}] P${player.id}: INVALID MOVE`);
                 log(`Player ${player.id} received invalid move - skipping`);
             }
         }
@@ -378,7 +410,14 @@ async function executeTurn() {
         }
 
         // Update bombs AFTER all players have moved
+        const bombsBefore = game.bombs.length;
         game.updateBombs();
+        const bombsAfter = game.bombs.length;
+
+        // GAMEPLAY VALIDATION LOG: Explosions
+        if (bombsBefore > bombsAfter) {
+            console.log(`[ROUND ${round}] EXPLOSIONS: ${bombsBefore - bombsAfter} bomb(s) detonated`);
+        }
 
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
@@ -482,6 +521,18 @@ function renderGrid() {
                 cell.classList.add('hard-block');
             }
 
+            // Check for loot at this position
+            const loot = game.loot.find(l => l.x === x && l.y === y);
+            if (loot) {
+                const lootIcon = document.createElement('div');
+                lootIcon.className = 'loot-icon';
+                if (loot.type === 'flash_radius') {
+                    lootIcon.innerHTML = '⚡';
+                    lootIcon.classList.add('flash-radius');
+                }
+                cell.appendChild(lootIcon);
+            }
+
             gridElement.appendChild(cell);
         }
     }
@@ -575,8 +626,8 @@ function renderFloatingThoughts() {
     for (const player of game.players) {
         if (!player.alive) continue;
 
-        const thought = ai.getPlayerMemory(player.id);
-        if (!thought || thought === 'No previous thought' || thought.trim() === '') continue;
+        const thought = ai.getPlayerThought(player.id);
+        if (!thought || thought.trim() === '') continue;
 
         // Create floating thought bubble
         const bubble = document.createElement('div');

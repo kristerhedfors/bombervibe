@@ -7,22 +7,28 @@
 ## Tech Stack
 
 - **Frontend**: Pure HTML5, CSS3, JavaScript (no build tools)
-- **AI**: Groq Cloud API with `moonshotai/kimi-k2-instruct-0905` model
+- **AI**: Dual API support - Groq Cloud or OpenAI (auto-detected by API key prefix)
+  - Groq: `moonshotai/kimi-k2-instruct-0905` model
+  - OpenAI: `gpt-4.1-mini` model
 - **Hosting**: GitHub Pages (static site)
 - **Storage**: localStorage for API keys and prompts
 
 ## Project Structure
 
 ```
-electric-boogaloo/
+bombervibe/
 ├── index.html           # Main game page
 ├── css/
 │   └── style.css       # Cypherpunk Matrix theme
 ├── js/
 │   ├── player.js       # Player class
 │   ├── game.js         # Core game logic
-│   ├── ai.js           # Groq API integration
+│   ├── ai.js           # AI API integration
 │   └── ui.js           # Game loop & rendering
+├── tests/
+│   ├── .env            # API keys (GROQ_API_KEY or OPENAI_API_KEY)
+│   └── test_gameplay.py # Playwright test for gameplay validation
+├── .venv/              # Python virtual environment with Playwright
 ├── README.md           # User documentation
 └── CLAUDE.md          # This file (development notes)
 ```
@@ -88,14 +94,19 @@ electric-boogaloo/
    - With API key: `https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_key_here`
    - Wait 1-2 minutes for deployment
 
-4. **Get Groq API Key:**
-   - Visit: `https://console.groq.com`
-   - Sign up (free tier available)
-   - Generate API key (starts with `gsk_...`)
+4. **Get API Key:**
+   - **Groq Cloud** (recommended for speed):
+     - Visit: `https://console.groq.com`
+     - Sign up (free tier available)
+     - Generate API key (starts with `gsk_...`)
+   - **OpenAI** (alternative):
+     - Visit: `https://platform.openai.com/api-keys`
+     - Create API key (starts with `sk-...`)
+   - The game auto-detects which API to use based on key prefix
 
 ### URL Fragment API Key Feature
 
-The site supports passing the Groq API key via URL fragment (hash):
+The site supports passing your API key via URL fragment (hash):
 
 ```
 https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_api_key_here
@@ -109,20 +120,39 @@ https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_api_key_here
 
 **Implementation:**
 - On page load, checks `window.location.hash` for API key
-- If fragment starts with `gsk_`, automatically sets it
+- If fragment starts with `gsk_` or `sk-`, automatically sets it
 - Falls back to localStorage if no fragment
 - Falls back to modal prompt if neither exists
 
 ## API Integration
 
-### Groq Cloud Configuration
+### Dual API Support
 
+The game automatically detects which API to use based on your key prefix:
+
+**Groq Cloud API** (key starts with `gsk_`):
 ```javascript
 API Endpoint: https://api.groq.com/openai/v1/chat/completions
-Model: moonshotai/kimi-k2-instruct-0905
-Cost: ~$0.00002 per turn (very cheap)
-Speed: ~100-300ms response time
+Tactical Model: moonshotai/kimi-k2-instruct-0905
+Memory Model: moonshotai/kimi-k2-instruct-0905
+Cost: Free tier available
+Speed: Extremely fast (~100-300ms response time)
 ```
+
+**OpenAI API** (key starts with `sk-`):
+```javascript
+API Endpoint: https://api.openai.com/v1/chat/completions
+Tactical Model: gpt-4.1-mini
+Memory Model: gpt-4.1-mini
+Cost: ~$0.0001 per turn (very cheap)
+Speed: ~200-500ms response time
+```
+
+**Two-Stage AI Architecture:**
+1. **Tactical Call**: Makes immediate move decisions based on full game state
+2. **Memory Update**: Runs asynchronously in background with compact prompt to update operational memory for next turn
+
+This separation reduces prompt size for memory updates (~200 tokens vs 2000+) while maintaining full context for tactical decisions.
 
 ### LLM Input Format
 
@@ -132,14 +162,22 @@ Each turn, the AI receives:
 3. **Bomb info**: Locations, explosion timers
 4. **Custom prompt**: User-defined strategy (editable in corners)
 
-### Expected Output
+### Expected Output (Tactical Call)
 
 ```json
-{"action": "move", "direction": "up"}
-{"action": "move", "direction": "down"}
-{"action": "move", "direction": "left"}
-{"action": "move", "direction": "right"}
-{"action": "bomb"}
+{
+  "direction": "up" | "down" | "left" | "right",
+  "dropBomb": true | false,
+  "thought": "Tactical reasoning for this move (max 50 words)"
+}
+```
+
+### Expected Output (Memory Update)
+
+```json
+{
+  "memory": "Operational notes for next turn (max 50 words)"
+}
 ```
 
 Fallback: If LLM fails or returns invalid JSON, uses random valid move.
@@ -230,28 +268,72 @@ In `css/style.css`:
 
 ### Use Different AI Model
 
-In `js/ai.js`:
-```javascript
-this.model = 'moonshotai/kimi-k2-instruct-0905';
-// Try: llama-3.1-8b-instant, llama-3.1-70b-versatile, etc.
-```
+Models are automatically selected based on your API key:
 
-See [Groq Models](https://console.groq.com/docs/models) for options.
+**Groq Cloud** (`gsk_` keys):
+- Default: `moonshotai/kimi-k2-instruct-0905`
+- See [Groq Models](https://console.groq.com/docs/models) for alternatives
+
+**OpenAI** (`sk-` keys):
+- Default: `gpt-4.1-mini`
+- Alternatives: `gpt-4o-mini`, `gpt-4o`, etc.
+- See [OpenAI Models](https://platform.openai.com/docs/models)
+
+To change models, edit `setApiKey()` in [js/ai.js:178-204](js/ai.js#L178-L204).
 
 ## Testing
 
-### Local Testing
-1. Open `index.html` in browser
-2. Enter Groq API key
+### Manual Testing
+1. Open `index.html` in browser (file:// URL works fine - no web server needed)
+2. Enter API key (Groq or OpenAI)
 3. Click START
 4. Use DevTools console for debugging
+5. Console will show which API/model is detected
+
+### Automated Testing with Playwright
+
+**IMPORTANT**: No web server needed! Playwright opens index.html directly via file:// URL.
+
+**Setup:**
+```bash
+# API keys stored in tests/.env
+cd tests
+echo "GROQ_API_KEY=gsk_your_key_here" > .env
+# or
+echo "OPENAI_API_KEY=sk_your_key_here" > .env
+```
+
+**Run tests:**
+```bash
+# Activate virtual environment with Playwright
+source .venv/bin/activate
+
+# Run gameplay validation test
+python tests/test_gameplay.py
+```
+
+**Test validates:**
+- ✅ Game initializes correctly
+- ✅ AI players make valid moves
+- ✅ Bombs explode at correct timing
+- ✅ Players die when hit by explosions
+- ✅ Game completes with a winner
+- ✅ Console logs show proper game flow
+
+**Focused console logging:**
+The game now logs only essential gameplay info:
+- `[ROUND X] START` - Round begins with player/bomb counts
+- `[ROUND X] P1: UP (0,0)->(0,1) OK` - Player move with coordinates
+- `[ROUND X] EXPLOSIONS: 2 bomb(s) detonated` - Bomb events
+- No verbose debugging logs during normal gameplay
 
 ### Common Issues
 
 **API Not Working:**
-- Check API key is valid (starts with `gsk_`)
-- Check browser console for errors
-- Verify network tab shows API calls
+- Check API key is valid (starts with `gsk_` or `sk-`)
+- Check browser console for API detection message
+- Verify network tab shows API calls to correct endpoint
+- For Groq: Ensure model is available in your region
 
 **AI Makes Invalid Moves:**
 - Normal behavior - fallback to random move
