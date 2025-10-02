@@ -1,0 +1,18 @@
+================================================================================
+CAPTURED AI PROMPTS - Electric Boogaloo
+Timestamp: 20251002_202151
+================================================================================
+
+
+
+================================================================================
+RECENT CONSOLE LOGS (GAMEPLAY)
+================================================================================
+[AI] Detected Groq Cloud API key - using Kimi K2 model
+[AI] Clearing all player memories for new round
+[ROUND 1] Processing 4 players in parallel
+[ROUND 1] START - Players: 4 alive, Bombs: 0 active
+[AI P1] Sending tactical request to moonshotai/kimi-k2-instruct-0905 (groq)
+[AI P2] Sending tactical request to moonshotai/kimi-k2-instruct-0905 (groq)
+[AI P3] Sending tactical request to moonshotai/kimi-k2-instruct-0905 (groq)
+[AI P4] Sending tactical request to moonshotai/kimi-k2-instruct-0905 (groq)

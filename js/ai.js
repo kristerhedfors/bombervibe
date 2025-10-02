@@ -268,13 +268,13 @@ RESPONSE (JSON):
         return `${file}${rank}`;
     }
 
-    // Generate 11x11 limited vision grid centered on player (markdown table format)
-    generate11x11Grid(gameState, playerId) {
+    // Generate 7x7 limited vision grid centered on player (markdown table format)
+    generate7x7Grid(gameState, playerId) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
-        const VISION_RADIUS = 5; // 5 tiles in each direction = 11x11 grid
-        let gridStr = '## 11x11 VISION:\n\n';
+        const VISION_RADIUS = 3; // 3 tiles in each direction = 7x7 grid
+        let gridStr = '## 7x7 VISION:\n\n';
 
         // Build markdown table
         // Header row with column letters
@@ -291,7 +291,7 @@ RESPONSE (JSON):
 
         // Separator row
         gridStr += '|------|';
-        for (let i = 0; i < 11; i++) {
+        for (let i = 0; i < 7; i++) {
             gridStr += '---|';
         }
         gridStr += '\n';
@@ -404,8 +404,8 @@ RESPONSE (JSON):
         const player = gameState.players.find(p => p.id === playerId);
         if (!player) return null;
 
-        // Use 11x11 limited vision grid
-        const gridStr = this.generate11x11Grid(gameState, playerId);
+        // Use 7x7 limited vision grid
+        const gridStr = this.generate7x7Grid(gameState, playerId);
 
         // Player info (compact)
         let playersInfo = 'PLAYERS: ';
@@ -696,7 +696,12 @@ Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thou
 
         try {
             console.log(`[AI P${playerId}] Sending tactical request to ${this.tacticalModel} (${this.apiProvider})`);
-            // console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
+
+            // Log full prompt for analysis (only for first 3 rounds to reduce clutter)
+            if (gameState.roundCount <= 3) {
+                console.log(`\n[AI P${playerId}] === SYSTEM PROMPT ===\n${this.systemPrompt}\n=== END SYSTEM PROMPT ===`);
+            }
+            console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
 
             const requestBody = {
                 model: this.tacticalModel,

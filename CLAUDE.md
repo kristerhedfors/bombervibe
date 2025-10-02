@@ -283,10 +283,63 @@ To change models, edit `setApiKey()` in [js/ai.js:178-204](js/ai.js#L178-L204).
 
 ## Testing
 
+### ⚠️ CRITICAL: Test Documentation Protocol
+
+**ALWAYS maintain complete documentation of working UI identifiers and interaction patterns when building tests.**
+
+**⚠️ ALWAYS implement turn/round caps in tests!** Games can run indefinitely - tests MUST have hard limits (typically 10-15 rounds max) to prevent runaway execution.
+
+This section MUST be updated whenever:
+- New tests are created
+- UI elements are identified
+- Interaction patterns are discovered
+- Element selectors change
+
+### UI Element Reference (for Playwright Tests)
+
+**Game Container & Grid:**
+- Game container: `div#gameContainer`
+- Game grid: `div#grid` (where cells are rendered)
+- Grid container: `div#gridContainer`
+- Game info panel: `div#gameInfo`
+
+**Buttons:**
+- Start button: `button#startGame` (must be clicked to start game)
+- Pause button: `button#pauseGame`
+- Reset button: `button#resetGame`
+- Located in `.info-right` area
+
+**Game State Access:**
+- AI Controller: `window.ai` (available after page load)
+- Game Instance: `window.game` (available after START clicked)
+- UI Instance: `window.ui`
+- Game State: `window.game.getGameState()`
+
+**Console Log Patterns:**
+- Round start: `[ROUND N] START - Players: X alive, Bombs: Y active`
+- Player moves: `[ROUND N] PX: DIRECTION (x,y)->(x,y) OK|BLOCKED`
+- Bomb placement: `[ROUND N] PX: DIRECTION +BOMB (x,y)->(x,y)`
+- Explosions: `[ROUND N] EXPLOSIONS: N bomb(s) detonated`
+- AI decisions: `[AI PX] Move: direction, dropBomb: true|false`
+- AI thoughts: `[AI PX] Thought: "..."`
+
+**Test Interaction Sequence:**
+1. Navigate to `file:///path/to/index.html#API_KEY`
+2. Wait for `div#grid` to be visible (game UI loaded)
+3. Wait 2 seconds for AI controller to load
+4. Click `button#startGame` to start game
+5. Monitor console logs for game progression
+
+**Additional Selectors:**
+- Turn counter: `span#turnCounter`
+- Current player: `span#currentPlayer`
+- Scores: `span#score1`, `span#score2`, `span#score3`, `span#score4`
+- Player prompts: `textarea#prompt1`, `textarea#prompt2`, `textarea#prompt3`, `textarea#prompt4`
+
 ### Manual Testing
 1. Open `index.html` in browser (file:// URL works fine - no web server needed)
-2. Enter API key (Groq or OpenAI)
-3. Click START
+2. Enter API key (Groq or OpenAI) OR use URL fragment: `index.html#gsk_your_key`
+3. Click START button
 4. Use DevTools console for debugging
 5. Console will show which API/model is detected
 
