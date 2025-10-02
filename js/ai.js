@@ -3,8 +3,10 @@
 class AIController {
     constructor() {
         this.apiKey = null;
-        this.apiUrl = 'https://api.openai.com/v1/chat/completions';
-        this.model = 'gpt-4.1';
+        this.apiProvider = null; // 'openai' or 'groq'
+        this.apiUrl = null;
+        this.tacticalModel = null;
+        this.memoryModel = null;
         this.prompts = {}; // Dynamic prompts for all players
         this.playerThoughts = {}; // Current turn's tactical thoughts for display
         this.defaultPrompts = {
@@ -122,28 +124,27 @@ You MUST respond with valid JSON in this exact format:
 {
   "direction": "up" | "down" | "left" | "right",
   "dropBomb": true | false,
-  "memory": "Operational notes for next turn (50 words max)",
   "thought": "Tactical reasoning for THIS move (50 words max)"
 }
 
-🎯 3-LEVEL DECISION HIERARCHY:
+🎯 DECISION HIERARCHY:
 1. **STRATEGY** (your corner prompt): High-level goal set by human - EXPLORE/AGGRESSIVE/DEFENSIVE (never changes)
-2. **MEMORY** (operational): Updated each turn - patterns you notice, danger zones, loot locations, board control
+2. **MEMORY** (operational context): Your previous observations about patterns, danger zones, loot locations, board control
 3. **THOUGHT** (tactical): Reasoning for THIS specific move - why you chose this direction/bomb decision
 
 ⚠️ MEMORY vs THOUGHT:
-- **MEMORY**: What you LEARNED this turn to remember for next turn (board patterns, threats, opportunities)
+- **MEMORY** (provided to you): What you observed in previous turns (board patterns, threats, opportunities)
   Example: "Center has 3 soft blocks. P2 controls east. Loot at G6. My bomb range is 2 now."
-- **THOUGHT**: Why you made THIS move right now (immediate tactical decision)
+- **THOUGHT** (you provide): Why you made THIS move right now (immediate tactical decision)
   Example: "Moving toward G6 loot - 2 tiles away. Bomb at C5 explodes in 2 rounds - staying diagonal."
 
 EXAMPLES:
-{"direction": "right", "dropBomb": false, "memory": "Started corner A11. No blocks here. Center is G6. Need to move 6 tiles right, 5 up.", "thought": "First move off edge. Going right to B11 to begin journey toward center."}
-{"direction": "up", "dropBomb": true, "memory": "Found 2 soft blocks at C5 (up/right). Bomb range still 1. Diagonal escape to D6 works.", "thought": "Summary shows blocks adjacent! Dropping bomb at C5, moving UP then RIGHT to D6 (diagonal=safe)."}
-{"direction": "down", "dropBomb": false, "memory": "My bomb at C5 has 2 rounds left. Currently C6 (adjacent=danger). D5 is diagonal=safe.", "thought": "Executing escape: moving DOWN-RIGHT to D5 (diagonal from my C5 bomb)."}
-{"direction": "left", "dropBomb": false, "memory": "P2 bomb at D4 shows 1 round. I'm D5 (LETHAL position). C5 is diagonal safety.", "thought": "DANGER! P2 bomb directly above. Moving LEFT to C5 (diagonal=safe from D4)."}
-{"direction": "right", "dropBomb": false, "memory": "Area D6: zero blocks adjacent. Must explore to find bombing targets.", "thought": "No blocks here - won't waste bomb. Moving right to explore and find soft blocks."}
-{"direction": "up", "dropBomb": false, "memory": "Loot spotted at E7! Flash Radius gives +1 bomb range. Currently E5, 2 tiles south.", "thought": "⚡ PRIORITY! Loot at E7 is 2 tiles up. Moving toward it - range boost is crucial!"}
+{"direction": "right", "dropBomb": false, "thought": "First move off edge. Going right to B11 to begin journey toward center."}
+{"direction": "up", "dropBomb": true, "thought": "Summary shows blocks adjacent! Dropping bomb at C5, moving UP then RIGHT to D6 (diagonal=safe)."}
+{"direction": "down", "dropBomb": false, "thought": "Executing escape: moving DOWN-RIGHT to D5 (diagonal from my C5 bomb)."}
+{"direction": "left", "dropBomb": false, "thought": "DANGER! P2 bomb directly above. Moving LEFT to C5 (diagonal=safe from D4)."}
+{"direction": "right", "dropBomb": false, "thought": "No blocks here - won't waste bomb. Moving right to explore and find soft blocks."}
+{"direction": "up", "dropBomb": false, "thought": "⚡ PRIORITY! Loot at E7 is 2 tiles up. Moving toward it - range boost is crucial!"}
 
 MEMORY & CONTINUITY:
 Your previous MEMORY is shown each turn - it reflects what you knew WHEN you made your last move (intentionally outdated).
@@ -176,13 +177,36 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
 
     setApiKey(key) {
         this.apiKey = key;
+
+        // Detect API provider by key prefix
+        if (key.startsWith('gsk_')) {
+            this.apiProvider = 'groq';
+            this.apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+            this.tacticalModel = 'moonshotai/kimi-k2-instruct-0905';
+            this.memoryModel = 'moonshotai/kimi-k2-instruct-0905';
+            console.log('[AI] Detected Groq Cloud API key - using Kimi K2 model');
+        } else if (key.startsWith('sk-')) {
+            this.apiProvider = 'openai';
+            this.apiUrl = 'https://api.openai.com/v1/chat/completions';
+            this.tacticalModel = 'gpt-4.1-mini';
+            this.memoryModel = 'gpt-4.1-mini';
+            console.log('[AI] Detected OpenAI API key - using GPT-4.1-mini model');
+        } else {
+            // Default to OpenAI for unknown prefixes
+            this.apiProvider = 'openai';
+            this.apiUrl = 'https://api.openai.com/v1/chat/completions';
+            this.tacticalModel = 'gpt-4.1-mini';
+            this.memoryModel = 'gpt-4.1-mini';
+            console.log('[AI] Unknown API key format - defaulting to OpenAI');
+        }
+
         localStorage.setItem('openai_api_key', key);
     }
 
     loadApiKey() {
         const stored = localStorage.getItem('openai_api_key');
         if (stored) {
-            this.apiKey = stored;
+            this.setApiKey(stored); // Use setApiKey to properly detect provider
             return true;
         }
         return false;
@@ -712,8 +736,8 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         return fullDescription;
     }
 
-    // Get JSON schema for structured output
-    getResponseFormat() {
+    // Get JSON schema for tactical move (no memory)
+    getTacticalResponseFormat() {
         return {
             type: "json_schema",
             json_schema: {
@@ -731,20 +755,139 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
                             type: "boolean",
                             description: "Whether to drop a bomb at current position before moving"
                         },
-                        memory: {
-                            type: "string",
-                            description: "Operational notes about board patterns, danger zones, loot locations for next turn (max 50 words)"
-                        },
                         thought: {
                             type: "string",
                             description: "Your tactical reasoning for THIS specific move (max 50 words)"
                         }
                     },
-                    required: ["direction", "dropBomb", "memory", "thought"],
+                    required: ["direction", "dropBomb", "thought"],
                     additionalProperties: false
                 }
             }
         };
+    }
+
+    // Get JSON schema for memory update
+    getMemoryResponseFormat() {
+        return {
+            type: "json_schema",
+            json_schema: {
+                name: "memory_update",
+                strict: true,
+                schema: {
+                    type: "object",
+                    properties: {
+                        memory: {
+                            type: "string",
+                            description: "Operational notes for next turn: key patterns, threats, opportunities (max 50 words)"
+                        }
+                    },
+                    required: ["memory"],
+                    additionalProperties: false
+                }
+            }
+        };
+    }
+
+    // Update player memory using smaller model with focused prompt
+    async updatePlayerMemory(gameState, playerId, moveResult) {
+        if (!this.apiKey) {
+            return;
+        }
+
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player || !player.alive) {
+            return;
+        }
+
+        const pos = this.coordsToChess(player.x, player.y);
+
+        // Count nearby resources
+        let nearbyBlocks = 0;
+        let nearbyLoot = 0;
+        const searchRadius = 3;
+        for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                const checkX = player.x + dx;
+                const checkY = player.y + dy;
+                if (checkX >= 0 && checkX < 13 && checkY >= 0 && checkY < 11) {
+                    if (gameState.grid[checkY][checkX] === 1) {
+                        nearbyBlocks++;
+                    }
+                }
+            }
+        }
+        if (gameState.loot) {
+            for (const loot of gameState.loot) {
+                const dist = Math.abs(loot.x - player.x) + Math.abs(loot.y - player.y);
+                if (dist <= searchRadius) {
+                    nearbyLoot++;
+                }
+            }
+        }
+
+        // Compact situation summary for memory update
+        const situationSummary = `Position: ${pos}
+Round: ${gameState.roundCount}
+Bomb Range: ${player.bombRange || 1}
+Has Bomb: ${player.hasBomb ? 'Yes' : 'No'}
+Nearby Blocks: ${nearbyBlocks}
+Nearby Loot: ${nearbyLoot}
+Active Bombs: ${gameState.bombs.length}
+Last Move: ${moveResult.direction}${moveResult.dropBomb ? ' + bomb' : ''}
+Last Thought: ${moveResult.thought}`;
+
+        const memoryPrompt = `Summarize key operational notes for next turn (max 50 words):
+
+${situationSummary}
+
+Focus on: board patterns, threats, loot locations, area control, bombing targets.`;
+
+        try {
+            console.log(`[Memory P${playerId}] Updating memory with ${this.memoryModel} (${this.apiProvider})`);
+
+            const requestBody = {
+                model: this.memoryModel,
+                messages: [
+                    { role: 'system', content: 'You are a memory system for a Bomberman AI. Create concise operational notes.' },
+                    { role: 'user', content: memoryPrompt }
+                ],
+                temperature: 0.3,
+                max_tokens: 100
+            };
+
+            // Only add structured output for OpenAI
+            if (this.apiProvider === 'openai') {
+                requestBody.response_format = this.getMemoryResponseFormat();
+            } else {
+                requestBody.response_format = { type: "json_object" };
+            }
+
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiKey}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                console.error(`[Memory P${playerId}] API error ${response.status}`);
+                return;
+            }
+
+            const data = await response.json();
+            const content = JSON.parse(data.choices[0].message.content);
+
+            if (content.memory) {
+                this.savePlayerMemory(playerId, content.memory);
+                console.log(`[Memory P${playerId}] Updated: "${content.memory}"`);
+            }
+
+        } catch (error) {
+            console.error(`[Memory P${playerId}] Failed to update memory:`, error);
+        }
     }
 
     // Call OpenAI API to get AI move using structured output
@@ -769,8 +912,26 @@ ${playerStrategy}
 Respond with JSON containing your move decision and strategic thought.`;
 
         try {
-            console.log(`[AI P${playerId}] Sending request to ${this.model}`);
+            console.log(`[AI P${playerId}] Sending tactical request to ${this.tacticalModel} (${this.apiProvider})`);
             // console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
+
+            const requestBody = {
+                model: this.tacticalModel,
+                messages: [
+                    { role: 'system', content: this.systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 200
+            };
+
+            // Only add structured output for OpenAI (Groq doesn't support json_schema)
+            if (this.apiProvider === 'openai') {
+                requestBody.response_format = this.getTacticalResponseFormat();
+            } else {
+                // For Groq, use simple JSON mode
+                requestBody.response_format = { type: "json_object" };
+            }
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -778,16 +939,7 @@ Respond with JSON containing your move decision and strategic thought.`;
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`
                 },
-                body: JSON.stringify({
-                    model: this.model,
-                    messages: [
-                        { role: 'system', content: this.systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    response_format: this.getResponseFormat(),
-                    temperature: 0.7,
-                    max_tokens: 200
-                })
+                body: JSON.stringify(requestBody)
             });
 
             console.log(`[AI P${playerId}] Response status: ${response.status}`);
@@ -814,12 +966,6 @@ Respond with JSON containing your move decision and strategic thought.`;
                 return this.getRandomMove(gameState, playerId);
             }
 
-            // Save memory (operational notes) for next turn
-            if (move.memory) {
-                this.savePlayerMemory(playerId, move.memory);
-                console.log(`[AI P${playerId}] Saved memory: "${move.memory}"`);
-            }
-
             // Save thought (tactical reasoning) for UI display
             if (move.thought) {
                 this.playerThoughts[playerId] = move.thought;
@@ -827,12 +973,20 @@ Respond with JSON containing your move decision and strategic thought.`;
             }
 
             console.log(`[AI P${playerId}] Move: ${move.direction}, dropBomb: ${move.dropBomb}`);
-            return {
+
+            const moveResult = {
                 action: 'move',
                 direction: move.direction,
                 dropBomb: move.dropBomb,
                 thought: move.thought || '' // Pass thought to UI for display
             };
+
+            // Asynchronously update memory using smaller model (don't wait for it)
+            this.updatePlayerMemory(gameState, playerId, moveResult).catch(err => {
+                console.error(`[Memory P${playerId}] Background update failed:`, err);
+            });
+
+            return moveResult;
 
         } catch (error) {
             console.error(`[AI P${playerId}] Exception:`, error);
