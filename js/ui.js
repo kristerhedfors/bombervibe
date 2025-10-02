@@ -573,7 +573,7 @@ function renderPlayers() {
     const gridRect = gridElement.getBoundingClientRect();
 
     // Calculate cell dimensions
-    const gapSize = 1; // 1px gap from CSS
+    const gapSize = 0; // No gap between cells
     const totalWidth = gridRect.width;
     const totalHeight = gridRect.height;
     const cellWidth = (totalWidth - (gapSize * (game.GRID_WIDTH - 1))) / game.GRID_WIDTH;
@@ -656,7 +656,7 @@ function renderFloatingThoughts() {
     const gridRect = gridElement.getBoundingClientRect();
 
     // Calculate cell size including gaps
-    const gapSize = 1; // 1px gap from CSS
+    const gapSize = 0; // No gap between cells
     const totalWidth = gridRect.width - (gapSize * (game.GRID_WIDTH - 1));
     const totalHeight = gridRect.height - (gapSize * (game.GRID_HEIGHT - 1));
     const cellWidth = totalWidth / game.GRID_WIDTH;
