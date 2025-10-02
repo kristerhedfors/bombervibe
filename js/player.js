@@ -22,9 +22,9 @@ class Player {
 
         // Check if cell is passable
         const cell = grid[newY][newX];
-        // Can move through: empty cells (0), any bombs, soft blocks (1)
-        // Cannot move through: hard blocks (2)
-        if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
+        // Can move through: empty cells (0), bombs
+        // Cannot move through: soft blocks (1), hard blocks (2)
+        if (cell === 0 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
             this.x = newX;
             this.y = newY;
             return true;
@@ -54,9 +54,9 @@ class Player {
             playerId: this.id,
             x: this.x,
             y: this.y,
-            turnsUntilExplode: 10, // Explodes after 10 turns (2.5 full rounds with 4 players)
+            roundsUntilExplode: 3, // Explodes after 3 rounds (1 round = all players move once)
             range: 1, // 1 tile blast radius
-            placedOnTurn: null // Will be set by game
+            placedOnRound: null // Will be set by game
         };
 
         bombs.push(bomb);

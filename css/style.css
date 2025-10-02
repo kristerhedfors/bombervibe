@@ -247,12 +247,24 @@ body {
     min-height: 30px;
     line-height: 1.3;
     z-index: 100;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     animation: thoughtFloat 2s ease-in-out infinite;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: normal;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.floating-thought:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px;
+}
+
+/* Hide thought bubbles when hovering over the top button bar */
+#gameInfo:hover ~ #gridContainer #grid .floating-thought {
+    opacity: 0;
 }
 
 .floating-thought::before {
@@ -487,6 +499,143 @@ body {
     text-shadow: 0 0 5px currentColor;
 }
 
+/* Prompt Window - Draggable Floating Window */
+.prompt-window {
+    position: fixed;
+    width: 500px;
+    max-width: 90vw;
+    background: var(--bg-dark);
+    border: 3px solid;
+    box-shadow: 0 0 30px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.prompt-window.hidden {
+    display: none;
+}
+
+.prompt-window-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--bg-darker);
+    border-bottom: 2px solid;
+    cursor: move;
+    user-select: none;
+}
+
+.prompt-window-header span {
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.window-close-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    line-height: 1;
+}
+
+.window-close-btn:hover {
+    transform: scale(1.3);
+    text-shadow: 0 0 15px currentColor;
+}
+
+.prompt-window-body {
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.prompt-window-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.prompt-window-text label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    text-align: center;
+}
+
+.prompt-window-text #promptWindowCurrentText {
+    padding: 1rem;
+    background: var(--bg-darker);
+    border: 2px solid;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Player-specific colors for prompt window */
+.prompt-window.player-1 {
+    border-color: var(--cyan);
+    box-shadow: 0 0 30px var(--cyan);
+    color: var(--cyan);
+}
+
+.prompt-window.player-1 .prompt-window-header,
+.prompt-window.player-1 .prompt-window-info,
+.prompt-window.player-1 .prompt-window-text #promptWindowCurrentText {
+    border-color: var(--cyan);
+}
+
+.prompt-window.player-2 {
+    border-color: var(--magenta);
+    box-shadow: 0 0 30px var(--magenta);
+    color: var(--magenta);
+}
+
+.prompt-window.player-2 .prompt-window-header,
+.prompt-window.player-2 .prompt-window-info,
+.prompt-window.player-2 .prompt-window-text #promptWindowCurrentText {
+    border-color: var(--magenta);
+}
+
+.prompt-window.player-3 {
+    border-color: var(--yellow);
+    box-shadow: 0 0 30px var(--yellow);
+    color: var(--yellow);
+}
+
+.prompt-window.player-3 .prompt-window-header,
+.prompt-window.player-3 .prompt-window-info,
+.prompt-window.player-3 .prompt-window-text #promptWindowCurrentText {
+    border-color: var(--yellow);
+}
+
+.prompt-window.player-4 {
+    border-color: var(--green);
+    box-shadow: 0 0 30px var(--green);
+    color: var(--green);
+}
+
+.prompt-window.player-4 .prompt-window-header,
+.prompt-window.player-4 .prompt-window-info,
+.prompt-window.player-4 .prompt-window-text #promptWindowCurrentText {
+    border-color: var(--green);
+}
+
 /* Error Modal */
 #errorModal .modal-content {
     max-width: 600px;
@@ -652,27 +801,52 @@ body {
 }
 
 .cell.empty {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.soft-block {
-    background: var(--soft-block);
+    background:
+        /* Brick pattern with mortar */
+        repeating-linear-gradient(
+            0deg,
+            #333 0px,
+            #333 1px,
+            #666 1px,
+            #666 calc(100% / 3 - 1px),
+            #333 calc(100% / 3 - 1px),
+            #333 calc(100% / 3)
+        ),
+        repeating-linear-gradient(
+            90deg,
+            #333 0px,
+            #333 1px,
+            #666 1px,
+            #666 calc(100% / 2 - 1px),
+            #333 calc(100% / 2 - 1px),
+            #333 calc(100% / 2)
+        );
+    box-shadow:
+        inset 1px 1px 0 rgba(100, 100, 100, 0.4),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+    position: relative;
 }
 
 .cell.soft-block::after {
-    content: '🌳';
-    font-size: inherit; /* Inherit from .cell */
-    filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.5));
+    content: '';
 }
 
 .cell.hard-block {
-    background: var(--hard-block);
+    background: #808080;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #b0b0b0 #404040 #404040 #b0b0b0;
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.5);
 }
 
 .cell.hard-block::after {
-    content: '⛰️';
-    font-size: inherit; /* Inherit from .cell */
-    filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
+    content: '';
 }
 
 /* Player entities - positioned absolutely for smooth movement */
@@ -686,8 +860,14 @@ body {
     font-size: clamp(1.2rem, 4vmin, 2.2rem); /* Scale with viewport */
     animation: pulse 1s infinite;
     z-index: 10;
-    pointer-events: none;
-    transition: left 0.3s ease-out, top 0.3s ease-out;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: left 0.3s ease-out, top 0.3s ease-out, transform 0.2s ease-out;
+}
+
+.player-entity:hover {
+    transform: scale(1.15);
+    filter: brightness(1.3) !important;
 }
 
 .player-entity.player1 {
@@ -729,7 +909,7 @@ body {
 
 /* Legacy cell-based player rendering (fallback) */
 .cell.player1 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player1::after {
@@ -742,7 +922,7 @@ body {
 }
 
 .cell.player2 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player2::after {
@@ -755,7 +935,7 @@ body {
 }
 
 .cell.player3 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player3::after {
@@ -768,7 +948,7 @@ body {
 }
 
 .cell.player4 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player4::after {
@@ -791,7 +971,7 @@ body {
 }
 
 .cell.bomb {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.bomb::after {
@@ -802,7 +982,7 @@ body {
 }
 
 .cell.explosion {
-    background: #0d0d0d !important;
+    background: #2a4a2a !important;
 }
 
 .cell.explosion::after {

@@ -117,6 +117,10 @@ function setupEventListeners() {
     // Error modal
     document.getElementById('closeError').addEventListener('click', closeErrorModal);
 
+    // Prompt window
+    document.getElementById('closePromptWindow').addEventListener('click', closePromptWindow);
+    initializePromptWindowDragging();
+
     // Prompt editors - save on change
     for (let i = 1; i <= 4; i++) {
         document.getElementById(`prompt${i}`).addEventListener('change', (e) => {
@@ -243,6 +247,7 @@ function resetGame() {
     }
     game.reset();
     ai.clearAllMemories();
+    ai.clearPromptHistory(); // Clear prompt history
     manualControlEnabled = false;
     isReplayMode = false;
     gameOverDetected = false; // Reset game over flag
@@ -255,6 +260,7 @@ function resetGame() {
     for (let i = 1; i <= 10; i++) {
         localStorage.removeItem(`player_${i}_prompt`);
         localStorage.removeItem(`player_${i}_memory`);
+        localStorage.removeItem(`player_${i}_prompt_history`);
     }
     // System prompt
     localStorage.removeItem('system_prompt');
@@ -275,6 +281,9 @@ function resetGame() {
     log('🧹 Complete reset - all data cleared');
 }
 
+// Track if a turn is currently executing
+let turnInProgress = false;
+
 // Main game loop
 function gameLoop() {
     if (!game.running || game.paused) {
@@ -283,8 +292,7 @@ function gameLoop() {
 
     const now = Date.now();
 
-    // Update bombs continuously
-    game.updateBombs();
+    // Update explosions for visual effects
     game.updateExplosions();
 
     // Render first to show explosions
@@ -302,8 +310,8 @@ function gameLoop() {
         }, 1000);
     }
 
-    // Execute turn if enough time has passed (but NOT if game over detected)
-    if (!gameOverDetected && now - lastTurnTime >= game.turnDelay) {
+    // Execute turn if enough time has passed, NOT if game over, and NOT if turn already in progress
+    if (!gameOverDetected && !turnInProgress && now - lastTurnTime >= game.turnDelay) {
         executeTurn();
         lastTurnTime = now;
     }
@@ -314,6 +322,9 @@ function gameLoop() {
 
 // Execute one turn (now processes all players in parallel)
 async function executeTurn() {
+    // Set flag to prevent concurrent execution
+    turnInProgress = true;
+
     const playerCount = game.players.length;
     const round = Math.floor(game.turnCount / playerCount) + 1;
     console.log(`[ROUND ${round}] Processing ${playerCount} players in parallel`);
@@ -366,15 +377,20 @@ async function executeTurn() {
             game.nextTurn();
         }
 
+        // Update bombs AFTER all players have moved
+        game.updateBombs();
+
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
             const newState = captureGameState();
-            // Capture all player thoughts for replay (dynamic)
+            // Capture all player thoughts and prompts for replay (dynamic)
             const thoughts = {};
+            const prompts = {};
             game.players.forEach(p => {
                 thoughts[p.id] = ai.playerMemory[p.id] || '';
+                prompts[p.id] = ai.prompts[p.id] || ai.defaultPrompts[p.id] || '';
             });
-            const action = new Action('turn', {round, playerId: null, thoughts});
+            const action = new Action('turn', {round, playerId: null, thoughts, prompts});
             gameHistory.record(newState, action);
         }
     } catch (error) {
@@ -384,6 +400,9 @@ async function executeTurn() {
         for (let i = 0; i < playerCount; i++) {
             game.nextTurn();
         }
+    } finally {
+        // Always clear the flag when done
+        turnInProgress = false;
     }
 }
 
@@ -508,6 +527,14 @@ function renderPlayers() {
                 playerEntity.style.setProperty('--emoji', `"${player.npcEmoji}"`);
             }
 
+            // Add click handler to show prompt window
+            playerEntity.style.cursor = 'pointer';
+            playerEntity.style.pointerEvents = 'auto';
+            playerEntity.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showPromptWindow(player.id);
+            });
+
             gridElement.appendChild(playerEntity);
         }
 
@@ -562,6 +589,14 @@ function renderFloatingThoughts() {
             bubble.style.borderColor = player.color;
             bubble.style.boxShadow = `0 0 15px ${player.color}`;
         }
+
+        // Add click handler to show prompt window
+        bubble.style.cursor = 'pointer';
+        bubble.style.pointerEvents = 'auto';
+        bubble.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPromptWindow(player.id);
+        });
 
         // Position bubble above player (bubble grows upward from this point)
         // Account for gaps between cells
@@ -696,6 +731,209 @@ function closeErrorModal() {
     document.getElementById('errorModal').style.display = 'none';
 }
 
+// ===== PROMPT WINDOW FUNCTIONS =====
+
+let activePromptWindow = null; // Track which player's window is open
+let promptWindowUpdateInterval = null;
+
+/**
+ * Show prompt window for a player
+ */
+function showPromptWindow(playerId) {
+    const player = game.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const promptWindowEl = document.getElementById('promptWindow');
+
+    // If already showing this player's window, just bring it to front
+    if (activePromptWindow === playerId && !promptWindowEl.classList.contains('hidden')) {
+        return;
+    }
+
+    // Set active player
+    activePromptWindow = playerId;
+
+    // Remove all player classes and add current player class
+    promptWindowEl.classList.remove('player-1', 'player-2', 'player-3', 'player-4');
+    promptWindowEl.classList.add(`player-${playerId}`);
+
+    // Get player info
+    const playerEmojis = ['⛷️', '🥷', '🛒', '🧑‍🚀'];
+    const playerColors = ['CYAN', 'MAGENTA', 'YELLOW', 'GREEN'];
+    const playerEmoji = player.isNPC && player.npcEmoji ? player.npcEmoji : playerEmojis[playerId - 1];
+    const playerColor = playerColors[playerId - 1];
+
+    // Update title
+    document.getElementById('promptWindowTitle').textContent = `${playerEmoji} Player ${playerId} [${playerColor}]`;
+
+    // Position window centered if first time showing
+    if (promptWindowEl.classList.contains('hidden')) {
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const windowWidth = 500;
+        const windowHeight = 400;
+
+        promptWindowEl.style.left = `${Math.max(0, (viewportWidth - windowWidth) / 2)}px`;
+        promptWindowEl.style.top = `${Math.max(0, (viewportHeight - windowHeight) / 2)}px`;
+    }
+
+    // Update content
+    updatePromptWindowContent();
+
+    // Show window
+    promptWindowEl.classList.remove('hidden');
+
+    // Start live updates (refresh every 2 seconds to reduce overhead)
+    if (promptWindowUpdateInterval) {
+        clearInterval(promptWindowUpdateInterval);
+    }
+    promptWindowUpdateInterval = setInterval(updatePromptWindowContent, 2000);
+}
+
+/**
+ * Update prompt window content (called periodically for live updates)
+ */
+function updatePromptWindowContent() {
+    if (activePromptWindow === null) {
+        console.log('[Prompt Window] No active window');
+        return;
+    }
+
+    const promptWindowEl = document.getElementById('promptWindow');
+    if (promptWindowEl.classList.contains('hidden')) {
+        console.log('[Prompt Window] Window is hidden');
+        return;
+    }
+
+    const playerId = activePromptWindow;
+    const player = game.players.find(p => p.id === playerId);
+    if (!player) {
+        console.log('[Prompt Window] Player not found:', playerId);
+        return;
+    }
+
+    // Get player strategy prompt (in replay mode, get prompt at current turn)
+    let playerStrategy;
+    if (isReplayMode) {
+        const currentEntry = gameHistory.getCurrentEntry();
+        if (currentEntry && currentEntry.action && currentEntry.action.payload && currentEntry.action.payload.prompts) {
+            playerStrategy = currentEntry.action.payload.prompts[playerId];
+        }
+    }
+
+    if (!playerStrategy) {
+        playerStrategy = ai.prompts[playerId] || ai.defaultPrompts[playerId] || '';
+    }
+
+    console.log('[Prompt Window] Player strategy:', playerStrategy ? playerStrategy.substring(0, 50) + '...' : 'EMPTY');
+
+    // Assemble the COMPLETE prompt as sent to OpenAI
+    // This matches exactly what's in ai.js getAIMove()
+    const systemPrompt = ai.getSystemPrompt();
+
+    console.log('[Prompt Window] System prompt length:', systemPrompt.length);
+
+    // Generate the current game state description (user prompt)
+    const gameState = {
+        grid: game.grid,
+        players: game.players,
+        bombs: game.bombs,
+        roundCount: game.roundCount
+    };
+    const gameDescription = ai.generateGameStateDescription(gameState, playerId, game);
+
+    const completePrompt = `=== SYSTEM PROMPT ===
+
+${systemPrompt}
+
+=== USER PROMPT (GAME STATE) ===
+
+${gameDescription}
+
+YOUR STRATEGY:
+${playerStrategy}
+
+Respond with JSON containing your move decision and strategic thought.`;
+
+    console.log('[Prompt Window] Complete prompt length:', completePrompt.length);
+
+    // Display complete assembled prompt
+    const textEl = document.getElementById('promptWindowCurrentText');
+    if (textEl) {
+        textEl.textContent = completePrompt;
+        console.log('[Prompt Window] Updated text element');
+    } else {
+        console.error('[Prompt Window] Text element not found!');
+    }
+}
+
+/**
+ * Close prompt window
+ */
+function closePromptWindow() {
+    document.getElementById('promptWindow').classList.add('hidden');
+    activePromptWindow = null;
+
+    // Stop live updates
+    if (promptWindowUpdateInterval) {
+        clearInterval(promptWindowUpdateInterval);
+        promptWindowUpdateInterval = null;
+    }
+}
+
+/**
+ * Initialize draggable functionality for prompt window
+ */
+function initializePromptWindowDragging() {
+    const promptWindowEl = document.getElementById('promptWindow');
+    const header = promptWindowEl.querySelector('.prompt-window-header');
+
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+
+    header.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    function dragStart(e) {
+        // Don't drag if clicking close button
+        if (e.target.classList.contains('window-close-btn') || e.target.closest('.window-close-btn')) {
+            return;
+        }
+
+        initialX = e.clientX - (parseInt(promptWindowEl.style.left) || 0);
+        initialY = e.clientY - (parseInt(promptWindowEl.style.top) || 0);
+
+        isDragging = true;
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+
+        e.preventDefault();
+
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+
+        // Keep window within viewport
+        const maxX = (window.innerWidth || document.documentElement.clientWidth) - promptWindowEl.offsetWidth;
+        const maxY = (window.innerHeight || document.documentElement.clientHeight) - promptWindowEl.offsetHeight;
+
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+
+        promptWindowEl.style.left = `${currentX}px`;
+        promptWindowEl.style.top = `${currentY}px`;
+    }
+
+    function dragEnd() {
+        isDragging = false;
+    }
+}
+
 // ===== REPLAY SYSTEM FUNCTIONS =====
 
 /**
@@ -815,7 +1053,7 @@ function restoreGameState(gameState) {
 }
 
 /**
- * Restore player thoughts from history action (for replay)
+ * Restore player thoughts and prompts from history action (for replay)
  */
 function restoreThoughtsFromHistory() {
     const currentEntry = gameHistory.getCurrentEntry();
@@ -824,12 +1062,25 @@ function restoreThoughtsFromHistory() {
     }
 
     const action = currentEntry.action;
+
+    // Restore thoughts
     if (action.payload && action.payload.thoughts) {
         const thoughts = action.payload.thoughts;
         // Restore thoughts for ALL players including Battle Royale NPCs (1-10)
         for (let i = 1; i <= 10; i++) {
             if (thoughts[i] !== undefined) {
                 ai.playerMemory[i] = thoughts[i];
+            }
+        }
+    }
+
+    // Restore prompts
+    if (action.payload && action.payload.prompts) {
+        const prompts = action.payload.prompts;
+        // Restore prompts for ALL players including Battle Royale NPCs (1-10)
+        for (let i = 1; i <= 10; i++) {
+            if (prompts[i] !== undefined) {
+                ai.prompts[i] = prompts[i];
             }
         }
     }

@@ -33,6 +33,20 @@
         </div>
     </div>
 
+    <!-- Prompt Window (Draggable Floating Window) -->
+    <div id="promptWindow" class="prompt-window hidden">
+        <div class="prompt-window-header">
+            <span id="promptWindowTitle">Player Prompt</span>
+            <button id="closePromptWindow" class="window-close-btn">✕</button>
+        </div>
+        <div class="prompt-window-body">
+            <div class="prompt-window-text">
+                <label>Complete Prompt (as sent to OpenAI):</label>
+                <div id="promptWindowCurrentText"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Game Container -->
     <div id="gameContainer">
         <!-- Top Left Prompt -->

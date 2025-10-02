@@ -6,7 +6,8 @@ class Game {
         this.players = [];
         this.bombs = [];
         this.explosions = [];
-        this.turnCount = 0;
+        this.turnCount = 0; // Individual player moves
+        this.roundCount = 0; // Complete rounds (all players move once)
         this.currentPlayerIndex = 0;
         this.running = false;
         this.paused = false;
@@ -90,6 +91,7 @@ class Game {
         this.running = false;
         this.paused = false;
         this.turnCount = 0;
+        this.roundCount = 0;
         this.currentPlayerIndex = 0;
         this.bombs = [];
         this.explosions = [];
@@ -102,6 +104,7 @@ class Game {
 
     nextTurn() {
         const playerCount = this.players.length;
+        const previousPlayerIndex = this.currentPlayerIndex;
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playerCount;
 
         // Skip dead players
@@ -112,6 +115,11 @@ class Game {
         }
 
         this.turnCount++;
+
+        // Increment round count when we cycle back to player 1 (or first alive player)
+        if (this.currentPlayerIndex <= previousPlayerIndex) {
+            this.roundCount++;
+        }
     }
 
     // Move player in a direction
@@ -149,22 +157,22 @@ class Game {
 
         const success = player.placeBomb(this.grid, this.bombs);
         if (success) {
-            // Set the turn number when bomb was placed
+            // Set the round number when bomb was placed
             const bomb = this.bombs[this.bombs.length - 1];
-            bomb.placedOnTurn = this.turnCount;
+            bomb.placedOnRound = this.roundCount;
         }
         return success;
     }
 
-    // Update bombs and check for explosions (turn-based)
+    // Update bombs and check for explosions (round-based)
     updateBombs() {
         const bombsToExplode = [];
 
-        // Check bomb turn countdown
+        // Check bomb round countdown
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
-            const turnsSincePlaced = this.turnCount - bomb.placedOnTurn;
-            if (turnsSincePlaced >= bomb.turnsUntilExplode) {
+            const roundsSincePlaced = this.roundCount - bomb.placedOnRound;
+            if (roundsSincePlaced >= bomb.roundsUntilExplode) {
                 bombsToExplode.push(bomb);
                 this.bombs.splice(i, 1);
             }
@@ -282,9 +290,10 @@ class Game {
                 x: b.x,
                 y: b.y,
                 playerId: b.playerId,
-                turnsUntilExplode: Math.max(0, b.turnsUntilExplode - (this.turnCount - b.placedOnTurn))
+                roundsUntilExplode: Math.max(0, b.roundsUntilExplode - (this.roundCount - b.placedOnRound))
             })),
             turnCount: this.turnCount,
+            roundCount: this.roundCount,
             currentPlayerId: this.getCurrentPlayer().id
         };
 
@@ -308,13 +317,13 @@ class Game {
         , this.players[0]);
     }
 
-    // Check if a position will be hit by explosion in the next turn
-    isPositionLethal(x, y, afterTurns = 1) {
+    // Check if a position will be hit by explosion in the next round(s)
+    isPositionLethal(x, y, afterRounds = 1) {
         for (const bomb of this.bombs) {
-            const turnsLeft = Math.max(0, bomb.turnsUntilExplode - (this.turnCount - bomb.placedOnTurn));
+            const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
 
-            // Will this bomb explode within the specified turns?
-            if (turnsLeft <= afterTurns) {
+            // Will this bomb explode within the specified rounds?
+            if (roundsLeft <= afterRounds) {
                 // Check if position is in blast radius
                 // Center of bomb
                 if (bomb.x === x && bomb.y === y) {
@@ -362,12 +371,12 @@ class Game {
         for (const bomb of this.bombs) {
             const distance = Math.abs(bomb.x - x) + Math.abs(bomb.y - y);
             if (distance <= range) {
-                const turnsLeft = Math.max(0, bomb.turnsUntilExplode - (this.turnCount - bomb.placedOnTurn));
+                const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
                 adjacent.push({
                     x: bomb.x,
                     y: bomb.y,
                     playerId: bomb.playerId,
-                    turnsLeft: turnsLeft,
+                    roundsLeft: roundsLeft,
                     distance: distance
                 });
             }
