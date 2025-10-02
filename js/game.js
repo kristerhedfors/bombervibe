@@ -6,6 +6,7 @@ class Game {
         this.players = [];
         this.bombs = [];
         this.explosions = [];
+        this.loot = []; // Loot drops on the board
         this.turnCount = 0; // Individual player moves
         this.roundCount = 0; // Complete rounds (all players move once)
         this.currentPlayerIndex = 0;
@@ -95,6 +96,7 @@ class Game {
         this.currentPlayerIndex = 0;
         this.bombs = [];
         this.explosions = [];
+        this.loot = [];
         this.initialize();
     }
 
@@ -119,6 +121,39 @@ class Game {
         // Increment round count when we cycle back to player 1 (or first alive player)
         if (this.currentPlayerIndex <= previousPlayerIndex) {
             this.roundCount++;
+        }
+
+        // 1/8 chance of spawning loot each turn
+        if (Math.random() < 0.125) {
+            this.spawnLoot();
+        }
+    }
+
+    // Spawn loot at random empty position (not on hard blocks)
+    spawnLoot() {
+        const emptyPositions = [];
+        for (let y = 0; y < this.GRID_HEIGHT; y++) {
+            for (let x = 0; x < this.GRID_WIDTH; x++) {
+                // Can spawn on empty (0) or soft blocks (1), but not hard blocks (2)
+                if (this.grid[y][x] !== 2) {
+                    // Don't spawn on existing loot
+                    const hasLoot = this.loot.some(l => l.x === x && l.y === y);
+                    if (!hasLoot) {
+                        emptyPositions.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        if (emptyPositions.length > 0) {
+            const pos = emptyPositions[Math.floor(Math.random() * emptyPositions.length)];
+            this.loot.push({
+                type: 'flash_radius',
+                x: pos.x,
+                y: pos.y,
+                spawnedRound: this.roundCount
+            });
+            console.log(`[LOOT] Spawned flash_radius at (${pos.x}, ${pos.y})`);
         }
     }
 
@@ -147,7 +182,19 @@ class Game {
                 return false;
         }
 
-        return player.move(newX, newY, this.grid);
+        const moved = player.move(newX, newY, this.grid);
+
+        // Check for loot pickup
+        if (moved) {
+            const lootIndex = this.loot.findIndex(l => l.x === player.x && l.y === player.y);
+            if (lootIndex !== -1) {
+                const loot = this.loot[lootIndex];
+                player.pickupLoot(loot.type);
+                this.loot.splice(lootIndex, 1);
+            }
+        }
+
+        return moved;
     }
 
     // Player places a bomb
@@ -265,6 +312,22 @@ class Game {
             }
         }
 
+        // Check for loot destruction
+        // Loot is destroyed if hit by explosion AND not behind a soft block
+        for (const cell of explosionCells) {
+            const lootIndex = this.loot.findIndex(l => l.x === cell.x && l.y === cell.y);
+            if (lootIndex !== -1) {
+                // Check if loot is protected by soft block at same position
+                const hasSoftBlock = this.grid[cell.y][cell.x] === 1;
+                if (!hasSoftBlock) {
+                    // Loot is destroyed
+                    console.log(`[LOOT] Destroyed at (${cell.x}, ${cell.y})`);
+                    this.loot.splice(lootIndex, 1);
+                }
+                // If soft block exists at same position, only destroy block, leave loot
+            }
+        }
+
         // Store explosion for visual effect
         this.explosions.push({
             cells: explosionCells,
@@ -290,7 +353,13 @@ class Game {
                 x: b.x,
                 y: b.y,
                 playerId: b.playerId,
+                range: b.range,
                 roundsUntilExplode: Math.max(0, b.roundsUntilExplode - (this.roundCount - b.placedOnRound))
+            })),
+            loot: this.loot.map(l => ({
+                type: l.type,
+                x: l.x,
+                y: l.y
             })),
             turnCount: this.turnCount,
             roundCount: this.roundCount,

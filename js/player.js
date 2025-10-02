@@ -12,6 +12,7 @@ class Player {
         this.hasBomb = false; // Can only place one bomb at a time
         this.bombX = null;
         this.bombY = null;
+        this.bombRange = 1; // Blast radius (can be increased by loot)
     }
 
     move(newX, newY, grid) {
@@ -54,8 +55,8 @@ class Player {
             playerId: this.id,
             x: this.x,
             y: this.y,
-            roundsUntilExplode: 3, // Explodes after 3 rounds (1 round = all players move once)
-            range: 1, // 1 tile blast radius
+            roundsUntilExplode: 4, // Explodes after 4 rounds (1 round = all players move once)
+            range: this.bombRange || 1, // Use player's bombRange or default 1
             placedOnRound: null // Will be set by game
         };
 
@@ -82,6 +83,13 @@ class Player {
         this.score += points;
     }
 
+    pickupLoot(lootType) {
+        if (lootType === 'flash_radius') {
+            this.bombRange += 1;
+            console.log(`[P${this.id}] Picked up Flash Radius! Bomb range now: ${this.bombRange}`);
+        }
+    }
+
     getState() {
         return {
             id: this.id,
@@ -91,7 +99,8 @@ class Player {
             name: this.name,
             alive: this.alive,
             score: this.score,
-            hasBomb: this.hasBomb
+            hasBomb: this.hasBomb,
+            bombRange: this.bombRange
         };
     }
 }

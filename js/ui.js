@@ -482,6 +482,18 @@ function renderGrid() {
                 cell.classList.add('hard-block');
             }
 
+            // Check for loot at this position
+            const loot = game.loot.find(l => l.x === x && l.y === y);
+            if (loot) {
+                const lootIcon = document.createElement('div');
+                lootIcon.className = 'loot-icon';
+                if (loot.type === 'flash_radius') {
+                    lootIcon.innerHTML = '⚡';
+                    lootIcon.classList.add('flash-radius');
+                }
+                cell.appendChild(lootIcon);
+            }
+
             gridElement.appendChild(cell);
         }
     }

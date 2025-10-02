@@ -7,10 +7,10 @@ class AIController {
         this.model = 'gpt-4.1';
         this.prompts = {}; // Dynamic prompts for all players
         this.defaultPrompts = {
-            1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Use your 7x7 vision to find soft blocks. Remember: 3 rounds per bomb is plenty of escape time!',
-            2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
-            3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically. Use DANGER ANALYSIS. Plan escape routes. Don\'t rush - 3 rounds is enough time!',
-            4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Check timing info. Use 7x7 vision to plan 2-3 moves ahead. Control center territory!'
+            1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect Flash Radius (⚡) power-ups! Use your 7x7 vision to find soft blocks. 4 rounds per bomb = plenty of escape time!',
+            2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, collect loot, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
+            3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically, grab power-ups. Use DANGER ANALYSIS. Plan escape routes. 4 rounds is enough time!',
+            4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Prioritize Flash Radius loot! Check timing info. Use 7x7 vision to plan 3-4 moves ahead. Control center!'
         };
         this.playerMemory = {}; // Dynamic memory for all players
         this.promptHistory = {}; // Track prompt changes over time: {playerId: [{prompt, turnNumber, timestamp}]}
@@ -30,8 +30,22 @@ class AIController {
 GAME OBJECTIVE:
 1. SURVIVE - Don't die to bombs (most important!)
 2. EXPLORE - Move toward the center, escape corners and edges
-3. DESTROY BLOCKS - Soft blocks (🟫) give +10 points when destroyed
-4. ELIMINATE - Trap opponents for +100 points
+3. COLLECT LOOT - Power-ups appear randomly (⚡ = Flash Radius)
+4. DESTROY BLOCKS - Soft blocks (🟫) give +10 points when destroyed
+5. ELIMINATE - Trap opponents for +100 points
+
+LOOT SYSTEM (YAML):
+---
+loot_types:
+  - name: "Flash Radius"
+    symbol: "⚡"
+    effect: "Increases bomb blast radius by +1 tile in all 4 directions"
+    visual: "Golden glowing circle with lightning bolt"
+    spawn_chance: "1/8 per turn"
+    pickup: "Walk over it to collect"
+    destruction: "Destroyed by explosions (unless protected by soft block)"
+    strategy: "Essential for higher damage! Calculate escape routes with increased range"
+---
 
 GAME RULES:
 - You see a 7x7 grid centered on your position (limited vision) displayed as a markdown table
@@ -43,10 +57,12 @@ GAME RULES:
 
 ⏰ CRITICAL TIMING RULES:
 - 1 ROUND = all 4 players move once (not individual turns!)
-- Bombs explode after 3 ROUNDS (plenty of time to escape)
-- Bomb countdown shows: 💣3 = 3 rounds left, 💣2 = 2 rounds left, 💣1 = 1 round left
-- Each bomb destroys 1 tile in all 4 CARDINAL directions (up/down/left/right ONLY - NOT diagonals!)
+- Bombs explode after 4 ROUNDS (plenty of time to escape)
+- Bomb countdown shows: 💣4 = 4 rounds left, 💣3 = 3 rounds left, 💣2 = 2 rounds left, 💣1 = 1 round left
+- Base bomb range = 1 tile (increases with Flash Radius power-ups!)
+- Each bomb destroys tiles in all 4 CARDINAL directions (up/down/left/right ONLY - NOT diagonals!)
 - Soft blocks (🟫) stop the explosion but get destroyed (+10 points to bomb owner)
+- Loot (⚡) is destroyed by explosions UNLESS protected by a soft block on same tile
 
 🔥 BOMB BLAST PATTERN (CRITICAL FOR SURVIVAL):
 - Bombs explode in a + (PLUS) pattern: UP, DOWN, LEFT, RIGHT only
@@ -56,17 +72,21 @@ GAME RULES:
 
 DECISION PROCESS (follow this order):
 1. Check "🚨 DANGER ANALYSIS" - is your current position safe? If "💀 LETHAL", ESCAPE IMMEDIATELY!
-2. Check your bomb status (💣0 or 💣1) - if 💣1, DON'T try to drop another!
-3. Check "📊 Local Area Summary" for "Breakable Blocks: X adjacent" - if X > 0 AND you can escape diagonally, consider bombing!
-4. Check "✅ VALID MOVES" - which directions are legal? (soft blocks 🟫 are NOT walkable!)
-5. If current position is safe AND 💣0 AND breakable blocks exist, DROP BOMB and move to diagonal safety
-6. If current position is LETHAL or no breakable blocks, MOVE to safety (prioritize diagonal positions from bombs)
-7. If no safe moves exist, you're trapped - choose least bad option and pray
+2. Check "⚡ LOOT ON BOARD" - is there Flash Radius nearby? PRIORITIZE COLLECTING IT!
+3. Check your bomb status (💣0 or 💣1) - if 💣1, DON'T try to drop another!
+4. Check "📊 Local Area Summary" for "Breakable Blocks: X adjacent" - if X > 0 AND you can escape diagonally, consider bombing!
+5. Check "✅ VALID MOVES" - which directions are legal? (soft blocks 🟫 are NOT walkable!)
+6. If loot (⚡) is within reach, MOVE TOWARD IT - it's extremely valuable!
+7. If current position is safe AND 💣0 AND breakable blocks exist, DROP BOMB and move to diagonal safety
+8. If current position is LETHAL or no breakable blocks, MOVE to safety (prioritize diagonal positions from bombs)
+9. If no safe moves exist, you're trapped - choose least bad option and pray
 
 STRATEGIC PLAY (CRITICAL):
 - FIRST 1-2 MOVES: Get off the starting corner (move 1-2 steps away)
+- COLLECT LOOT: Prioritize Flash Radius (⚡) power-ups to increase bomb range!
 - THEN START BOMBING: If you see soft blocks nearby and can escape, DROP BOMB!
-- You have 3 FULL ROUNDS to escape - that's plenty of time to move 2-3 tiles away
+- You have 4 FULL ROUNDS to escape - that's plenty of time to move 3-4 tiles away
+- With Flash Radius power-ups, you MUST escape further! Range 2 = 5 rounds needed, Range 3 = 6 rounds!
 - Drop bombs early and often to score points and clear paths
 - After dropping bomb: Move to safety, avoid dead ends
 - Use your 7x7 vision to plan moves ahead
@@ -76,10 +96,12 @@ STRATEGIC PLAY (CRITICAL):
 ⚠️ CRITICAL ESCAPE PLANNING:
 - WHEN YOU DROP A BOMB: Your "thought" MUST specify WHERE to move next to escape
 - DIAGONAL IS SAFE! If you drop bomb at C5, moving to D6 or B4 (diagonal) is immediately safe!
-- Avoid being UP/DOWN/LEFT/RIGHT of ANY bomb (check all 💣1-3 in your 7x7 view)
+- Avoid being UP/DOWN/LEFT/RIGHT of ANY bomb (check all 💣1-4 in your 7x7 view)
+- WITH HIGHER RANGE: Range 2 bomb affects 2 tiles in each direction! Plan accordingly!
 - Consider positions of OTHER PLAYERS (P1-P4) - don't trap yourself or get trapped
 - Plan escape route that uses DIAGONAL SAFETY when possible
 - Example: "Dropped bomb at C5. Moving RIGHT then UP to D6 (diagonal = safe from my bomb at C5)"
+- LOOT PRIORITY: If you see ⚡ in your 7x7 view, calculate if you can safely reach it!
 
 BOMB PLACEMENT STRATEGY:
 ⚠️ ONLY DROP BOMBS WHEN THERE ARE BREAKABLE BLOCKS! ⚠️
@@ -108,6 +130,7 @@ EXAMPLES:
 {"direction": "down", "dropBomb": false, "thought": "Bomb 💣2 at C5. Currently at C6. Moving DOWN-RIGHT toward D5 (diagonal from C5 = safe). Executing escape plan."}
 {"direction": "left", "dropBomb": false, "thought": "Bomb 💣1 at D4! I'm at D5 (LETHAL - directly below). Moving LEFT to C5 (safe - diagonal from D4)."}
 {"direction": "right", "dropBomb": false, "thought": "At D6. Summary: 0 blocks adjacent. NOT bombing - would waste it! Moving right to explore and find blocks."}
+{"direction": "up", "dropBomb": false, "thought": "⚡ LOOT at E7! I'm at E5. Moving UP toward it - Flash Radius is game-changing for bomb power!"}
 
 MEMORY & CONTINUITY:
 Your previous thought is shown each turn - USE IT to maintain continuity and execute your planned strategy!
@@ -350,8 +373,19 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
                 if (bombHere) {
                     const roundsLeft = bombHere.roundsUntilExplode;
                     cellContent = cellContent ? `${cellContent}💣${roundsLeft}` : `💣${roundsLeft}`;
+                }
+
+                // Check for loot (shows even with players/bombs)
+                const lootHere = gameState.loot && gameState.loot.find(l => l.x === x && l.y === y);
+                if (lootHere && !cellContent) {
+                    // Show loot with terrain background
+                    if (cell === 1) {
+                        cellContent = '🟫⚡'; // Soft block with loot
+                    } else {
+                        cellContent = '⚡'; // Loot on empty
+                    }
                 } else if (!cellContent) {
-                    // Cell type (only if no player/bomb)
+                    // Cell type (only if no player/bomb/loot)
                     if (cell === 0) {
                         cellContent = '·'; // Empty
                     } else if (cell === 1) {
@@ -368,7 +402,7 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
             gridStr += '\n';
         }
 
-        gridStr += '\n**Legend:** 🎯=YOU | P1-P4=Players | 💣1-3=Bomb (rounds left) | ·=Empty | 🟫=Soft Block (breakable) | ⬛=Hard Block | ❌=Out of Bounds\n\n';
+        gridStr += '\n**Legend:** 🎯=YOU | P1-P4=Players | 💣1-4=Bomb (rounds left) | ⚡=Flash Radius Loot | ·=Empty | 🟫=Soft Block (breakable) | ⬛=Hard Block | ❌=Out of Bounds\n\n';
 
         // Add natural language summary
         gridStr += this.generateLocalSummary(gameState, playerId);
@@ -475,9 +509,19 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
             for (const b of gameState.bombs) {
                 const roundsLeft = b.roundsUntilExplode;
                 const pos = this.coordsToChess(b.x, b.y);
-                const countdown = '💥'.repeat(roundsLeft) + '__'.repeat(Math.max(0, 3 - roundsLeft));
-                bombsInfo += `  Bomb by P${b.playerId} at ${pos}: ${countdown} (${roundsLeft} rounds until explosion)\n`;
-                bombsInfo += `    Will destroy: 1 tile in all 4 directions (up/down/left/right)\n`;
+                const range = b.range || 1;
+                bombsInfo += `  💣 Bomb by P${b.playerId} at ${pos}: ${roundsLeft} rounds left | Range: ${range}\n`;
+            }
+        }
+
+        // Loot info
+        let lootInfo = '\n⚡ LOOT ON BOARD:\n';
+        if (!gameState.loot || gameState.loot.length === 0) {
+            lootInfo += 'None - no loot currently available\n';
+        } else {
+            for (const l of gameState.loot) {
+                const pos = this.coordsToChess(l.x, l.y);
+                lootInfo += `  ⚡ Flash Radius at ${pos} - Walk over to collect! +1 bomb range!\n`;
             }
         }
 
@@ -485,7 +529,7 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         let timingInfo = '\n⏰ GAME TIMING (IMPORTANT):\n';
         timingInfo += '  - Current round: ' + gameState.roundCount + '\n';
         timingInfo += '  - 1 ROUND = all 4 players move once\n';
-        timingInfo += '  - Bombs explode after 3 rounds (not turns!)\n';
+        timingInfo += '  - Bombs explode after 4 rounds (not turns!)\n';
         timingInfo += '  - You have time to plan, but don\'t wait too long!\n';
 
         // VALID MOVES - check all 4 directions
@@ -574,7 +618,8 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         const yourInfo = `\nYOU ARE PLAYER ${playerId}:\n`;
         const yourStatus = `Position: ${currentPos}\n`;
         const bombCount = player.hasBomb ? '💣1' : '💣0';
-        const yourBomb = player.hasBomb ? `${bombCount} - You have a bomb placed - cannot place another until it explodes\n` : `${bombCount} - You can place a bomb\n`;
+        const bombRange = player.bombRange || 1;
+        const yourBomb = player.hasBomb ? `${bombCount} - You have a bomb placed - cannot place another until it explodes\n` : `${bombCount} - You can place a bomb (Range: ${bombRange} tile${bombRange > 1 ? 's' : ''})\n`;
         const yourScore = `Score: ${player.score}\n`;
 
         // Find nearby soft blocks for strategic info
@@ -594,8 +639,36 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
 
         const blocksInfo = `Soft blocks within ${searchRadius} tiles: ${nearbyBlocks} (each worth +10 points)\n`;
 
+        // Check for nearby loot
+        let nearbyLoot = 0;
+        let closestLoot = null;
+        let closestLootDist = Infinity;
+        if (gameState.loot && gameState.loot.length > 0) {
+            for (const loot of gameState.loot) {
+                const dist = Math.abs(loot.x - player.x) + Math.abs(loot.y - player.y);
+                if (dist <= 6) { // Within 7x7 view
+                    nearbyLoot++;
+                    if (dist < closestLootDist) {
+                        closestLootDist = dist;
+                        closestLoot = loot;
+                    }
+                }
+            }
+        }
+
+        const lootHintInfo = nearbyLoot > 0 ? `⚡ Flash Radius loot within view: ${nearbyLoot} | Closest: ${closestLootDist} tiles away\n` : '';
+
         // Strategic recommendation
         let strategyHint = '\n💡 STRATEGIC HINT:\n';
+
+        // LOOT IS TOP PRIORITY
+        if (closestLoot && closestLootDist <= 3) {
+            const lootPos = this.coordsToChess(closestLoot.x, closestLoot.y);
+            strategyHint += `⚡⚡⚡ FLASH RADIUS at ${lootPos} only ${closestLootDist} tiles away! PRIORITIZE COLLECTING IT!\n`;
+        } else if (nearbyLoot > 0) {
+            strategyHint += `⚡ ${nearbyLoot} Flash Radius loot in view - very valuable! Check 7x7 grid for ⚡ symbols.\n`;
+        }
+
         if (player.x === 0 || player.x === 12 || player.y === 0 || player.y === 10) {
             strategyHint += '⚠️ You are ON THE EDGE! Move 1-2 steps toward center, then start bombing!\n';
         } else if (player.x === 1 || player.x === 11 || player.y === 1 || player.y === 9) {
@@ -615,7 +688,7 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         let memoryInfo = `\n💭 YOUR PREVIOUS THOUGHT:\n"${previousThought}"\n`;
         memoryInfo += '⚡ UPDATE your thought based on new game state - don\'t repeat it! Adjust your strategy as the situation changes.\n';
 
-        const fullDescription = gridStr + playersInfo + bombsInfo + timingInfo + validMovesInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + strategyHint + memoryInfo;
+        const fullDescription = gridStr + playersInfo + bombsInfo + lootInfo + timingInfo + validMovesInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + lootHintInfo + strategyHint + memoryInfo;
         return fullDescription;
     }
 
