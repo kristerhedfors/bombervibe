@@ -4,10 +4,9 @@ An AI-powered Bomberman game where players are controlled by LLMs through OpenAI
 
 ## 🎮 Features
 
-- **AI-Powered Gameplay**: 4 core players + up to 6 Battle Royale NPCs controlled by OpenAI's `gpt-4.1-mini` model
-- **Customizable Strategies**: Edit each player's AI prompt to change their behavior
+- **Fully AI-Powered Gameplay**: All 4 core players + up to 6 Battle Royale NPCs controlled by OpenAI's `gpt-4.1-mini` model
+- **Customizable AI Strategies**: Edit each AI player's prompt to change their behavior
 - **Battle Royale NPCs**: Drag and drop unique NPC characters with pre-programmed personalities (Berserker, Camper, Hunter, Trickster, Guardian, Chaos)
-- **Manual Override**: Control Player 1 with keyboard (Arrow keys + Spacebar for bombs)
 - **Classic Mechanics**: 13x11 grid, bombs with 1-tile range, destructible blocks
 - **Turn-Based Strategy**: Sequential turns with 10-turn bomb timers
 - **Structured Output**: JSON schema-based AI responses for reliable gameplay
@@ -90,7 +89,7 @@ cd bombervibe
 ### Visual Elements
 
 - **Player 1** ⛷️ Skier (Cyan)
-- **Player 2** 🧑‍🌾 Farmer (Magenta)
+- **Player 2** 🥷 Ninja (Magenta)
 - **Player 3** 🛒 Shopper (Yellow)
 - **Player 4** 🧑‍🚀 Astronaut (Green)
 - **Battle Royale NPCs**:
@@ -105,15 +104,9 @@ cd bombervibe
 - **Bombs** 💣 Classic bomb
 - **Explosions** 💥 Boom!
 
-### Controls
+### Spectator Mode
 
-**Player 1 (⛷️ Skier) Manual Override:**
-- Arrow Keys: Move
-- Spacebar or B: Place bomb
-
-**All Players (including P1 if no manual input):**
-- AI-controlled via OpenAI API
-- Customize strategy in corner text boxes
+Watch AI players battle it out! All players are controlled by AI - no human controls. Just sit back and enjoy the strategic chaos.
 
 ### Battle Royale Mode
 
@@ -127,7 +120,7 @@ Each NPC has unique AI behavior and can be spawned only once per game.
 
 ### Customizing AI Behavior
 
-Each corner has an editable prompt for that player's AI strategy:
+Each corner has an editable prompt for that player's AI strategy. Edit prompts in the corner text boxes and they'll save automatically to localStorage.
 
 **Example Strategies:**
 
@@ -135,10 +128,6 @@ Each corner has an editable prompt for that player's AI strategy:
 - **Defensive**: "Avoid danger. Clear blocks slowly. Always keep escape routes open. Only engage when safe."
 - **Territorial**: "Control the center. Drop bombs and walk through them to safety. Dominate key areas."
 - **Opportunistic**: "Wait for enemies to fight. Strike when they're vulnerable. Use your escape mobility wisely."
-
-**Pro Tip**: Since you can walk through bombs and soft blocks, drop a bomb then immediately move away to safety!
-
-Edit prompts in the corner text boxes and they'll save automatically to localStorage.
 
 ### System Prompt Editor
 
