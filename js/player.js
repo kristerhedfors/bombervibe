@@ -22,9 +22,9 @@ class Player {
 
         // Check if cell is passable
         const cell = grid[newY][newX];
-        // Can move through: empty cells (0), any bombs, soft blocks (1)
-        // Cannot move through: hard blocks (2)
-        if (cell === 0 || cell === 1 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
+        // Can move through: empty cells (0), bombs
+        // Cannot move through: soft blocks (1), hard blocks (2)
+        if (cell === 0 || (typeof cell === 'string' && cell.startsWith('bomb'))) {
             this.x = newX;
             this.y = newY;
             return true;

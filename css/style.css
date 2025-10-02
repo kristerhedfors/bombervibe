@@ -658,27 +658,52 @@ body {
 }
 
 .cell.empty {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.soft-block {
-    background: var(--soft-block);
+    background:
+        /* Brick pattern with mortar */
+        repeating-linear-gradient(
+            0deg,
+            #333 0px,
+            #333 1px,
+            #666 1px,
+            #666 calc(100% / 3 - 1px),
+            #333 calc(100% / 3 - 1px),
+            #333 calc(100% / 3)
+        ),
+        repeating-linear-gradient(
+            90deg,
+            #333 0px,
+            #333 1px,
+            #666 1px,
+            #666 calc(100% / 2 - 1px),
+            #333 calc(100% / 2 - 1px),
+            #333 calc(100% / 2)
+        );
+    box-shadow:
+        inset 1px 1px 0 rgba(100, 100, 100, 0.4),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+    position: relative;
 }
 
 .cell.soft-block::after {
-    content: '🌳';
-    font-size: inherit; /* Inherit from .cell */
-    filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.5));
+    content: '';
 }
 
 .cell.hard-block {
-    background: var(--hard-block);
+    background: #808080;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #b0b0b0 #404040 #404040 #b0b0b0;
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.5);
 }
 
 .cell.hard-block::after {
-    content: '⛰️';
-    font-size: inherit; /* Inherit from .cell */
-    filter: drop-shadow(0 0 8px rgba(100, 100, 100, 0.5));
+    content: '';
 }
 
 /* Player entities - positioned absolutely for smooth movement */
@@ -735,7 +760,7 @@ body {
 
 /* Legacy cell-based player rendering (fallback) */
 .cell.player1 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player1::after {
@@ -748,7 +773,7 @@ body {
 }
 
 .cell.player2 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player2::after {
@@ -761,7 +786,7 @@ body {
 }
 
 .cell.player3 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player3::after {
@@ -774,7 +799,7 @@ body {
 }
 
 .cell.player4 {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.player4::after {
@@ -797,7 +822,7 @@ body {
 }
 
 .cell.bomb {
-    background: #0d0d0d;
+    background: #2a4a2a;
 }
 
 .cell.bomb::after {
@@ -808,7 +833,7 @@ body {
 }
 
 .cell.explosion {
-    background: #0d0d0d !important;
+    background: #2a4a2a !important;
 }
 
 .cell.explosion::after {
