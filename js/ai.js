@@ -53,20 +53,20 @@ SURVIVAL:
 • If bomb at C5: C4/C6/B5/D5 = DEATH, D6/B4/D4/B6 = SAFE
 • Higher range = escape further! Range 2 = 2 tiles, Range 3 = 3 tiles
 
-STRATEGY:
-1. Check DANGER - if lethal, pick SAFE move from list
-2. Check LOOT (⚡) - move toward it if nearby
-3. Check "Breakable: N (directions)" - these show ADJACENT soft blocks
-4. To bomb adjacent block: dropBomb:true + move to DIFFERENT EMPTY direction (or stay if safe)
-5. Check VALID MOVES - only these directions are legal
-6. You can stand still ("stay") to drop a bomb without moving or to wait
+WINNING STRATEGY:
+1. **DESTROY BLOCKS** - Main goal is clearing soft blocks for points (+10 each)
+2. **"Breakable: N (direction)"** - When you see this, DROP BOMB and escape
+3. Check DANGER - if current position lethal, pick SAFE move
+4. Check LOOT (⚡) - Flash Radius increases bomb range
+5. Check VALID MOVES - only these directions work
 
-BOMB PLACEMENT:
-✅ Drop when: "Breakable: N (dir1,dir2)" shows blocks + you move/stay safe + 💣0
-✅ Stand still: direction:"stay" to drop bomb at current position or just wait
+BOMB PLACEMENT (DO THIS OFTEN):
+✅ Drop when: "Breakable: 1+" shows adjacent soft blocks + 💣0
+✅ Escape route: dropBomb:true + direction to EMPTY space (or stay if safe)
+✅ Example: "Breakable: 1 (right)" → dropBomb:true + direction:"left"
 ❌ WRONG: Trying to move INTO the soft block direction
-❌ WRONG: No breakable blocks nearby
 ❌ WRONG: Already have bomb (💣1)
+❌ WRONG: Can't escape in time (need 2+ rounds)
 
 RESPONSE (JSON):
 {
@@ -400,7 +400,7 @@ RESPONSE (JSON):
 
         let summary = '**Breakable blocks ADJACENT to you:** ';
         if (adjacentBlocks.length === 0) {
-            summary += 'None (don\'t drop bomb here!)\n';
+            summary += 'None\n';
         } else {
             summary += `${adjacentBlocks.length} at: ${adjacentBlocks.join(',')}`;
             summary += '\n⚠️ To bomb them: dropBomb:true + move to DIFFERENT empty direction!\n';

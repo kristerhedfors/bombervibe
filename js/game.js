@@ -9,7 +9,6 @@ class Game {
         // Game options for world generation
         this.options = {
             softBlockDensity: options.softBlockDensity || 0.4,
-            lootSpawnChance: options.lootSpawnChance || 0.125,
             testingMode: options.testingMode || false, // Fast mode for tests
             initialLoot: options.initialLoot || [], // [{x, y, type}]
             initialBombs: options.initialBombs || [] // [{x, y, playerId, stage}]
@@ -167,41 +166,49 @@ class Game {
         if (this.currentPlayerIndex <= previousPlayerIndex) {
             this.roundCount++;
         }
+    }
 
-        // Loot spawn chance per turn (use seeded RNG)
-        if (this.rng.random() < this.options.lootSpawnChance) {
-            this.spawnLoot();
+    // Spawn loot at a specific position (called when rocks break or players die)
+    spawnLootAt(x, y) {
+        // Don't spawn on existing loot
+        const hasLoot = this.loot.some(l => l.x === x && l.y === y);
+        if (!hasLoot) {
+            this.loot.push({
+                type: 'flash_radius',
+                x: x,
+                y: y,
+                spawnedRound: this.roundCount
+            });
+            console.log(`[LOOT] Spawned flash_radius at (${x}, ${y})`);
         }
     }
 
-    // Spawn loot at random empty position (not on hard blocks or players)
-    spawnLoot() {
-        const emptyPositions = [];
+    // Spread loot randomly on cleared squares (called when player dies)
+    spreadLoot(count) {
+        const clearedPositions = [];
         for (let y = 0; y < this.GRID_HEIGHT; y++) {
             for (let x = 0; x < this.GRID_WIDTH; x++) {
-                // Can spawn on empty (0) or soft blocks (1), but not hard blocks (2)
-                if (this.grid[y][x] !== 2) {
-                    // Don't spawn on existing loot
+                // Must be empty (0), not have loot, and not have a player
+                if (this.grid[y][x] === 0) {
                     const hasLoot = this.loot.some(l => l.x === x && l.y === y);
-                    // Don't spawn on players
                     const hasPlayer = this.players.some(p => p.alive && p.x === x && p.y === y);
                     if (!hasLoot && !hasPlayer) {
-                        emptyPositions.push({ x, y });
+                        clearedPositions.push({ x, y });
                     }
                 }
             }
         }
 
-        if (emptyPositions.length > 0) {
-            // Use seeded RNG instead of Math.random()
-            const pos = this.rng.choice(emptyPositions);
-            this.loot.push({
-                type: 'flash_radius',
-                x: pos.x,
-                y: pos.y,
-                spawnedRound: this.roundCount
-            });
-            console.log(`[LOOT] Spawned flash_radius at (${pos.x}, ${pos.y})`);
+        // Spawn up to 'count' loot items at random cleared positions
+        const itemsToSpawn = Math.min(count, clearedPositions.length);
+        for (let i = 0; i < itemsToSpawn; i++) {
+            const pos = this.rng.choice(clearedPositions);
+            this.spawnLootAt(pos.x, pos.y);
+            // Remove position so we don't spawn twice on same spot
+            const index = clearedPositions.findIndex(p => p.x === pos.x && p.y === pos.y);
+            if (index !== -1) {
+                clearedPositions.splice(index, 1);
+            }
         }
     }
 
@@ -347,6 +354,10 @@ class Game {
                     if (player) {
                         player.addScore(10);
                     }
+                    // 25% chance to spawn loot when rock breaks
+                    if (this.rng.random() < 0.25) {
+                        this.spawnLootAt(x, y);
+                    }
                     break;
                 }
 
@@ -371,6 +382,9 @@ class Game {
                     if (player && player.id !== p.id) {
                         player.addScore(100);
                     }
+                    // Spread loot when player dies (based on their bomb range)
+                    const lootCount = p.bombRange;
+                    this.spreadLoot(lootCount);
                 }
             }
         }
@@ -455,18 +469,27 @@ class Game {
     }
 
     // Check if a position will be hit by explosion in the next round(s)
+    // afterRounds: how many rounds in the future to check (default 1 = next round)
     isPositionLethal(x, y, afterRounds = 1) {
         for (const bomb of this.bombs) {
             const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
 
-            // Will this bomb explode within the specified rounds?
-            if (roundsLeft <= afterRounds) {
-                // Check if position is in blast radius
-                // Center of bomb
-                if (bomb.x === x && bomb.y === y) {
+            // Check if position is in blast radius
+            // Center of bomb - need extra time to escape
+            if (bomb.x === x && bomb.y === y) {
+                // If standing on bomb, need at least 2 rounds to be safe:
+                // Round N: move onto bomb (roundsLeft -= 1)
+                // Round N+1: move away (roundsLeft -= 1, must still be > 0)
+                // So safe if roundsLeft > afterRounds + 1
+                if (roundsLeft <= afterRounds + 1) {
                     return true;
                 }
+                // If bomb won't explode soon, continue checking blast radius
+                continue;
+            }
 
+            // Will this bomb explode within the specified rounds?
+            if (roundsLeft <= afterRounds) {
                 // Check 4 directions
                 const directions = [
                     { dx: 0, dy: -1 }, // Up
