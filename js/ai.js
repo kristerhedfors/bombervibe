@@ -27,37 +27,50 @@ class AIController {
 
 GAME OBJECTIVE:
 1. SURVIVE - Don't die to bombs (most important!)
-2. EXPLORE - Move around the board, don't stay in corners
+2. EXPLORE - Move toward the center, escape corners and edges
 3. DESTROY BLOCKS - Soft blocks (#) give +10 points when destroyed
 4. ELIMINATE - Trap opponents for +100 points
 
 GAME RULES:
 - You see a 7x7 grid centered on your position (limited vision)
 - Grid uses chess notation: columns A-M, rows 1-11 (11=top, 1=bottom)
-- You start in a corner, MOVE AWAY from edges!
-- You can walk through soft blocks (#) and bombs (💣)
-- Hard blocks (X) are indestructible and block movement
+- You start in a corner, IMMEDIATELY MOVE toward center (G6)
+- You CAN walk through: empty spaces (.), bombs (💣), and other players
+- You CANNOT walk through: soft blocks (#) or hard blocks (X) - they block movement!
+- ⚠️ IMPORTANT: You can only have ONE bomb active at a time! Check "can place bomb" status
 
 ⏰ CRITICAL TIMING RULES:
 - 1 ROUND = all 4 players move once (not individual turns!)
 - Bombs explode after 3 ROUNDS (plenty of time to escape)
 - Bomb countdown shows: 💥💥💥 = 3 rounds left, 💥💥__ = 2 rounds left, etc.
 - Each bomb destroys 1 tile in all 4 directions (up/down/left/right)
+- Soft blocks (#) stop the explosion but get destroyed (+10 points to bomb owner)
 
 DECISION PROCESS (follow this order):
-1. Check "✅ VALID MOVES" - which directions are legal?
-2. Check "⏰ GAME TIMING" - what round is it? How many rounds until bombs explode?
-3. Check "🚨 DANGER ANALYSIS" - is your current position safe?
-4. If current position shows "💀 LETHAL", you MUST move to a safe square
-5. ONLY choose moves that are both VALID and SAFE
-6. If no safe moves exist, you're trapped - choose best option
+1. Check if you already "has bomb placed" - if YES, DON'T try to drop another!
+2. Check "✅ VALID MOVES" - which directions are legal? (soft blocks # are NOT walkable!)
+3. Check "⏰ GAME TIMING" - what round is it? How many rounds until bombs explode?
+4. Check "🚨 DANGER ANALYSIS" - is your current position safe?
+5. If current position shows "💀 LETHAL", you MUST move to a SAFE square
+6. ONLY choose moves that are both VALID and SAFE
+7. If no safe moves exist, you're trapped - choose least bad option
 
-STRATEGIC PLAY:
-- DON'T stay on edges! Move toward CENTER (around G6)
-- DROP BOMBS near soft blocks (#) to destroy them for points
-- After dropping a bomb, ENSURE you can escape (3 rounds is enough time)
-- Use your 7x7 vision to plan ahead
+STRATEGIC PLAY (CRITICAL):
+- FIRST 1-2 MOVES: Get off the starting corner (move 1-2 steps away)
+- THEN START BOMBING: If you see soft blocks nearby and can escape, DROP BOMB!
+- You have 3 FULL ROUNDS to escape - that's plenty of time to move 2-3 tiles away
+- Drop bombs early and often to score points and clear paths
+- After dropping bomb: Move to safety, avoid dead ends
+- Use your 7x7 vision to plan moves ahead
 - Review your previous thought to avoid repeating mistakes
+- Don't waste moves trying to place bombs when you already have one active!
+
+BOMB PLACEMENT STRATEGY:
+✅ GOOD: Drop bomb when 2+ soft blocks adjacent AND you have clear escape path
+✅ GOOD: Drop bomb in position where blast will hit multiple blocks
+❌ BAD: Drop bomb with no escape route (you'll die!)
+❌ BAD: Drop bomb when you already have one active (wastes turn!)
+❌ BAD: Drop bomb in corner or dead end
 
 RESPONSE FORMAT:
 You MUST respond with valid JSON in this exact format:
@@ -68,21 +81,15 @@ You MUST respond with valid JSON in this exact format:
 }
 
 EXAMPLES:
-{"direction": "right", "dropBomb": true, "thought": "Dropping bomb at A11, moving right to B11. Soft block adjacent - will get points. 3 rounds to escape is plenty."}
-{"direction": "up", "dropBomb": false, "thought": "Moving toward center G6. No immediate threats. Will explore for soft blocks and positioning."}
-{"direction": "down", "dropBomb": false, "thought": "Bomb at D8 has 1 round left! Current position LETHAL. Moving down to E7 which is SAFE per danger analysis."}
-{"direction": "left", "dropBomb": true, "thought": "3 soft blocks in vision. Dropping bomb then escaping left. Will destroy blocks for 30+ points in 3 rounds."}
+{"direction": "right", "dropBomb": false, "thought": "In corner A11. Moving right to B11, one step off edge."}
+{"direction": "up", "dropBomb": true, "thought": "At B11, off corner. 2 soft blocks adjacent! Dropping bomb for 20 points, moving up to B10. Can escape up/right for 3 rounds."}
+{"direction": "down", "dropBomb": false, "thought": "Bomb active! Moving down to escape blast. Will bomb again once this explodes."}
+{"direction": "left", "dropBomb": false, "thought": "Bomb explodes in 1 round! Position LETHAL. Escaping left to safety."}
 
 MEMORY:
 Your previous thought is shown each turn - USE IT to maintain continuity and adapt your strategy!
 
-BOMB SAFETY:
-If dropBomb is true, VERIFY your direction move:
-1. Is VALID (check ✅ VALID MOVES section)
-2. Is SAFE (check 🚨 DANGER ANALYSIS section)
-3. Allows escape from bomb blast (1 tile in all directions, but you have 3 rounds)
-
-WINNING: Last player alive. Play smart, use your limited vision effectively, and understand the timing!`;
+WINNING: Last player alive. Play smart - get to center early, plan escapes before bombing, and understand the timing!`;
     }
 
     setSystemPrompt(prompt) {
@@ -332,7 +339,7 @@ WINNING: Last player alive. Play smart, use your limited vision effectively, and
                 passable = true;
             } else if (cell === 1) {
                 cellType = 'soft block';
-                passable = true; // Can walk through soft blocks
+                passable = false; // CANNOT walk through soft blocks - they block movement!
             } else if (cell === 2) {
                 cellType = 'hard block';
                 passable = false;
@@ -409,14 +416,18 @@ WINNING: Last player alive. Play smart, use your limited vision effectively, and
 
         // Strategic recommendation
         let strategyHint = '\n💡 STRATEGIC HINT:\n';
-        if (player.x <= 2 || player.x >= 10 || player.y <= 2 || player.y >= 8) {
-            strategyHint += '⚠️ You are near the EDGE! Move toward CENTER (G6) for better positioning.\n';
+        if (player.x === 0 || player.x === 12 || player.y === 0 || player.y === 10) {
+            strategyHint += '⚠️ You are ON THE EDGE! Move 1-2 steps toward center, then start bombing!\n';
+        } else if (player.x === 1 || player.x === 11 || player.y === 1 || player.y === 9) {
+            strategyHint += '✓ Good - off the edge! Now look for soft blocks to bomb.\n';
         } else {
-            strategyHint += '✓ Good position. Look for soft blocks to destroy or opponents to trap.\n';
+            strategyHint += '✓ Excellent position! Aggressively bomb soft blocks and control the center.\n';
         }
 
         if (nearbyBlocks > 0 && !player.hasBomb) {
-            strategyHint += `💣 ${nearbyBlocks} soft blocks nearby - consider dropping a bomb!\n`;
+            strategyHint += `💣💣 ${nearbyBlocks} soft blocks nearby - DROP A BOMB NOW for ${nearbyBlocks * 10} points!\n`;
+        } else if (!player.hasBomb) {
+            strategyHint += `💣 No soft blocks nearby - move to find some, then bomb immediately!\n`;
         }
 
         // Previous thought/plan

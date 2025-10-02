@@ -275,6 +275,9 @@ function resetGame() {
     log('🧹 Complete reset - all data cleared');
 }
 
+// Track if a turn is currently executing
+let turnInProgress = false;
+
 // Main game loop
 function gameLoop() {
     if (!game.running || game.paused) {
@@ -283,8 +286,7 @@ function gameLoop() {
 
     const now = Date.now();
 
-    // Update bombs continuously
-    game.updateBombs();
+    // Update explosions for visual effects
     game.updateExplosions();
 
     // Render first to show explosions
@@ -302,8 +304,8 @@ function gameLoop() {
         }, 1000);
     }
 
-    // Execute turn if enough time has passed (but NOT if game over detected)
-    if (!gameOverDetected && now - lastTurnTime >= game.turnDelay) {
+    // Execute turn if enough time has passed, NOT if game over, and NOT if turn already in progress
+    if (!gameOverDetected && !turnInProgress && now - lastTurnTime >= game.turnDelay) {
         executeTurn();
         lastTurnTime = now;
     }
@@ -314,6 +316,9 @@ function gameLoop() {
 
 // Execute one turn (now processes all players in parallel)
 async function executeTurn() {
+    // Set flag to prevent concurrent execution
+    turnInProgress = true;
+
     const playerCount = game.players.length;
     const round = Math.floor(game.turnCount / playerCount) + 1;
     console.log(`[ROUND ${round}] Processing ${playerCount} players in parallel`);
@@ -366,6 +371,9 @@ async function executeTurn() {
             game.nextTurn();
         }
 
+        // Update bombs AFTER all players have moved
+        game.updateBombs();
+
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
             const newState = captureGameState();
@@ -384,6 +392,9 @@ async function executeTurn() {
         for (let i = 0; i < playerCount; i++) {
             game.nextTurn();
         }
+    } finally {
+        // Always clear the flag when done
+        turnInProgress = false;
     }
 }
 
