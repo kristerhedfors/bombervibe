@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Electric Boogaloo</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #00ffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+            }
+            to {
+                text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff;
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #ff00ff;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            text-decoration: none;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .back-link:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            background: #000;
+        }
+
+        .description {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 0, 255, 0.1);
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            line-height: 1.6;
+        }
+
+        .description h2 {
+            color: #ff00ff;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        .description p {
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+
+        .features {
+            margin-top: 15px;
+            padding-left: 20px;
+        }
+
+        .features li {
+            margin-bottom: 5px;
+            color: #ffff00;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+
+            .video-container {
+                padding: 10px;
+            }
+
+            .description {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>╔═══ ELECTRIC BOOGALOO ═══╗</h1>
+        <div class="subtitle">AI-Powered Bomberman Gameplay Demo</div>
+    </header>
+
+    <a href="index.html" class="back-link">← Back to Game</a>
+
+    <div class="video-container">
+        <video controls preload="metadata" poster="videos/demo-poster.jpg">
+            <source src="videos/demo-web.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <div class="description">
+            <h2>🎮 Watch AI Players Battle</h2>
+            <p>
+                Electric Boogaloo is an AI-powered turn-based Bomberman game where four players,
+                each controlled by Large Language Models, compete in strategic bomb-dropping action.
+            </p>
+            <ul class="features">
+                <li>🤖 All 4 players controlled by OpenAI GPT-4.1-mini</li>
+                <li>💣 Strategic bomb placement and movement decisions</li>
+                <li>🎯 Customizable AI prompts for different play styles</li>
+                <li>⚡ Real-time turn-based gameplay</li>
+                <li>🎨 Retro cypherpunk aesthetic</li>
+                <li>🌐 Runs entirely in your browser</li>
+            </ul>
+            <p style="margin-top: 15px;">
+                Ready to play? <a href="index.html" style="color: #ffff00;">Click here to start the game</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
