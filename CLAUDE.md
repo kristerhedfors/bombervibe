@@ -16,15 +16,19 @@
 ## Project Structure
 
 ```
-electric-boogaloo/
+bombervibe/
 ├── index.html           # Main game page
 ├── css/
 │   └── style.css       # Cypherpunk Matrix theme
 ├── js/
 │   ├── player.js       # Player class
 │   ├── game.js         # Core game logic
-│   ├── ai.js           # Groq API integration
+│   ├── ai.js           # AI API integration
 │   └── ui.js           # Game loop & rendering
+├── tests/
+│   ├── .env            # API keys (GROQ_API_KEY or OPENAI_API_KEY)
+│   └── test_gameplay.py # Playwright test for gameplay validation
+├── .venv/              # Python virtual environment with Playwright
 ├── README.md           # User documentation
 └── CLAUDE.md          # This file (development notes)
 ```
@@ -279,12 +283,49 @@ To change models, edit `setApiKey()` in [js/ai.js:178-204](js/ai.js#L178-L204).
 
 ## Testing
 
-### Local Testing
-1. Open `index.html` in browser
+### Manual Testing
+1. Open `index.html` in browser (file:// URL works fine - no web server needed)
 2. Enter API key (Groq or OpenAI)
 3. Click START
 4. Use DevTools console for debugging
 5. Console will show which API/model is detected
+
+### Automated Testing with Playwright
+
+**IMPORTANT**: No web server needed! Playwright opens index.html directly via file:// URL.
+
+**Setup:**
+```bash
+# API keys stored in tests/.env
+cd tests
+echo "GROQ_API_KEY=gsk_your_key_here" > .env
+# or
+echo "OPENAI_API_KEY=sk_your_key_here" > .env
+```
+
+**Run tests:**
+```bash
+# Activate virtual environment with Playwright
+source .venv/bin/activate
+
+# Run gameplay validation test
+python tests/test_gameplay.py
+```
+
+**Test validates:**
+- ✅ Game initializes correctly
+- ✅ AI players make valid moves
+- ✅ Bombs explode at correct timing
+- ✅ Players die when hit by explosions
+- ✅ Game completes with a winner
+- ✅ Console logs show proper game flow
+
+**Focused console logging:**
+The game now logs only essential gameplay info:
+- `[ROUND X] START` - Round begins with player/bomb counts
+- `[ROUND X] P1: UP (0,0)->(0,1) OK` - Player move with coordinates
+- `[ROUND X] EXPLOSIONS: 2 bomb(s) detonated` - Bomb events
+- No verbose debugging logs during normal gameplay
 
 ### Common Issues
 

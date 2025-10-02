@@ -25,9 +25,9 @@ function initializeGame() {
     // Set error callback for AI
     ai.setErrorCallback(showErrorModal);
 
-    // Check for API key in URL fragment (e.g., #sk-abc123...)
+    // Check for API key in URL fragment (e.g., #gsk-abc123... or #sk-abc123...)
     const fragment = window.location.hash.substring(1); // Remove '#'
-    if (fragment && fragment.startsWith('sk-')) {
+    if (fragment && (fragment.startsWith('gsk_') || fragment.startsWith('sk-'))) {
         ai.setApiKey(fragment);
         document.getElementById('apiModal').classList.add('hidden');
         document.getElementById('apiKeyInput').value = '***';
@@ -331,20 +331,17 @@ async function executeTurn() {
 
     try {
         const gameState = game.getGameState();
-        console.log(`[ROUND ${round}] Game state:`, {
-            players: gameState.players.map(p => `P${p.id}:(${p.x},${p.y}) ${p.alive?'alive':'dead'}`),
-            bombs: gameState.bombs.length
-        });
+
+        // GAMEPLAY VALIDATION LOG: Round summary
+        console.log(`[ROUND ${round}] START - Players: ${gameState.players.filter(p => p.alive).length} alive, Bombs: ${gameState.bombs.length} active`);
 
         // Get all AI moves in parallel (one API call per alive player)
         log('All players thinking...');
         const allMoves = await ai.getAllPlayerMoves(gameState, game);
-        console.log(`[ROUND ${round}] All AI moves received:`, allMoves);
 
         // Execute all moves sequentially for all players
         for (const player of game.players) {
             if (!player.alive) {
-                console.log(`[ROUND ${round}] Player ${player.id} is dead, skipping`);
                 continue;
             }
 
@@ -355,19 +352,19 @@ async function executeTurn() {
                 // Drop bomb first if requested (at current position)
                 let bombMsg = '';
                 if (move.dropBomb) {
-                    console.log(`[ROUND ${round}] P${player.id}: Attempting to drop bomb at (${startPos.x}, ${startPos.y})`);
                     const bombSuccess = game.playerPlaceBomb(player.id);
-                    bombMsg = bombSuccess ? ' + dropped BOMB' : ' (bomb already placed)';
-                    console.log(`[ROUND ${round}] P${player.id}: Bomb drop ${bombSuccess ? 'SUCCESS' : 'FAILED'}`);
+                    bombMsg = bombSuccess ? ' +BOMB' : '';
                 }
 
                 // Then move
-                console.log(`[ROUND ${round}] P${player.id}: Moving ${move.direction} from (${startPos.x}, ${startPos.y})`);
                 const success = game.movePlayer(player.id, move.direction);
-                console.log(`[ROUND ${round}] P${player.id}: Move ${success ? 'SUCCESS' : 'FAILED'} - now at (${player.x}, ${player.y})`);
+
+                // GAMEPLAY VALIDATION LOG: Player action
+                console.log(`[ROUND ${round}] P${player.id}: ${move.direction.toUpperCase()}${bombMsg} (${startPos.x},${startPos.y})->(${player.x},${player.y}) ${success ? 'OK' : 'BLOCKED'}`);
+
                 log(`Player ${player.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
             } else {
-                console.warn(`[ROUND ${round}] P${player.id}: Invalid or missing move:`, move);
+                console.warn(`[ROUND ${round}] P${player.id}: INVALID MOVE`);
                 log(`Player ${player.id} received invalid move - skipping`);
             }
         }
@@ -378,7 +375,14 @@ async function executeTurn() {
         }
 
         // Update bombs AFTER all players have moved
+        const bombsBefore = game.bombs.length;
         game.updateBombs();
+        const bombsAfter = game.bombs.length;
+
+        // GAMEPLAY VALIDATION LOG: Explosions
+        if (bombsBefore > bombsAfter) {
+            console.log(`[ROUND ${round}] EXPLOSIONS: ${bombsBefore - bombsAfter} bomb(s) detonated`);
+        }
 
         // Record state in history after turn execution
         if (!isReplayMode && gameHistory) {
