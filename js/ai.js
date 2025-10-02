@@ -39,6 +39,10 @@ RULES:
 • Scoring: +10 per 🟫 destroyed, +100 per kill
 • 1 ROUND = all 4 players move once
 
+POWER-UPS:
+• ⚡ Flash Radius: +1 bomb range
+• 🧤 Bomb Pickup: Can pickup and throw bombs (wrap-around edges!)
+
 CRITICAL - BOMB MECHANICS:
 1. Bombs drop at YOUR CURRENT POSITION, then you move (or stay)
 2. "Breakable: 1 (up)" means soft block is UP from you - bomb will hit it from HERE
@@ -75,10 +79,16 @@ BOMB PLACEMENT RULES:
 
 RESPONSE (JSON):
 {
+  "action": "move|pickup|throw",
   "direction": "up|down|left|right|stay",
   "dropBomb": true|false,
   "thought": "Why this move (50 words max)"
-}`;
+}
+
+ACTIONS:
+• "move" (default): Normal movement with optional bomb drop
+• "pickup": Pick up bomb at current position (requires 🧤 power-up)
+• "throw": Throw carried bomb in direction (wraps around grid edges!)`;
     }
 
     setSystemPrompt(prompt) {
@@ -560,14 +570,19 @@ RESPONSE (JSON):
                 schema: {
                     type: "object",
                     properties: {
+                        action: {
+                            type: "string",
+                            enum: ["move", "pickup", "throw"],
+                            description: "Action type: move (default), pickup (pickup bomb at current position), throw (throw carried bomb)"
+                        },
                         direction: {
                             type: "string",
                             enum: ["up", "down", "left", "right", "stay"],
-                            description: "Direction to move or stay in place"
+                            description: "Direction to move (for move action) or throw direction (for throw action)"
                         },
                         dropBomb: {
                             type: "boolean",
-                            description: "Whether to drop a bomb at current position before moving/staying"
+                            description: "Whether to drop a bomb at current position before moving/staying (only for move action)"
                         },
                         thought: {
                             type: "string",
@@ -770,6 +785,15 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
 
             console.log(`[AI P${playerId}] Parsed move:`, move);
 
+            // Default action to 'move' if not specified
+            const action = move.action || 'move';
+
+            // Validate action
+            if (!['move', 'pickup', 'throw'].includes(action)) {
+                console.log(`[AI P${playerId}] Invalid action: ${action}, using random move`);
+                return this.getRandomMove(gameState, playerId);
+            }
+
             // Validate direction
             if (!['up', 'down', 'left', 'right', 'stay'].includes(move.direction)) {
                 console.log(`[AI P${playerId}] Invalid direction: ${move.direction}, using random move`);
@@ -782,12 +806,12 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
                 console.log(`[AI P${playerId}] Thought: "${move.thought}"`);
             }
 
-            console.log(`[AI P${playerId}] Move: ${move.direction}, dropBomb: ${move.dropBomb}`);
+            console.log(`[AI P${playerId}] Action: ${action}, Direction: ${move.direction}, DropBomb: ${move.dropBomb || false}`);
 
             const moveResult = {
-                action: 'move',
+                action: action,
                 direction: move.direction,
-                dropBomb: move.dropBomb,
+                dropBomb: move.dropBomb || false,
                 thought: move.thought || '' // Pass thought to UI for display
             };
 

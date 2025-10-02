@@ -381,23 +381,43 @@ async function executeTurn() {
             }
 
             const move = allMoves[player.id];
-            if (move && move.action === 'move') {
+            if (move) {
                 const startPos = {x: player.x, y: player.y};
+                let success = false;
+                let actionMsg = '';
 
-                // Drop bomb first if requested (at current position)
-                let bombMsg = '';
-                if (move.dropBomb) {
-                    const bombSuccess = game.playerPlaceBomb(player.id);
-                    bombMsg = bombSuccess ? ' +BOMB' : '';
+                // Handle different action types
+                if (move.action === 'pickup') {
+                    // Pickup bomb at current position
+                    success = game.playerPickupBomb(player.id);
+                    actionMsg = success ? 'PICKUP BOMB' : 'PICKUP FAILED';
+                    console.log(`[ROUND ${round}] P${player.id}: ${actionMsg} at (${player.x},${player.y})`);
+                    log(`Player ${player.id} ${actionMsg}`);
+
+                } else if (move.action === 'throw') {
+                    // Throw carried bomb in direction
+                    success = game.playerThrowBomb(player.id, move.direction);
+                    actionMsg = success ? `THROW ${move.direction.toUpperCase()}` : 'THROW FAILED';
+                    console.log(`[ROUND ${round}] P${player.id}: ${actionMsg} from (${startPos.x},${startPos.y})`);
+                    log(`Player ${player.id} ${actionMsg}`);
+
+                } else {
+                    // Default: move action
+                    // Drop bomb first if requested (at current position)
+                    let bombMsg = '';
+                    if (move.dropBomb) {
+                        const bombSuccess = game.playerPlaceBomb(player.id);
+                        bombMsg = bombSuccess ? ' +BOMB' : '';
+                    }
+
+                    // Then move
+                    success = game.movePlayer(player.id, move.direction);
+
+                    // GAMEPLAY VALIDATION LOG: Player action
+                    console.log(`[ROUND ${round}] P${player.id}: ${move.direction.toUpperCase()}${bombMsg} (${startPos.x},${startPos.y})->(${player.x},${player.y}) ${success ? 'OK' : 'BLOCKED'}`);
+
+                    log(`Player ${player.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
                 }
-
-                // Then move
-                const success = game.movePlayer(player.id, move.direction);
-
-                // GAMEPLAY VALIDATION LOG: Player action
-                console.log(`[ROUND ${round}] P${player.id}: ${move.direction.toUpperCase()}${bombMsg} (${startPos.x},${startPos.y})->(${player.x},${player.y}) ${success ? 'OK' : 'BLOCKED'}`);
-
-                log(`Player ${player.id} ${success ? 'moved' : 'tried to move'} ${move.direction.toUpperCase()}${bombMsg}`);
             } else {
                 console.warn(`[ROUND ${round}] P${player.id}: INVALID MOVE`);
                 log(`Player ${player.id} received invalid move - skipping`);
@@ -529,6 +549,9 @@ function renderGrid() {
                 if (loot.type === 'flash_radius') {
                     lootIcon.innerHTML = '⚡';
                     lootIcon.classList.add('flash-radius');
+                } else if (loot.type === 'bomb_pickup') {
+                    lootIcon.innerHTML = '🧤';
+                    lootIcon.classList.add('bomb-pickup');
                 }
                 cell.appendChild(lootIcon);
             }
@@ -598,6 +621,22 @@ function renderPlayers() {
         playerEntity.style.top = `${top}px`;
         playerEntity.style.width = `${cellWidth}px`;
         playerEntity.style.height = `${cellHeight}px`;
+
+        // Add carried bomb indicator if player is carrying a bomb
+        let carriedBombIcon = playerEntity.querySelector('.carried-bomb-icon');
+        if (player.carriedBomb) {
+            if (!carriedBombIcon) {
+                carriedBombIcon = document.createElement('div');
+                carriedBombIcon.className = 'carried-bomb-icon';
+                carriedBombIcon.textContent = '💣';
+                playerEntity.appendChild(carriedBombIcon);
+            }
+        } else {
+            // Remove carried bomb indicator if not carrying
+            if (carriedBombIcon) {
+                carriedBombIcon.remove();
+            }
+        }
     }
 
     // Remove dead players
