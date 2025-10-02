@@ -804,44 +804,28 @@ body {
     background: #2a4a2a;
 }
 
-/* Brick wall - uniform brick pattern with 3D depth */
+/* Brick wall - simple uniform pattern */
 .cell.soft-block {
-    background:
-        /* Three horizontal mortar lines */
-        linear-gradient(to bottom,
-            #888 0%, #888 33%, #aaa 33%, #aaa 34%,
-            #888 34%, #888 66%, #aaa 66%, #aaa 67%,
-            #888 67%, #888 100%
+    background-color: #888;
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 32%,
+            #aaa 32%,
+            #aaa 34%,
+            transparent 34%
         ),
-        /* Vertical mortar - row 1 */
-        linear-gradient(to right, transparent 32%, #aaa 32%, #aaa 33%, transparent 33%),
-        linear-gradient(to right, transparent 65%, #aaa 65%, #aaa 66%, transparent 66%),
-        /* Vertical mortar - row 2 */
-        linear-gradient(to right, transparent 15%, #aaa 15%, #aaa 16%, transparent 16%),
-        linear-gradient(to right, transparent 49%, #aaa 49%, #aaa 50%, transparent 50%),
-        linear-gradient(to right, transparent 82%, #aaa 82%, #aaa 83%, transparent 83%),
-        /* Vertical mortar - row 3 */
-        linear-gradient(to right, transparent 24%, #aaa 24%, #aaa 25%, transparent 25%),
-        linear-gradient(to right, transparent 74%, #aaa 74%, #aaa 75%, transparent 75%);
-    background-size:
-        100% 100%,
-        100% 33%,
-        100% 33%,
-        100% 33%,
-        100% 33%,
-        100% 33%,
-        100% 34%,
-        100% 34%;
-    background-position:
-        0 0,
-        0 0%,
-        0 0%,
-        0 34%,
-        0 34%,
-        0 34%,
-        0 67%,
-        0 67%;
-    background-repeat: no-repeat;
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 32%,
+            #aaa 32%,
+            #aaa 34%,
+            transparent 34%
+        );
+    background-size: 100% 100%, 33.33% 100%;
+    background-position: 0 0, 0 0;
     box-shadow:
         inset 2px 2px 3px rgba(255, 255, 255, 0.3),
         inset -2px -2px 3px rgba(0, 0, 0, 0.4);
