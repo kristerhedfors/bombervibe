@@ -25,13 +25,34 @@ function initializeGame() {
     // Set error callback for AI
     ai.setErrorCallback(showErrorModal);
 
-    // Check for API key in URL fragment (e.g., #gsk-abc123... or #sk-abc123...)
+    // Check for API key in URL fragment (e.g., #gsk-abc123&maxRounds=20)
     const fragment = window.location.hash.substring(1); // Remove '#'
-    if (fragment && (fragment.startsWith('gsk_') || fragment.startsWith('sk-'))) {
-        ai.setApiKey(fragment);
-        document.getElementById('apiModal').classList.add('hidden');
-        document.getElementById('apiKeyInput').value = '***';
-        log('API key loaded from URL fragment');
+    let apiKeyFromURL = null;
+    let maxRoundsFromURL = null;
+
+    if (fragment) {
+        // Parse fragment for API key and optional parameters
+        const parts = fragment.split('&');
+        const apiKeyPart = parts[0];
+
+        if (apiKeyPart && (apiKeyPart.startsWith('gsk_') || apiKeyPart.startsWith('sk-'))) {
+            apiKeyFromURL = apiKeyPart;
+
+            // Parse additional parameters
+            for (let i = 1; i < parts.length; i++) {
+                const [key, value] = parts[i].split('=');
+                if (key === 'maxRounds' && !isNaN(parseInt(value))) {
+                    maxRoundsFromURL = parseInt(value);
+                    window.maxRoundsForTesting = maxRoundsFromURL;
+                    console.log(`[TEST MODE] Will auto-stop after ${maxRoundsFromURL} rounds`);
+                }
+            }
+
+            ai.setApiKey(apiKeyFromURL);
+            document.getElementById('apiModal').classList.add('hidden');
+            document.getElementById('apiKeyInput').value = '***';
+            log('API key loaded from URL fragment');
+        }
     }
     // Otherwise check for stored API key
     else if (ai.loadApiKey()) {
@@ -328,6 +349,20 @@ async function executeTurn() {
     const playerCount = game.players.length;
     const round = Math.floor(game.turnCount / playerCount) + 1;
     console.log(`[ROUND ${round}] Processing ${playerCount} players in parallel`);
+
+    // Check if we should auto-stop for testing
+    if (window.maxRoundsForTesting && round > window.maxRoundsForTesting) {
+        console.log(`[TEST MODE] Reached maxRounds=${window.maxRoundsForTesting}, stopping game`);
+        gameRunning = false;
+        turnInProgress = false;
+
+        // Dispatch event for Playwright to detect
+        window.dispatchEvent(new CustomEvent('testComplete', {
+            detail: { round, maxRounds: window.maxRoundsForTesting }
+        }));
+
+        return;
+    }
 
     try {
         const gameState = game.getGameState();
