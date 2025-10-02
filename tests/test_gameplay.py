@@ -56,8 +56,12 @@ def test_gameplay():
             text = msg.text
             console_logs.append(text)
 
-            # Only print gameplay validation logs to reduce noise
-            if '[ROUND' in text or 'GAME OVER' in text or 'ERROR' in text or 'EXPLOSIONS' in text:
+            # Print detailed AI decisions and gameplay events
+            if any(keyword in text for keyword in [
+                '[ROUND', 'GAME OVER', 'ERROR', 'EXPLOSIONS',
+                '[AI P', 'Thought:', 'Move:', 'dropBomb:',
+                'DANGER:', 'SAFE:', 'Breakable'
+            ]):
                 print(text)
 
         page.on('console', handle_console)
@@ -81,7 +85,7 @@ def test_gameplay():
         # Wait for game to progress
         game_over = False
         rounds = 0
-        max_rounds = 30
+        max_rounds = 10  # Limit to 10 rounds for quick analysis
         start_time = time.time()
 
         print('\n=== WATCHING GAMEPLAY ===')
