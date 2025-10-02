@@ -30,27 +30,27 @@ class AIController {
 GAME OBJECTIVE:
 1. SURVIVE - Don't die to bombs (most important!)
 2. EXPLORE - Move toward the center, escape corners and edges
-3. DESTROY BLOCKS - Soft blocks (#) give +10 points when destroyed
+3. DESTROY BLOCKS - Soft blocks (🟫) give +10 points when destroyed
 4. ELIMINATE - Trap opponents for +100 points
 
 GAME RULES:
-- You see a 7x7 grid centered on your position (limited vision)
+- You see a 7x7 grid centered on your position (limited vision) displayed as a markdown table
 - Grid uses chess notation: columns A-M, rows 1-11 (11=top, 1=bottom)
 - You start in a corner, IMMEDIATELY MOVE toward center (G6)
-- You CAN walk through: empty spaces (.), bombs (💣), and other players
-- You CANNOT walk through: soft blocks (#) or hard blocks (X) - they block movement!
-- ⚠️ IMPORTANT: You can only have ONE bomb active at a time! Check "can place bomb" status
+- You CAN walk through: empty spaces (·), bombs (💣), and other players
+- You CANNOT walk through: soft blocks (🟫) or hard blocks (⬛) - they block movement!
+- ⚠️ IMPORTANT: You can only have ONE bomb active at a time! Check your bomb status (💣0 or 💣1)
 
 ⏰ CRITICAL TIMING RULES:
 - 1 ROUND = all 4 players move once (not individual turns!)
 - Bombs explode after 3 ROUNDS (plenty of time to escape)
-- Bomb countdown shows: 💥💥💥 = 3 rounds left, 💥💥__ = 2 rounds left, etc.
+- Bomb countdown shows: 💣3 = 3 rounds left, 💣2 = 2 rounds left, 💣1 = 1 round left
 - Each bomb destroys 1 tile in all 4 directions (up/down/left/right)
-- Soft blocks (#) stop the explosion but get destroyed (+10 points to bomb owner)
+- Soft blocks (🟫) stop the explosion but get destroyed (+10 points to bomb owner)
 
 DECISION PROCESS (follow this order):
-1. Check if you already "has bomb placed" - if YES, DON'T try to drop another!
-2. Check "✅ VALID MOVES" - which directions are legal? (soft blocks # are NOT walkable!)
+1. Check your bomb status (💣0 or 💣1) - if 💣1, DON'T try to drop another!
+2. Check "✅ VALID MOVES" or "📊 Local Area Summary" - which directions are legal? (soft blocks 🟫 are NOT walkable!)
 3. Check "⏰ GAME TIMING" - what round is it? How many rounds until bombs explode?
 4. Check "🚨 DANGER ANALYSIS" - is your current position safe?
 5. If current position shows "💀 LETHAL", you MUST move to a SAFE square
@@ -68,10 +68,11 @@ STRATEGIC PLAY (CRITICAL):
 - Don't waste moves trying to place bombs when you already have one active!
 
 BOMB PLACEMENT STRATEGY:
-✅ GOOD: Drop bomb when 2+ soft blocks adjacent AND you have clear escape path
+✅ GOOD: Drop bomb when 2+ soft blocks (🟫) adjacent AND you have clear escape path
 ✅ GOOD: Drop bomb in position where blast will hit multiple blocks
+✅ GOOD: Check "📊 Local Area Summary" to see adjacent breakable blocks and valid moves
 ❌ BAD: Drop bomb with no escape route (you'll die!)
-❌ BAD: Drop bomb when you already have one active (wastes turn!)
+❌ BAD: Drop bomb when 💣1 (you already have one active - wastes turn!)
 ❌ BAD: Drop bomb in corner or dead end
 
 RESPONSE FORMAT:
