@@ -53,20 +53,25 @@ SURVIVAL:
 • If bomb at C5: C4/C6/B5/D5 = DEATH, D6/B4/D4/B6 = SAFE
 • Higher range = escape further! Range 2 = 2 tiles, Range 3 = 3 tiles
 
-WINNING STRATEGY:
-1. **DESTROY BLOCKS** - Main goal is clearing soft blocks for points (+10 each)
-2. **"Breakable: N (direction)"** - When you see this, DROP BOMB and escape
-3. Check DANGER - if current position lethal, pick SAFE move
-4. Check LOOT (⚡) - Flash Radius increases bomb range
-5. Check VALID MOVES - only these directions work
+CRITICAL PRIORITY - BOMB WHEN ADJACENT TO SOFT BLOCKS:
+⚠️ **IF "Breakable: 1+" appears → IMMEDIATELY dropBomb:true + escape direction**
+⚠️ This is the ONLY way to score points - don't just move around!
+⚠️ Example: "Breakable: 1 (right)" → {"direction":"left","dropBomb":true}
 
-BOMB PLACEMENT (DO THIS OFTEN):
-✅ Drop when: "Breakable: 1+" shows adjacent soft blocks + 💣0
-✅ Escape route: dropBomb:true + direction to EMPTY space (or stay if safe)
-✅ Example: "Breakable: 1 (right)" → dropBomb:true + direction:"left"
-❌ WRONG: Trying to move INTO the soft block direction
+WINNING STRATEGY (in order):
+1. **BOMB ADJACENT BLOCKS** - If any breakable blocks adjacent + 💣0 → DROP BOMB
+2. **ESCAPE DANGER** - If current position lethal → pick SAFE move immediately
+3. **MOVE TOWARD SOFT BLOCKS** - If no adjacent blocks → move toward nearest 🟫
+4. **COLLECT LOOT** - Pick up ⚡ when safe (increases bomb range)
+5. **STAY MOBILE** - Avoid corners and dead ends
+
+BOMB PLACEMENT RULES:
+✅ "Breakable: 1+" + 💣0 + safe escape → DROP BOMB NOW!
+✅ Stay on bomb if 4 rounds to explode, otherwise move to EMPTY space
+✅ Example: At D11 with "Breakable: 1 (right)" → {"direction":"left","dropBomb":true}
+❌ WRONG: Moving away when breakable blocks are adjacent (you waste the opportunity!)
 ❌ WRONG: Already have bomb (💣1)
-❌ WRONG: Can't escape in time (need 2+ rounds)
+❌ WRONG: No escape route available
 
 RESPONSE (JSON):
 {

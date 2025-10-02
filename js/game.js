@@ -477,15 +477,16 @@ class Game {
             // Check if position is in blast radius
             // Center of bomb - standing on it means you're trapped
             if (bomb.x === x && bomb.y === y) {
-                // If moving onto a bomb, you need time to escape before it explodes:
-                // - This round: move onto bomb (uses 1 round)
-                // - Next round: escape (uses 1 round)
-                // - Bomb must not explode during or after escape
-                // So need: roundsLeft > 2
-                if (roundsLeft <= 2) {
+                // If moving onto a bomb, account for the round passing:
+                // - This round: move onto bomb, then round ends (countdown -= 1)
+                // - Next round: must escape (countdown -= 1)
+                // - Bomb must not explode during or after escape (countdown must be > 0)
+                // So after this round, bomb will have (roundsLeft - 1) rounds
+                // We need (roundsLeft - 1) > 2, which means roundsLeft > 3
+                if (roundsLeft <= 3) {
                     return true;
                 }
-                // If bomb has 3+ rounds, it's safe to stand on temporarily
+                // If bomb has 4+ rounds, it's safe to stand on temporarily
                 continue;
             }
 
