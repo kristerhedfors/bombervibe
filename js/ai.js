@@ -4,7 +4,7 @@ class AIController {
     constructor() {
         this.apiKey = null;
         this.apiUrl = 'https://api.openai.com/v1/chat/completions';
-        this.model = 'gpt-4.1-mini';
+        this.model = 'gpt-4.1';
         this.prompts = {}; // Dynamic prompts for all players
         this.defaultPrompts = {
             1: 'You are Player 1 (cyan). EXPLORE toward center (G6). Drop bombs near soft blocks. Check DANGER ANALYSIS and follow your previous plan - don\'t repeat moves!',
