@@ -129,7 +129,7 @@ class Game {
         }
     }
 
-    // Spawn loot at random empty position (not on hard blocks)
+    // Spawn loot at random empty position (not on hard blocks or players)
     spawnLoot() {
         const emptyPositions = [];
         for (let y = 0; y < this.GRID_HEIGHT; y++) {
@@ -138,7 +138,9 @@ class Game {
                 if (this.grid[y][x] !== 2) {
                     // Don't spawn on existing loot
                     const hasLoot = this.loot.some(l => l.x === x && l.y === y);
-                    if (!hasLoot) {
+                    // Don't spawn on players
+                    const hasPlayer = this.players.some(p => p.alive && p.x === x && p.y === y);
+                    if (!hasLoot && !hasPlayer) {
                         emptyPositions.push({ x, y });
                     }
                 }

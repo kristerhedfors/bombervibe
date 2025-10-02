@@ -6,6 +6,7 @@ class AIController {
         this.apiUrl = 'https://api.openai.com/v1/chat/completions';
         this.model = 'gpt-4.1';
         this.prompts = {}; // Dynamic prompts for all players
+        this.playerThoughts = {}; // Current turn's tactical thoughts for display
         this.defaultPrompts = {
             1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect Flash Radius (⚡) power-ups! Use your 7x7 vision to find soft blocks. 4 rounds per bomb = plenty of escape time!',
             2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, collect loot, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
@@ -121,21 +122,33 @@ You MUST respond with valid JSON in this exact format:
 {
   "direction": "up" | "down" | "left" | "right",
   "dropBomb": true | false,
-  "thought": "Your strategic plan in 50 words or less"
+  "memory": "Operational notes for next turn (50 words max)",
+  "thought": "Tactical reasoning for THIS move (50 words max)"
 }
 
+🎯 3-LEVEL DECISION HIERARCHY:
+1. **STRATEGY** (your corner prompt): High-level goal set by human - EXPLORE/AGGRESSIVE/DEFENSIVE (never changes)
+2. **MEMORY** (operational): Updated each turn - patterns you notice, danger zones, loot locations, board control
+3. **THOUGHT** (tactical): Reasoning for THIS specific move - why you chose this direction/bomb decision
+
+⚠️ MEMORY vs THOUGHT:
+- **MEMORY**: What you LEARNED this turn to remember for next turn (board patterns, threats, opportunities)
+  Example: "Center has 3 soft blocks. P2 controls east. Loot at G6. My bomb range is 2 now."
+- **THOUGHT**: Why you made THIS move right now (immediate tactical decision)
+  Example: "Moving toward G6 loot - 2 tiles away. Bomb at C5 explodes in 2 rounds - staying diagonal."
+
 EXAMPLES:
-{"direction": "right", "dropBomb": false, "thought": "In corner A11. Moving right to B11, one step off edge. No blocks adjacent - not bombing yet."}
-{"direction": "up", "dropBomb": true, "thought": "At C5. Summary shows 2 blocks adjacent (up, right)! Dropping bomb. Moving UP to C6, then RIGHT to D7 (DIAGONAL=SAFE from C5 bomb)."}
-{"direction": "down", "dropBomb": false, "thought": "Bomb 💣2 at C5. Currently at C6. Moving DOWN-RIGHT toward D5 (diagonal from C5 = safe). Executing escape plan."}
-{"direction": "left", "dropBomb": false, "thought": "Bomb 💣1 at D4! I'm at D5 (LETHAL - directly below). Moving LEFT to C5 (safe - diagonal from D4)."}
-{"direction": "right", "dropBomb": false, "thought": "At D6. Summary: 0 blocks adjacent. NOT bombing - would waste it! Moving right to explore and find blocks."}
-{"direction": "up", "dropBomb": false, "thought": "⚡ LOOT at E7! I'm at E5. Moving UP toward it - Flash Radius is game-changing for bomb power!"}
+{"direction": "right", "dropBomb": false, "memory": "Started corner A11. No blocks here. Center is G6. Need to move 6 tiles right, 5 up.", "thought": "First move off edge. Going right to B11 to begin journey toward center."}
+{"direction": "up", "dropBomb": true, "memory": "Found 2 soft blocks at C5 (up/right). Bomb range still 1. Diagonal escape to D6 works.", "thought": "Summary shows blocks adjacent! Dropping bomb at C5, moving UP then RIGHT to D6 (diagonal=safe)."}
+{"direction": "down", "dropBomb": false, "memory": "My bomb at C5 has 2 rounds left. Currently C6 (adjacent=danger). D5 is diagonal=safe.", "thought": "Executing escape: moving DOWN-RIGHT to D5 (diagonal from my C5 bomb)."}
+{"direction": "left", "dropBomb": false, "memory": "P2 bomb at D4 shows 1 round. I'm D5 (LETHAL position). C5 is diagonal safety.", "thought": "DANGER! P2 bomb directly above. Moving LEFT to C5 (diagonal=safe from D4)."}
+{"direction": "right", "dropBomb": false, "memory": "Area D6: zero blocks adjacent. Must explore to find bombing targets.", "thought": "No blocks here - won't waste bomb. Moving right to explore and find soft blocks."}
+{"direction": "up", "dropBomb": false, "memory": "Loot spotted at E7! Flash Radius gives +1 bomb range. Currently E5, 2 tiles south.", "thought": "⚡ PRIORITY! Loot at E7 is 2 tiles up. Moving toward it - range boost is crucial!"}
 
 MEMORY & CONTINUITY:
-Your previous thought is shown each turn - USE IT to maintain continuity and execute your planned strategy!
-When you drop a bomb, your thought MUST include your escape route considering other players/bombs.
-Next turn, EXECUTE that escape plan and update based on new positions.
+Your previous MEMORY is shown each turn - it reflects what you knew WHEN you made your last move (intentionally outdated).
+Current board state info is MORE ACCURATE for tactical decisions.
+Use MEMORY for operational context (what patterns you've noticed), use current state for immediate survival.
 
 WINNING: Last player alive. Play smart - get to center early, plan escapes before bombing, and understand the timing!`;
     }
@@ -299,8 +312,13 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
         // Clear all player memories (dynamic range for NPCs)
         for (let i = 1; i <= 10; i++) {
             this.playerMemory[i] = '';
+            this.playerThoughts[i] = '';
             localStorage.removeItem(`player_${i}_memory`);
         }
+    }
+
+    getPlayerThought(playerId) {
+        return this.playerThoughts[playerId] || '';
     }
 
     // Convert grid coordinates (x,y) to chess notation (e.g., C5)
@@ -683,10 +701,12 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
             strategyHint += `💣 No soft blocks nearby - move to find some, then bomb immediately!\n`;
         }
 
-        // Previous thought/plan
-        const previousThought = this.getPlayerMemory(playerId);
-        let memoryInfo = `\n💭 YOUR PREVIOUS THOUGHT:\n"${previousThought}"\n`;
-        memoryInfo += '⚡ UPDATE your thought based on new game state - don\'t repeat it! Adjust your strategy as the situation changes.\n';
+        // Previous memory (operational context from last turn)
+        const previousMemory = this.getPlayerMemory(playerId);
+        let memoryInfo = `\n🧠 YOUR PREVIOUS MEMORY (operational notes from last turn):\n"${previousMemory}"\n`;
+        memoryInfo += '⚠️ This memory is OUTDATED - it reflects what you knew when you made your LAST move.\n';
+        memoryInfo += '✅ Use current board state (DANGER ANALYSIS, LOOT, VALID MOVES) for immediate tactical decisions.\n';
+        memoryInfo += '📝 Update your MEMORY with new patterns/learnings, and THOUGHT with reasoning for THIS move.\n';
 
         const fullDescription = gridStr + playersInfo + bombsInfo + lootInfo + timingInfo + validMovesInfo + dangerInfo + yourInfo + yourStatus + yourBomb + yourScore + blocksInfo + lootHintInfo + strategyHint + memoryInfo;
         return fullDescription;
@@ -711,12 +731,16 @@ WINNING: Last player alive. Play smart - get to center early, plan escapes befor
                             type: "boolean",
                             description: "Whether to drop a bomb at current position before moving"
                         },
+                        memory: {
+                            type: "string",
+                            description: "Operational notes about board patterns, danger zones, loot locations for next turn (max 50 words)"
+                        },
                         thought: {
                             type: "string",
-                            description: "Your strategic thought/plan for next turn (max 50 words)"
+                            description: "Your tactical reasoning for THIS specific move (max 50 words)"
                         }
                     },
-                    required: ["direction", "dropBomb", "thought"],
+                    required: ["direction", "dropBomb", "memory", "thought"],
                     additionalProperties: false
                 }
             }
@@ -746,7 +770,7 @@ Respond with JSON containing your move decision and strategic thought.`;
 
         try {
             console.log(`[AI P${playerId}] Sending request to ${this.model}`);
-            console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
+            // console.log(`[AI P${playerId}] === USER PROMPT ===\n${userPrompt}\n=== END USER PROMPT ===`);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -790,17 +814,24 @@ Respond with JSON containing your move decision and strategic thought.`;
                 return this.getRandomMove(gameState, playerId);
             }
 
-            // Save thought
+            // Save memory (operational notes) for next turn
+            if (move.memory) {
+                this.savePlayerMemory(playerId, move.memory);
+                console.log(`[AI P${playerId}] Saved memory: "${move.memory}"`);
+            }
+
+            // Save thought (tactical reasoning) for UI display
             if (move.thought) {
-                this.savePlayerMemory(playerId, move.thought);
-                console.log(`[AI P${playerId}] Saved thought: "${move.thought}"`);
+                this.playerThoughts[playerId] = move.thought;
+                console.log(`[AI P${playerId}] Thought: "${move.thought}"`);
             }
 
             console.log(`[AI P${playerId}] Move: ${move.direction}, dropBomb: ${move.dropBomb}`);
             return {
                 action: 'move',
                 direction: move.direction,
-                dropBomb: move.dropBomb
+                dropBomb: move.dropBomb,
+                thought: move.thought || '' // Pass thought to UI for display
             };
 
         } catch (error) {

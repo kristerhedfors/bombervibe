@@ -587,8 +587,8 @@ function renderFloatingThoughts() {
     for (const player of game.players) {
         if (!player.alive) continue;
 
-        const thought = ai.getPlayerMemory(player.id);
-        if (!thought || thought === 'No previous thought' || thought.trim() === '') continue;
+        const thought = ai.getPlayerThought(player.id);
+        if (!thought || thought.trim() === '') continue;
 
         // Create floating thought bubble
         const bubble = document.createElement('div');
