@@ -8,6 +8,7 @@ let isReplayMode = false; // Track if we're in replay mode
 let lastTurnTime = 0;
 let animationFrameId = null;
 let manualControlEnabled = false;
+let gameOverDetected = false; // Flag to prevent extra turn recordings after game over
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
@@ -218,6 +219,7 @@ function startGame() {
     }
 
     game.start();
+    gameOverDetected = false; // Reset game over flag
 
     // Record initial game state for replay
     const initialState = captureGameState();
@@ -243,6 +245,7 @@ function resetGame() {
     ai.clearAllMemories();
     manualControlEnabled = false;
     isReplayMode = false;
+    gameOverDetected = false; // Reset game over flag
     lastTurnTime = 0;
     gameHistory = new GameHistory(); // Reset history
     replayPlayer = null;
@@ -290,16 +293,17 @@ function gameLoop() {
     updateGameInfo();
 
     // Check for game over AFTER rendering explosions
-    if (game.isGameOver()) {
-        // Wait a bit to show final explosion
+    if (game.isGameOver() && !gameOverDetected) {
+        // Set flag to prevent any more turns from executing
+        gameOverDetected = true;
+        // Wait a bit to show final explosion, then end game
         setTimeout(() => {
             endGame();
         }, 1000);
-        return;
     }
 
-    // Execute turn if enough time has passed
-    if (now - lastTurnTime >= game.turnDelay) {
+    // Execute turn if enough time has passed (but NOT if game over detected)
+    if (!gameOverDetected && now - lastTurnTime >= game.turnDelay) {
         executeTurn();
         lastTurnTime = now;
     }
