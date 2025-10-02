@@ -29,10 +29,10 @@ class Game {
         this.GRID_WIDTH = 13;
         this.GRID_HEIGHT = 11;
 
-        // Cell types:
-        // 0 = empty
-        // 1 = soft block (destructible)
-        // 2 = hard block (indestructible)
+        // Cell types (use BLOCK_TYPES from blocks.js config):
+        // BLOCK_TYPES.EMPTY.id (0) = empty
+        // BLOCK_TYPES.SOFT.id (1) = soft block (destructible)
+        // BLOCK_TYPES.HARD.id (2) = hard block (indestructible)
         // 'bomb1', 'bomb2', etc = bombs
         // Player positions tracked separately
     }
@@ -56,7 +56,7 @@ class Game {
         for (let y = 0; y < this.GRID_HEIGHT; y++) {
             for (let x = 0; x < this.GRID_WIDTH; x++) {
                 if (y % 2 === 1 && x % 2 === 1) {
-                    this.grid[y][x] = 2; // Hard block
+                    this.grid[y][x] = BLOCK_TYPES.HARD.id; // Hard block
                 }
             }
         }
@@ -71,11 +71,11 @@ class Game {
 
         for (let y = 0; y < this.GRID_HEIGHT; y++) {
             for (let x = 0; x < this.GRID_WIDTH; x++) {
-                if (this.grid[y][x] === 0) {
+                if (this.grid[y][x] === BLOCK_TYPES.EMPTY.id) {
                     const isSafe = safeZones.some(([sx, sy]) => sx === x && sy === y);
                     // Use seeded RNG instead of Math.random()
                     if (!isSafe && this.rng.random() < this.options.softBlockDensity) {
-                        this.grid[y][x] = 1; // Soft block
+                        this.grid[y][x] = BLOCK_TYPES.SOFT.id; // Soft block
                     }
                 }
             }
@@ -400,7 +400,7 @@ class Game {
 
             // Check if we hit an obstacle (soft/hard block)
             const cell = this.grid[y][x];
-            if (cell === 1 || cell === 2) {
+            if (cell === BLOCK_TYPES.SOFT.id || cell === BLOCK_TYPES.HARD.id) {
                 // Stop before the obstacle (place at previous position)
                 x -= dx;
                 y -= dy;
@@ -515,15 +515,15 @@ class Game {
                 const cell = this.grid[y][x];
 
                 // Hard block stops explosion
-                if (cell === 2) {
+                if (cell === BLOCK_TYPES.HARD.id) {
                     break;
                 }
 
                 explosionCells.push({ x, y });
 
                 // Soft block stops explosion and gets destroyed
-                if (cell === 1) {
-                    this.grid[y][x] = 0;
+                if (cell === BLOCK_TYPES.SOFT.id) {
+                    this.grid[y][x] = BLOCK_TYPES.EMPTY.id;
                     // Award points to bomb placer
                     if (player) {
                         player.addScore(10);
@@ -569,7 +569,7 @@ class Game {
             const lootIndex = this.loot.findIndex(l => l.x === cell.x && l.y === cell.y);
             if (lootIndex !== -1) {
                 // Check if loot is protected by soft block at same position
-                const hasSoftBlock = this.grid[cell.y][cell.x] === 1;
+                const hasSoftBlock = this.grid[cell.y][cell.x] === BLOCK_TYPES.SOFT.id;
                 if (!hasSoftBlock) {
                     // Loot is destroyed
                     console.log(`[LOOT] Destroyed at (${cell.x}, ${cell.y})`);
@@ -685,7 +685,7 @@ class Game {
                         // Check if hard block blocks explosion
                         const blockX = bomb.x + dir.dx * (i - 1);
                         const blockY = bomb.y + dir.dy * (i - 1);
-                        if (i > 1 && this.grid[blockY] && this.grid[blockY][blockX] === 2) {
+                        if (i > 1 && this.grid[blockY] && this.grid[blockY][blockX] === BLOCK_TYPES.HARD.id) {
                             break;
                         }
 
@@ -694,7 +694,7 @@ class Game {
                         }
 
                         // Stop at hard blocks
-                        if (this.grid[by] && this.grid[by][bx] === 2) {
+                        if (this.grid[by] && this.grid[by][bx] === BLOCK_TYPES.HARD.id) {
                             break;
                         }
                     }
@@ -749,7 +749,7 @@ class Game {
             // Check if passable (stay is always passable)
             if (dir !== 'stay') {
                 const cell = this.grid[y][x];
-                if (cell === 1 || cell === 2) { // Soft or hard block
+                if (cell === BLOCK_TYPES.SOFT.id || cell === BLOCK_TYPES.HARD.id) { // Soft or hard block
                     continue;
                 }
             }
@@ -794,7 +794,7 @@ class Game {
             // Check if passable (stay is always passable)
             if (dir !== 'stay') {
                 const cell = this.grid[y][x];
-                if (cell === 1 || cell === 2) { // Soft or hard block
+                if (cell === BLOCK_TYPES.SOFT.id || cell === BLOCK_TYPES.HARD.id) { // Soft or hard block
                     continue;
                 }
             }

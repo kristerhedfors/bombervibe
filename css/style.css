@@ -13,10 +13,16 @@
     --bg-dark: #0a0a0a;
     --bg-darker: #050505;
     --grid-line: #0f3;
-    --soft-block: #1a3a1a;
-    --hard-block: #2a2a2a;
     --bomb-color: #ff3300;
     --explosion: #ff6600;
+
+    /* Block colors - centralized for easy customization */
+    --empty-color: #2a4a2a;
+    --soft-brick-color: #888;
+    --soft-mortar-color: #aaa;
+    --hard-stone-color: #808080;
+    --hard-border-light: #b0b0b0;
+    --hard-border-dark: #404040;
 }
 
 body {
@@ -800,28 +806,35 @@ body {
     overflow: hidden;
 }
 
-.cell.empty {
-    background: #2a4a2a;
+/* ===== BLOCK STYLING ===== */
+/* All block styles use CSS variables for easy customization */
+
+.cell.empty,
+.cell[data-block-type="empty"] {
+    background: var(--empty-color);
 }
 
-/* Brick wall - simple uniform pattern */
-.cell.soft-block {
-    background-color: #888;
+/* Brick wall pattern - soft destructible blocks */
+.cell.soft-block,
+.cell[data-block-type="soft-block"] {
+    background-color: var(--soft-brick-color);
     background-image:
+        /* Horizontal mortar lines (rows) */
         repeating-linear-gradient(
             0deg,
             transparent,
             transparent 32%,
-            #aaa 32%,
-            #aaa 34%,
+            var(--soft-mortar-color) 32%,
+            var(--soft-mortar-color) 34%,
             transparent 34%
         ),
+        /* Vertical mortar lines (columns) */
         repeating-linear-gradient(
             90deg,
             transparent,
             transparent 32%,
-            #aaa 32%,
-            #aaa 34%,
+            var(--soft-mortar-color) 32%,
+            var(--soft-mortar-color) 34%,
             transparent 34%
         );
     background-size: 100% 100%, 33.33% 100%;
@@ -831,17 +844,20 @@ body {
         inset -2px -2px 3px rgba(0, 0, 0, 0.4);
 }
 
-.cell.hard-block {
-    background: #808080;
+/* Stone block pattern - hard indestructible blocks */
+.cell.hard-block,
+.cell[data-block-type="hard-block"] {
+    background: var(--hard-stone-color);
     border-style: solid;
     border-width: 2px;
-    border-color: #b0b0b0 #404040 #404040 #b0b0b0;
+    border-color: var(--hard-border-light) var(--hard-border-dark) var(--hard-border-dark) var(--hard-border-light);
     box-shadow:
         inset 2px 2px 3px rgba(255, 255, 255, 0.3),
         inset -2px -2px 3px rgba(0, 0, 0, 0.5);
 }
 
-.cell.hard-block::after {
+.cell.hard-block::after,
+.cell[data-block-type="hard-block"]::after {
     content: '';
 }
 

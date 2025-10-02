@@ -531,15 +531,11 @@ function renderGrid() {
                 continue;
             }
 
-            // Terrain
+            // Terrain - use block configuration
             const cellType = game.grid[y][x];
-            if (cellType === 0) {
-                cell.classList.add('empty');
-            } else if (cellType === 1) {
-                cell.classList.add('soft-block');
-            } else if (cellType === 2) {
-                cell.classList.add('hard-block');
-            }
+            const blockConfig = BlockUtils.getBlockConfig(cellType);
+            cell.classList.add(blockConfig.className);
+            cell.setAttribute('data-block-type', blockConfig.name);
 
             // Check for loot at this position
             const loot = game.loot.find(l => l.x === x && l.y === y);
