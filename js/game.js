@@ -397,13 +397,18 @@ class Game {
         const state = {
             grid: this.grid.map(row => [...row]),
             players: this.players.map(p => p.getState()),
-            bombs: this.bombs.map(b => ({
-                x: b.x,
-                y: b.y,
-                playerId: b.playerId,
-                range: b.range,
-                roundsUntilExplode: Math.max(0, b.roundsUntilExplode - (this.roundCount - b.placedOnRound))
-            })),
+            bombs: this.bombs.map(b => {
+                // Calculate how many rounds remain until explosion
+                const roundsSincePlaced = this.roundCount - b.placedOnRound;
+                const roundsRemaining = Math.max(0, b.roundsUntilExplode - roundsSincePlaced);
+                return {
+                    x: b.x,
+                    y: b.y,
+                    playerId: b.playerId,
+                    range: b.range,
+                    roundsUntilExplode: roundsRemaining
+                };
+            }),
             loot: this.loot.map(l => ({
                 type: l.type,
                 x: l.x,
