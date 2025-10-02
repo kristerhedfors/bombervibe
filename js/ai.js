@@ -40,11 +40,12 @@ RULES:
 • 1 ROUND = all 4 players move once
 
 CRITICAL - BOMB MECHANICS:
-1. Bombs drop at YOUR CURRENT POSITION, then you move
+1. Bombs drop at YOUR CURRENT POSITION, then you move (or stay)
 2. "Breakable: 1 (up)" means soft block is UP from you - bomb will hit it from HERE
-3. After dropping bomb, move to EMPTY space (NOT into the soft block!)
+3. After dropping bomb, move to EMPTY space (or stay if safe!)
 4. Example: At A2 with "Breakable: 1 (up)", block is at A3
    - ✅ CORRECT: dropBomb:true + direction:"down" (escape to A1)
+   - ✅ CORRECT: dropBomb:true + direction:"stay" (if current position safe for 4 rounds)
    - ❌ WRONG: dropBomb:true + direction:"up" (BLOCKED by soft block at A3!)
 
 SURVIVAL:
@@ -56,19 +57,20 @@ STRATEGY:
 1. Check DANGER - if lethal, pick SAFE move from list
 2. Check LOOT (⚡) - move toward it if nearby
 3. Check "Breakable: N (directions)" - these show ADJACENT soft blocks
-4. To bomb adjacent block: dropBomb:true + move to DIFFERENT EMPTY direction
+4. To bomb adjacent block: dropBomb:true + move to DIFFERENT EMPTY direction (or stay if safe)
 5. Check VALID MOVES - only these directions are legal
-6. NEVER move toward the soft block you're trying to bomb!
+6. You can stand still ("stay") to drop a bomb without moving or to wait
 
 BOMB PLACEMENT:
-✅ Drop when: "Breakable: N (dir1,dir2)" shows blocks + you move to EMPTY space + 💣0
+✅ Drop when: "Breakable: N (dir1,dir2)" shows blocks + you move/stay safe + 💣0
+✅ Stand still: direction:"stay" to drop bomb at current position or just wait
 ❌ WRONG: Trying to move INTO the soft block direction
 ❌ WRONG: No breakable blocks nearby
 ❌ WRONG: Already have bomb (💣1)
 
 RESPONSE (JSON):
 {
-  "direction": "up|down|left|right",
+  "direction": "up|down|left|right|stay",
   "dropBomb": true|false,
   "thought": "Why this move (50 words max)"
 }`;
@@ -450,7 +452,7 @@ RESPONSE (JSON):
 
         // VALID MOVES (compact)
         let validMovesInfo = '\nVALID MOVES: ';
-        const directions = ['up', 'down', 'left', 'right'];
+        const directions = ['up', 'down', 'left', 'right', 'stay'];
         const validMoves = [];
         const blockedMoves = [];
 
@@ -462,8 +464,15 @@ RESPONSE (JSON):
             else if (dir === 'down') y++;
             else if (dir === 'left') x--;
             else if (dir === 'right') x++;
+            // 'stay' keeps x,y unchanged
 
             const destPos = this.coordsToChess(x, y);
+
+            // 'stay' is always valid
+            if (dir === 'stay') {
+                validMoves.push(`stay@${destPos}`);
+                continue;
+            }
 
             if (x < 0 || x >= 13 || y < 0 || y >= 11) {
                 blockedMoves.push(`${dir}:OOB`);
@@ -548,12 +557,12 @@ RESPONSE (JSON):
                     properties: {
                         direction: {
                             type: "string",
-                            enum: ["up", "down", "left", "right"],
-                            description: "Direction to move"
+                            enum: ["up", "down", "left", "right", "stay"],
+                            description: "Direction to move or stay in place"
                         },
                         dropBomb: {
                             type: "boolean",
-                            description: "Whether to drop a bomb at current position before moving"
+                            description: "Whether to drop a bomb at current position before moving/staying"
                         },
                         thought: {
                             type: "string",
@@ -700,7 +709,7 @@ Respond with JSON: {"memory":"your notes here"}`;
         const userPrompt = `${gameDescription}
 STRATEGY: ${playerStrategy}
 
-Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thought":"why (50 words max)"}`;
+Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,"thought":"why (50 words max)"}`;
 
         try {
             console.log(`[AI P${playerId}] Sending tactical request to ${this.tacticalModel} (${this.apiProvider})`);
@@ -757,7 +766,7 @@ Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thou
             console.log(`[AI P${playerId}] Parsed move:`, move);
 
             // Validate direction
-            if (!['up', 'down', 'left', 'right'].includes(move.direction)) {
+            if (!['up', 'down', 'left', 'right', 'stay'].includes(move.direction)) {
                 console.log(`[AI P${playerId}] Invalid direction: ${move.direction}, using random move`);
                 return this.getRandomMove(gameState, playerId);
             }
@@ -824,14 +833,14 @@ Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thou
     getRandomMove(gameState, playerId) {
         const player = gameState.players.find(p => p.id === playerId);
         if (!player || !player.alive) {
-            return { action: 'move', direction: 'right', dropBomb: false };
+            return { action: 'move', direction: 'stay', dropBomb: false };
         }
 
         const safeMoves = [];  // Moves that don't go onto a bomb
         const validMoves = []; // All valid moves (including onto bombs)
 
-        // Check all 4 directions
-        const directions = ['up', 'down', 'left', 'right'];
+        // Check all 5 directions (including stay)
+        const directions = ['up', 'down', 'left', 'right', 'stay'];
         for (const dir of directions) {
             let x = player.x;
             let y = player.y;
@@ -840,6 +849,15 @@ Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thou
             else if (dir === 'down') y++;
             else if (dir === 'left') x--;
             else if (dir === 'right') x++;
+            // 'stay' keeps x,y unchanged
+
+            // 'stay' is always valid
+            if (dir === 'stay') {
+                const move = { action: 'move', direction: dir, dropBomb: !player.hasBomb && Math.random() > 0.7 };
+                validMoves.push(move);
+                safeMoves.push(move);
+                continue;
+            }
 
             // Check if valid (within bounds and passable)
             if (x >= 0 && x < 13 && y >= 0 && y < 11) {
@@ -866,11 +884,11 @@ Respond with JSON: {"direction":"up|down|left|right","dropBomb":true|false,"thou
             return validMoves[Math.floor(Math.random() * validMoves.length)];
         }
 
-        // No valid moves - try any direction (will likely fail but that's ok)
-        console.log(`[AI P${playerId}] Random move: no valid moves at all, picking any direction`);
+        // No valid moves - default to stay
+        console.log(`[AI P${playerId}] Random move: no valid moves at all, defaulting to stay`);
         return {
             action: 'move',
-            direction: directions[Math.floor(Math.random() * 4)],
+            direction: 'stay',
             dropBomb: false
         };
     }

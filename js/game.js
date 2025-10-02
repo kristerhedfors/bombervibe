@@ -226,8 +226,23 @@ class Game {
             case 'right':
                 newX++;
                 break;
+            case 'stay':
+            case 'none':
+                // Stand still - no movement
+                break;
             default:
                 return false;
+        }
+
+        // If staying in place, always succeed and check for loot
+        if (direction === 'stay' || direction === 'none') {
+            const lootIndex = this.loot.findIndex(l => l.x === player.x && l.y === player.y);
+            if (lootIndex !== -1) {
+                const loot = this.loot[lootIndex];
+                player.pickupLoot(loot.type);
+                this.loot.splice(lootIndex, 1);
+            }
+            return true;
         }
 
         const moved = player.move(newX, newY, this.grid);
@@ -512,7 +527,7 @@ class Game {
         if (!player || !player.alive) return [];
 
         const safeMoves = [];
-        const directions = ['up', 'down', 'left', 'right'];
+        const directions = ['up', 'down', 'left', 'right', 'stay'];
 
         for (const dir of directions) {
             let x = player.x;
@@ -522,16 +537,19 @@ class Game {
             else if (dir === 'down') y++;
             else if (dir === 'left') x--;
             else if (dir === 'right') x++;
+            // 'stay' keeps x,y unchanged
 
-            // Check bounds
-            if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) {
+            // Check bounds (stay is always in bounds)
+            if (dir !== 'stay' && (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT)) {
                 continue;
             }
 
-            // Check if passable
-            const cell = this.grid[y][x];
-            if (cell === 2) { // Hard block
-                continue;
+            // Check if passable (stay is always passable)
+            if (dir !== 'stay') {
+                const cell = this.grid[y][x];
+                if (cell === 2) { // Hard block
+                    continue;
+                }
             }
 
             // Check if lethal
@@ -554,7 +572,7 @@ class Game {
         if (!player || !player.alive) return [];
 
         const dangerousMoves = [];
-        const directions = ['up', 'down', 'left', 'right'];
+        const directions = ['up', 'down', 'left', 'right', 'stay'];
 
         for (const dir of directions) {
             let x = player.x;
@@ -564,16 +582,19 @@ class Game {
             else if (dir === 'down') y++;
             else if (dir === 'left') x--;
             else if (dir === 'right') x++;
+            // 'stay' keeps x,y unchanged
 
-            // Check bounds
-            if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) {
+            // Check bounds (stay is always in bounds)
+            if (dir !== 'stay' && (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT)) {
                 continue;
             }
 
-            // Check if passable
-            const cell = this.grid[y][x];
-            if (cell === 2) { // Hard block
-                continue;
+            // Check if passable (stay is always passable)
+            if (dir !== 'stay') {
+                const cell = this.grid[y][x];
+                if (cell === 2) { // Hard block
+                    continue;
+                }
             }
 
             // Check if lethal
