@@ -531,15 +531,11 @@ function renderGrid() {
                 continue;
             }
 
-            // Terrain
+            // Terrain - use block configuration
             const cellType = game.grid[y][x];
-            if (cellType === 0) {
-                cell.classList.add('empty');
-            } else if (cellType === 1) {
-                cell.classList.add('soft-block');
-            } else if (cellType === 2) {
-                cell.classList.add('hard-block');
-            }
+            const blockConfig = BlockUtils.getBlockConfig(cellType);
+            cell.classList.add(blockConfig.className);
+            cell.setAttribute('data-block-type', blockConfig.name);
 
             // Check for loot at this position
             const loot = game.loot.find(l => l.x === x && l.y === y);
@@ -573,7 +569,7 @@ function renderPlayers() {
     const gridRect = gridElement.getBoundingClientRect();
 
     // Calculate cell dimensions
-    const gapSize = 1; // 1px gap from CSS
+    const gapSize = 0; // No gap between cells
     const totalWidth = gridRect.width;
     const totalHeight = gridRect.height;
     const cellWidth = (totalWidth - (gapSize * (game.GRID_WIDTH - 1))) / game.GRID_WIDTH;
@@ -656,7 +652,7 @@ function renderFloatingThoughts() {
     const gridRect = gridElement.getBoundingClientRect();
 
     // Calculate cell size including gaps
-    const gapSize = 1; // 1px gap from CSS
+    const gapSize = 0; // No gap between cells
     const totalWidth = gridRect.width - (gapSize * (game.GRID_WIDTH - 1));
     const totalHeight = gridRect.height - (gapSize * (game.GRID_HEIGHT - 1));
     const cellWidth = totalWidth / game.GRID_WIDTH;

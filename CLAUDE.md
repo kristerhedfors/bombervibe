@@ -231,6 +231,24 @@ Fallback: If LLM fails or returns invalid JSON, uses random valid move.
 
 ## Customization Guide
 
+### 🎨 Customize Block Appearance
+
+**See [BLOCK_CUSTOMIZATION.md](BLOCK_CUSTOMIZATION.md) for complete guide!**
+
+Quick change soft block (brick) colors in `css/style.css`:
+```css
+:root {
+    --soft-brick-color: #888;    /* Main brick color */
+    --soft-mortar-color: #aaa;   /* Mortar/grout color */
+}
+```
+
+The game now uses a centralized block configuration system:
+- **All block types** defined in `js/config/blocks.js`
+- **All colors** use CSS variables for easy theming
+- **Helper functions** for querying block properties
+- **No more magic numbers** - use `BLOCK_TYPES.SOFT.id` instead of `1`
+
 ### Change Turn Speed
 
 In `js/ui.js`:
@@ -254,7 +272,7 @@ timer: 3000,  // 3 seconds
 range: 2      // 2 tiles
 ```
 
-### Change Colors
+### Change Player Colors
 
 In `css/style.css`:
 ```css
