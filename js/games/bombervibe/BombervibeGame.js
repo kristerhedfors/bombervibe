@@ -198,6 +198,8 @@ class BombervibeGame {
         // Increment round count when we cycle back
         if (this.currentPlayerIndex <= previousPlayerIndex) {
             this.roundCount++;
+            // Update bombs at the end of each round
+            this.updateBombs();
         }
     }
 

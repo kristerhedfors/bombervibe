@@ -17,20 +17,50 @@
 
 ```
 bombervibe/
-├── index.html           # Main game page
+├── index.html              # Main game page
 ├── css/
-│   └── style.css       # Cypherpunk Matrix theme
+│   └── style.css          # Cypherpunk Matrix theme
 ├── js/
-│   ├── player.js       # Player class
-│   ├── game.js         # Core game logic
-│   ├── ai.js           # AI API integration
-│   └── ui.js           # Game loop & rendering
+│   ├── config/
+│   │   └── blocks.js      # Block type definitions
+│   ├── engine/            # Generic game engine (reusable)
+│   │   ├── GameEngine.js  # Core turn-based game loop
+│   │   ├── LLMAdapter.js  # Provider-agnostic LLM integration
+│   │   ├── UIRenderer.js  # Abstract rendering interface
+│   │   ├── StateManager.js    # Immutable state management
+│   │   ├── ActionSystem.js    # Event sourcing
+│   │   ├── ReplaySystem.js    # Game replay functionality
+│   │   └── Serialization.js   # State serialization
+│   ├── games/
+│   │   └── bombervibe/    # Bombervibe game implementation
+│   │       ├── config.js          # Game constants
+│   │       ├── BombervibePlayer.js   # Player class
+│   │       ├── BombervibePrompts.js  # Prompt management
+│   │       ├── BombervibeGame.js     # Core game logic (IGame)
+│   │       └── BombervibeRenderer.js # Rendering (IUIRenderer)
+│   ├── entities/          # Entity classes
+│   │   ├── player.js
+│   │   ├── bomb.js
+│   │   ├── item.js
+│   │   └── explosion.js
+│   ├── testing/           # Testing utilities
+│   │   ├── mock-llm.js
+│   │   └── seed-finder.js
+│   ├── npc-characters.js  # NPC character definitions
+│   ├── drag-drop.js       # Drag & drop functionality
+│   ├── rng.js            # Seeded random number generator
+│   └── ui-init.js        # UI initialization (replaces ui.js)
 ├── tests/
-│   ├── .env            # API keys (GROQ_API_KEY or OPENAI_API_KEY)
-│   └── test_gameplay.py # Playwright test for gameplay validation
-├── .venv/              # Python virtual environment with Playwright
+│   ├── .env                        # API keys
+│   ├── test_gameplay.py            # Playwright gameplay test
+│   ├── test_migration_baseline.py  # Legacy baseline tests
+│   ├── test_bombervibe_simple.html # Component test
+│   └── index-new.html              # Integration test
+├── .venv/              # Python virtual environment
 ├── README.md           # User documentation
-└── CLAUDE.md          # This file (development notes)
+├── CLAUDE.md          # This file (development notes)
+├── REFACTORING.md     # Refactoring progress
+└── PROJECT_METRICS.md # Project statistics
 ```
 
 ## Game Features
@@ -184,49 +214,133 @@ Fallback: If LLM fails or returns invalid JSON, uses random valid move.
 
 ## Code Architecture
 
-### Key Classes
+The codebase uses a **generic game engine architecture** that separates reusable engine components from game-specific implementations.
 
-**Player** (`js/player.js`):
-- Position tracking
-- Movement validation
-- Bomb placement logic
-- Score management
+### Engine Framework (`js/engine/`)
 
-**Game** (`js/game.js`):
+**GameEngine.js** - Core turn-based game orchestration:
+- Turn loop management (sequential/parallel AI)
+- Game state updates
+- Renderer coordination
+- Event handling
+- Implements IGame interface for game logic
+
+**LLMAdapter.js** - Provider-agnostic LLM integration:
+- Auto-detects Groq vs OpenAI based on API key
+- Tactical + Memory two-stage architecture
+- Player memory management
+- Error handling with fallback to random moves
+
+**UIRenderer.js** - Abstract rendering interface:
+- IUIRenderer interface for custom renderers
+- Game state visualization
+- BaseUIRenderer helper class
+
+**StateManager.js** - Immutable state management:
+- GameState class for state snapshots
+- Deep cloning for immutability
+
+**ActionSystem.js** - Event sourcing:
+- Action recording (move, bomb, explosion, etc.)
+- State reconstruction from action log
+
+**ReplaySystem.js** - Game replay functionality:
+- Record full game history
+- Playback at different speeds
+- Export/import replay data
+
+**Serialization.js** - State serialization:
+- JSON export/import
+- Compact binary format
+
+### Bombervibe Game (`js/games/bombervibe/`)
+
+**BombervibeGame.js** - Complete Bomberman implementation (IGame):
 - Grid state management
-- Bomb explosion logic
+- Bomb explosion logic with blast radius
 - Collision detection
 - Turn sequencing
 - Win condition checking
+- Loot system (power-ups)
+- AI vision system (7x7 grid)
+- Danger analysis (safe/lethal move detection)
+- LLM prompt generation
 
-**AIController** (`js/ai.js`):
-- Groq API communication
-- Game state serialization
-- Prompt management
-- localStorage persistence
+**BombervibePlayer.js** - Player entity:
+- Position tracking
+- Movement validation
+- Bomb carrying/placement
+- Score management
+- Power-ups (speed, bomb range, extra bombs)
 
-**UI** (`js/ui.js`):
-- Game loop (requestAnimationFrame)
-- Grid rendering
-- Event handling
-- Manual keyboard controls
+**BombervibePrompts.js** - LLM prompt management:
+- System prompt with game rules
+- Per-player custom strategies
+- Tactical response format (JSON schema)
+- Memory update format
+- Prompt history tracking
+
+**BombervibeRenderer.js** - Visual rendering (IUIRenderer):
+- Grid rendering (terrain, explosions, loot)
+- Player entity rendering with CSS transitions
+- Bomb indicators and timers
+- Floating thought bubbles
+- Score display
+- NPC customization
+
+**config.js** - Game constants:
+- Grid dimensions
+- Bomb timers
+- Scoring rules
+- Loot probabilities
+- AI vision radius
+
+### UI Layer
+
+**ui-init.js** - Initialization and event handling:
+- Creates engine/game/renderer instances
+- Sets up button event listeners
+- Keyboard controls (Player 1 manual mode)
+- API key management
+- Game controls (start/pause/reset)
+- Prompt editors
 
 ### Game Flow
 
 ```
-1. Page loads → Initialize game
-2. User enters API key → Store in localStorage
-3. User clicks START → Begin game loop
-4. Each turn:
-   - Get current player
-   - If Player 1 & manual input: Handle keyboard
-   - Else: Call AI for move
-   - Execute move
-   - Update bombs (check timers)
-   - Check explosions
-   - Render grid
-   - Next player turn
-5. Game over → Show winner
+1. Page loads (DOMContentLoaded):
+   - ui-init.js creates instances:
+     * BombervibePrompts (prompt management)
+     * BombervibeGame (game logic)
+     * LLMAdapter (AI integration)
+     * BombervibeRenderer (rendering)
+     * GameEngine (orchestration)
+   - Engine initializes with config (turnDelay, autoPlay, parallelAI)
+   - Sets up event listeners
+
+2. User enters API key → LLMAdapter detects provider
+
+3. User clicks START:
+   - engine.start() begins game loop
+   - Records initial state for replay
+
+4. Each turn (GameEngine.executeTurn):
+   - Get current game state
+   - If parallelAI: Execute all alive players in parallel
+   - Else: Execute players sequentially
+     * Get current player
+     * If manual mode: Handle keyboard input
+     * Else: LLMAdapter.getTacticalMove()
+       - Generate prompt with game state
+       - Call Groq/OpenAI API
+       - Parse JSON response
+       - Fallback to random if invalid
+     * game.processMove() executes action
+   - game.nextTurn() advances game state
+   - renderer.render() updates UI
+   - Check game over condition
+
+5. Game over → renderer.showGameOver(winner)
 ```
 
 ## Customization Guide
@@ -251,25 +365,29 @@ The game now uses a centralized block configuration system:
 
 ### Change Turn Speed
 
-In `js/ui.js`:
+In `js/ui-init.js` (line 69):
 ```javascript
-this.turnDelay = 1000; // Milliseconds (default: 1 second)
+engine.initialize({
+    turnDelay: 1000,  // Milliseconds (default: 1 second)
+    autoPlay: true,
+    parallelAI: true
+});
 ```
 
 ### Modify Grid Size
 
-In `js/game.js`:
+In `js/games/bombervibe/config.js`:
 ```javascript
-this.GRID_WIDTH = 13;  // Default: 13
-this.GRID_HEIGHT = 11; // Default: 11
+GRID_WIDTH: 13,  // Default: 13
+GRID_HEIGHT: 11  // Default: 11
 ```
 
 ### Adjust Bomb Settings
 
-In `js/player.js`:
+In `js/games/bombervibe/config.js`:
 ```javascript
-timer: 3000,  // 3 seconds
-range: 2      // 2 tiles
+BOMB_ROUNDS_UNTIL_EXPLODE: 4,  // Rounds until explosion
+BOMB_RANGE: 2                   // Explosion range (tiles)
 ```
 
 ### Change Player Colors
@@ -297,7 +415,7 @@ Models are automatically selected based on your API key:
 - Alternatives: `gpt-4o-mini`, `gpt-4o`, etc.
 - See [OpenAI Models](https://platform.openai.com/docs/models)
 
-To change models, edit `setApiKey()` in [js/ai.js:178-204](js/ai.js#L178-L204).
+To change models, edit `setApiKey()` in [js/engine/LLMAdapter.js:177-203](js/engine/LLMAdapter.js#L177-L203).
 
 ## Testing
 
@@ -328,9 +446,11 @@ This section MUST be updated whenever:
 - Located in `.info-right` area
 
 **Game State Access:**
-- AI Controller: `window.ai` (available after page load)
-- Game Instance: `window.game` (available after START clicked)
-- UI Instance: `window.ui`
+- Game Instance: `window.game` (BombervibeGame)
+- Engine Instance: `window.engine` (GameEngine)
+- LLM Adapter: `window.llm` (LLMAdapter)
+- Renderer: `window.renderer` (BombervibeRenderer)
+- Legacy alias: `window.ai` → `window.llm`
 - Game State: `window.game.getGameState()`
 
 **Game Over Detection (CRITICAL for tests):**

@@ -72,7 +72,10 @@
             <div id="gameInfo">
                 <div class="info-left">
                     <span id="turnCounter">TURN: 0</span>
+                    <span id="roundCounter">ROUND: 0</span>
                     <span id="currentPlayer">CURRENT: P1</span>
+                    <span id="aliveCount">ALIVE: 4</span>
+                    <span id="bombCount">BOMBS: 0</span>
                 </div>
                 <div class="info-center">
                     <h1>╔═══ ELECTRIC BOOGALOO ═══╗</h1>
@@ -144,30 +147,39 @@
     </div>
 
     <!-- Scripts -->
-    <!-- CONFIGURATION -->
+    <!-- CORE CONFIGURATION -->
     <script src="js/config/blocks.js"></script>
+    <script src="js/rng.js"></script>
 
-    <!-- NEW ARCHITECTURE (ready for upcoming features) -->
-    <script src="js/actions.js"></script>
-    <script src="js/state.js"></script>
+    <!-- GAME ENGINE -->
+    <script src="js/engine/StateManager.js"></script>
+    <script src="js/engine/ActionSystem.js"></script>
+    <script src="js/engine/ReplaySystem.js"></script>
+    <script src="js/engine/Serialization.js"></script>
+    <script src="js/engine/LLMAdapter.js"></script>
+    <script src="js/engine/UIRenderer.js"></script>
+    <script src="js/engine/GameEngine.js"></script>
+
+    <!-- BOMBERVIBE GAME -->
+    <script src="js/games/bombervibe/config.js"></script>
+    <script src="js/games/bombervibe/BombervibePlayer.js"></script>
+    <script src="js/games/bombervibe/BombervibePrompts.js"></script>
+    <script src="js/games/bombervibe/BombervibeGame.js"></script>
+    <script src="js/games/bombervibe/BombervibeRenderer.js"></script>
+
+    <!-- ADDITIONAL FEATURES -->
+    <script src="js/npc-characters.js"></script>
+    <script src="js/drag-drop.js"></script>
+    <script src="js/testing/mock-llm.js"></script>
+    <script src="js/testing/seed-finder.js"></script>
+
+    <!-- ENTITY CLASSES (for advanced features) -->
     <script src="js/entities/player.js"></script>
     <script src="js/entities/bomb.js"></script>
     <script src="js/entities/item.js"></script>
     <script src="js/entities/explosion.js"></script>
-    <script src="js/history.js"></script>
-    <script src="js/serialization.js"></script>
 
-    <!-- TESTING/UTILITIES -->
-    <script src="js/rng.js"></script>
-    <script src="js/testing/mock-llm.js"></script>
-    <script src="js/testing/seed-finder.js"></script>
-
-    <!-- LEGACY CODE (currently active) -->
-    <script src="js/npc-characters.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/drag-drop.js"></script>
-    <script src="js/ui.js"></script>
+    <!-- UI INITIALIZATION -->
+    <script src="js/ui-init.js"></script>
 </body>
 </html>
