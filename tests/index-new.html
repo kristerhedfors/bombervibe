@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electric Boogaloo - NEW ARCHITECTURE TEST</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .new-architecture-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ff6600;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            z-index: 10000;
+        }
+    </style>
+</head>
+<body>
+    <div class="new-architecture-banner">
+        ⚠️ NEW ARCHITECTURE TEST - Game Engine + Bombervibe Implementation ⚠️
+    </div>
+
+    <!-- Simple test UI -->
+    <div style="margin-top: 60px; padding: 20px;">
+        <h1>Bombervibe - New Architecture Test</h1>
+
+        <div style="margin: 20px 0;">
+            <label>API Key: <input type="password" id="apiKeyInput" placeholder="gsk_... or sk-..." style="width: 300px;"></label>
+            <button id="saveApiKey">Set API Key</button>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <button id="startGame">START GAME</button>
+            <button id="pauseGame">PAUSE</button>
+            <button id="resetGame">RESET</button>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <div>Turn: <span id="turnCounter">0</span> | Round: <span id="roundCounter">0</span> | Alive: <span id="aliveCount">4</span></div>
+            <div>Current Player: <span id="currentPlayer">-</span></div>
+            <div>Bombs: <span id="bombCount">0</span></div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <h3>Scores:</h3>
+            <div>P1: <span id="score1">0</span> | P2: <span id="score2">0</span> | P3: <span id="score3">0</span> | P4: <span id="score4">0</span></div>
+        </div>
+
+        <!-- Grid container -->
+        <div id="gameContainer" style="position: relative; width: 800px; height: 600px; margin: 20px auto;">
+            <div id="grid" style="display: grid; grid-template-columns: repeat(13, 1fr); grid-template-rows: repeat(11, 1fr); width: 100%; height: 100%; background: #111;"></div>
+        </div>
+
+        <div id="logContent" style="margin: 20px 0; padding: 10px; background: #222; color: #0f0; font-family: monospace; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- ENGINE FRAMEWORK -->
+    <script src="js/rng.js"></script>
+    <script src="js/config/blocks.js"></script>
+    <script src="js/engine/StateManager.js"></script>
+    <script src="js/engine/ActionSystem.js"></script>
+    <script src="js/engine/LLMAdapter.js"></script>
+    <script src="js/engine/UIRenderer.js"></script>
+    <script src="js/engine/GameEngine.js"></script>
+
+    <!-- BOMBERVIBE GAME -->
+    <script src="js/games/bombervibe/config.js"></script>
+    <script src="js/games/bombervibe/BombervibePlayer.js"></script>
+    <script src="js/games/bombervibe/BombervibePrompts.js"></script>
+    <script src="js/games/bombervibe/BombervibeGame.js"></script>
+    <script src="js/games/bombervibe/BombervibeRenderer.js"></script>
+
+    <!-- INITIALIZATION -->
+    <script>
+        // Global instances
+        let engine;
+        let game;
+        let llm;
+        let renderer;
+        let prompts;
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('[INIT] Initializing new architecture...');
+
+            try {
+                // Create instances
+                prompts = new BombervibePrompts();
+                console.log('✓ Prompts created');
+
+                game = new BombervibeGame(prompts, null, { testingMode: false });
+                console.log('✓ Game created');
+
+                llm = new LLMAdapter();
+                console.log('✓ LLM adapter created');
+
+                renderer = new BombervibeRenderer();
+                console.log('✓ Renderer created');
+
+                engine = new GameEngine(game, llm, renderer);
+                console.log('✓ Game engine created');
+
+                // Initialize
+                engine.initialize({
+                    turnDelay: 1000,
+                    autoPlay: true,
+                    parallelAI: true
+                });
+                console.log('✓ Engine initialized');
+
+                // Set renderer's LLM reference for thought bubbles
+                renderer.setLLMAdapter(llm);
+
+                // Check for API key in URL
+                const fragment = window.location.hash.substring(1);
+                if (fragment && (fragment.startsWith('gsk_') || fragment.startsWith('sk-'))) {
+                    llm.setApiKey(fragment);
+                    document.getElementById('apiKeyInput').value = '***';
+                    console.log('✓ API key loaded from URL');
+                }
+
+                // Setup event listeners
+                document.getElementById('saveApiKey').addEventListener('click', () => {
+                    const key = document.getElementById('apiKeyInput').value.trim();
+                    if (key) {
+                        llm.setApiKey(key);
+                        document.getElementById('apiKeyInput').value = '***';
+                        console.log('✓ API key set');
+                    }
+                });
+
+                document.getElementById('startGame').addEventListener('click', () => {
+                    console.log('[USER] Starting game...');
+                    engine.start();
+                });
+
+                document.getElementById('pauseGame').addEventListener('click', () => {
+                    console.log('[USER] Pausing game...');
+                    engine.pause();
+                });
+
+                document.getElementById('resetGame').addEventListener('click', () => {
+                    console.log('[USER] Resetting game...');
+                    engine.reset();
+                    llm.clearAllMemories();
+                });
+
+                // Expose to window for testing
+                window.game = game;
+                window.engine = engine;
+                window.llm = llm;
+                window.renderer = renderer;
+
+                console.log('[INIT] ✓ All systems ready!');
+                console.log('[INIT] Use window.engine.start() to begin');
+
+            } catch (error) {
+                console.error('[INIT] ✗ Initialization failed:', error);
+                alert('Initialization failed: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

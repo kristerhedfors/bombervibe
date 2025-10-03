@@ -2,9 +2,9 @@
 
 ## Overview
 
-This document describes the architectural refactoring performed to enable upcoming features like **playback/replay**, **continue from position**, and **loot/powerup system** without changing existing game functionality.
+This document describes the complete architectural refactoring that transformed the codebase from a monolithic game implementation into a **generic game engine** supporting multiple turn-based games.
 
-## Refactoring Goals
+## Phase 1 Refactoring Goals (COMPLETED)
 
 ✅ **Immutable State Management** - Enable time-travel and replay
 ✅ **Event Sourcing** - Record all game changes as actions
@@ -12,6 +12,14 @@ This document describes the architectural refactoring performed to enable upcomi
 ✅ **History Tracking** - Store complete game timeline
 ✅ **Serialization** - Save/load any game position
 ✅ **Foundation for Items** - Ready to add loot system
+
+## Phase 2 Refactoring Goals (COMPLETED)
+
+✅ **Generic Game Engine** - Separate engine from game logic
+✅ **Provider-Agnostic LLM** - Support any AI provider
+✅ **Interface-Based Design** - IGame and IUIRenderer interfaces
+✅ **Game Isolation** - Bombervibe in separate directory
+✅ **Code Cleanup** - Removed all legacy code (no backward compatibility)
 
 ## Architecture Changes
 
@@ -31,7 +39,7 @@ UI.js ─────> Game.js (tightly coupled)
 - Hard to serialize state
 - Items would need grid value hacks
 
-### After (New Architecture)
+### After Phase 1 (State Management)
 ```
 GameState (immutable) <── Actions ──> Engine (pure functions)
     ↓
@@ -47,30 +55,138 @@ UI Layer (observer pattern)
 - Items are first-class entities
 - Can implement time-travel debugging
 
-## New File Structure
+### After Phase 2 (Generic Engine Architecture)
+```
+GameEngine (generic orchestration)
+    ↓
+    ├──> IGame interface ──> BombervibeGame (game-specific)
+    ├──> LLMAdapter ──────> Groq/OpenAI (provider-agnostic)
+    └──> IUIRenderer ─────> BombervibeRenderer (game-specific)
+```
+
+**Benefits:**
+- Engine can run ANY turn-based game (Chess, Checkers, etc.)
+- LLM integration works with any game
+- Game logic completely isolated in js/games/bombervibe/
+- Multiple games can coexist in codebase
+- Clear separation of concerns
+
+## Current File Structure
 
 ```
 js/
-├── actions.js              # Action types and creators
-├── state.js                # Immutable GameState class
-├── history.js              # Timeline tracking & replay
-├── serialization.js        # Save/load functionality
+├── config/
+│   └── blocks.js              # Block type definitions
 │
-├── entities/               # Pure entity classes
-│   ├── player.js          # Player entity (decoupled)
-│   ├── bomb.js            # Bomb entity
-│   ├── item.js            # Item/loot entity (READY FOR ITEMS!)
-│   └── explosion.js       # Explosion visual entity
+├── engine/                    # GENERIC GAME ENGINE
+│   ├── GameEngine.js         # Core turn-based orchestration
+│   ├── LLMAdapter.js         # Provider-agnostic LLM integration
+│   ├── UIRenderer.js         # Abstract rendering interface
+│   ├── StateManager.js       # Immutable state management
+│   ├── ActionSystem.js       # Event sourcing
+│   ├── ReplaySystem.js       # Game replay functionality
+│   └── Serialization.js      # State serialization
 │
-├── game.js                # LEGACY - kept for compatibility
-├── player.js              # LEGACY - kept for compatibility
-├── ai.js                  # Unchanged (works with both)
-└── ui.js                  # Unchanged (currently uses legacy)
+├── games/
+│   └── bombervibe/           # BOMBERVIBE GAME IMPLEMENTATION
+│       ├── config.js         # Game constants
+│       ├── BombervibePlayer.js      # Player entity
+│       ├── BombervibePrompts.js     # Prompt management
+│       ├── BombervibeGame.js        # Game logic (IGame)
+│       └── BombervibeRenderer.js    # Rendering (IUIRenderer)
+│
+├── entities/                 # Entity classes (for advanced features)
+│   ├── player.js
+│   ├── bomb.js
+│   ├── item.js
+│   └── explosion.js
+│
+├── testing/                  # Testing utilities
+│   ├── mock-llm.js
+│   └── seed-finder.js
+│
+├── npc-characters.js         # NPC character definitions
+├── drag-drop.js              # Drag & drop functionality
+├── rng.js                    # Seeded RNG
+└── ui-init.js                # UI initialization (replaces ui.js)
 ```
 
-## Key Classes
+**DELETED FILES (no backward compatibility):**
+- ❌ js/game.js (replaced by BombervibeGame.js)
+- ❌ js/player.js (replaced by BombervibePlayer.js)
+- ❌ js/ai.js (split into LLMAdapter + BombervibePrompts)
+- ❌ js/ui.js (split into UIRenderer + ui-init.js)
+- ❌ js/state.js, actions.js, history.js, serialization.js (moved to engine/)
 
-### 1. GameState (state.js)
+## Key Interfaces and Classes
+
+### IGame Interface (GameEngine.js)
+**Contract that all games must implement** to work with the engine.
+
+```javascript
+class IGame {
+    initialize(config) {}           // Setup game
+    getGameState() {}               // Return current state
+    getCurrentPlayer() {}           // Get active player
+    processMove(playerId, move) {}  // Execute move
+    nextTurn() {}                   // Advance turn
+    isGameOver() {}                 // Check win condition
+    getWinner() {}                  // Get winner
+
+    // LLM Integration
+    getLLMPrompt(gameState, playerId) {}
+    parseLLMResponse(response) {}
+    getValidMoves(gameState, playerId) {}
+}
+```
+
+### IUIRenderer Interface (UIRenderer.js)
+**Contract that all renderers must implement.**
+
+```javascript
+class IUIRenderer {
+    initialize(game, config) {}     // Setup renderer
+    render(gameState) {}            // Render current state
+    showGameOver(winner, game) {}   // Display end screen
+    cleanup() {}                    // Teardown
+}
+```
+
+### GameEngine (GameEngine.js)
+**Generic turn-based game orchestrator.**
+
+```javascript
+const engine = new GameEngine(game, llmAdapter, renderer);
+
+engine.initialize({
+    turnDelay: 1000,
+    autoPlay: true,
+    parallelAI: true  // Execute all players in parallel
+});
+
+engine.start();   // Begin game loop
+engine.pause();   // Pause/resume
+engine.reset();   // Restart game
+```
+
+### LLMAdapter (LLMAdapter.js)
+**Provider-agnostic LLM integration.**
+
+```javascript
+const llm = new LLMAdapter();
+
+// Auto-detects Groq vs OpenAI
+llm.setApiKey('gsk_...');  // Groq
+llm.setApiKey('sk-...');   // OpenAI
+
+// Get tactical move
+const move = await llm.getTacticalMove(gameState, playerId, game);
+
+// Update memory (async)
+llm.updateMemory(gameState, playerId, move, game);
+```
+
+### GameState (StateManager.js)
 **Immutable snapshot** of complete game state.
 
 ```javascript
@@ -94,7 +210,25 @@ const restored = GameState.fromJSON(json);
 - Contains: config, entities (players/bombs/items/explosions), grid, metadata
 - Helper methods: `getPlayer()`, `isPassable()`, `isGameOver()`
 
-### 2. Actions (actions.js)
+### BombervibeGame (BombervibeGame.js)
+**Complete Bomberman implementation** of IGame interface.
+
+```javascript
+const game = new BombervibeGame(prompts, seed, { testingMode: false });
+
+// IGame interface
+game.initialize({ gridWidth: 13, gridHeight: 11 });
+const state = game.getGameState();
+game.processMove(playerId, { action: 'move', direction: 'up', dropBomb: false });
+game.nextTurn();
+
+// Game-specific methods
+game.isPositionLethal(x, y, afterRounds);  // Danger analysis
+game.getSafeMoves(playerId);               // Valid moves
+game.generateGameStateDescription(state, playerId);  // ASCII representation
+```
+
+### Actions (ActionSystem.js)
 **Immutable action objects** that describe state changes.
 
 ```javascript
@@ -443,3 +577,185 @@ See individual files for complete API documentation:
 This refactoring maintains **100% backward compatibility**. The game currently runs on the old code. New features can be added incrementally by migrating components to the new architecture.
 
 **Next Step**: Create `engine.js` to connect actions → state transformations.
+
+---
+
+# Game Engine Refactoring (Phase 2)
+
+## New Objective: Generic Turn-Based Game Engine
+
+In addition to the above event sourcing architecture, we're now separating the game engine from Bombervibe-specific logic to support multiple games (Chess, Go, etc.).
+
+## New Architecture: Engine + Games
+
+### Directory Structure
+```
+js/
+├── engine/                          # ✅ Generic game engine (COMPLETED)
+│   ├── GameEngine.js               # Core game loop and orchestration
+│   ├── LLMAdapter.js                # LLM API integration (provider-agnostic)
+│   ├── UIRenderer.js                # Abstract rendering interface
+│   ├── StateManager.js              # Immutable state (copied from state.js)
+│   ├── ActionSystem.js              # Actions (copied from actions.js)
+│   ├── ReplaySystem.js              # Replay (copied from history.js)
+│   └── Serialization.js             # Save/load (copied from serialization.js)
+│
+├── games/
+│   └── bombervibe/                  # ✅ Bomberman implementation (IN PROGRESS)
+│       ├── config.js                # ✅ Game configuration
+│       ├── BombervibePlayer.js      # ✅ Player mechanics
+│       ├── BombervibePrompts.js     # ✅ LLM prompts
+│       ├── BombervibeGame.js        # ⏳ TODO - Game rules
+│       ├── BombervibeRenderer.js    # ⏳ TODO - Visual rendering
+│       └── BombervibeActions.js     # ⏳ TODO - Specific actions
+```
+
+### IGame Interface
+
+All games must implement this interface:
+
+```javascript
+class IGame {
+    initialize(config)                    // Setup game
+    getGameState()                        // Current state for AI
+    processMove(playerId, move)           // Execute move
+    isGameOver()                          // Check win condition
+    getWinner()                           // Get winner
+    getLLMPrompt(gameState, playerId)     // Generate AI prompt
+    validateMove(gameState, playerId, move) // Validate move
+    getNextPlayer()                       // Turn rotation
+    nextTurn()                            // Advance turn
+    start() / pause() / reset()           // Game control
+    getCurrentPlayer()                    // Active player
+}
+```
+
+### GameEngine Features
+
+- **Generic Game Loop**: Works with any IGame implementation
+- **LLM Integration**: Parallel or sequential AI requests
+- **Manual Input**: Supports keyboard/mouse controls
+- **Turn Management**: Automatic turn progression
+- **Replay Support**: Built on existing history system
+
+### Completed ✅
+
+1. **GameEngine.js** - Generic turn-based game orchestration
+2. **LLMAdapter.js** - Extracted from ai.js, provider-agnostic
+3. **UIRenderer.js** - Abstract interface + BaseUIRenderer utilities
+4. **Engine Systems** - Copied state.js, actions.js, history.js to engine/
+5. **Bombervibe Config** - All constants in games/bombervibe/config.js
+6. **Bombervibe Prompts** - All LLM prompts in BombervibePrompts.js
+7. **Bombervibe Player** - Copied to games/bombervibe/
+
+### TODO ⏳
+
+#### Critical: Create BombervibeGame.js
+Port game.js logic to implement IGame interface:
+- Use BombervibeConfig for all constants
+- Integrate BombervibePrompts for LLM
+- Implement all IGame methods
+- Add helper methods (getRandomMove, etc.)
+
+#### Create BombervibeRenderer.js
+Extract rendering from ui.js:
+- Extend BaseUIRenderer
+- Implement render(), showGameOver(), updateInfo()
+- Add Bombervibe-specific rendering methods
+
+#### Update index.html
+Load engine + game in correct order:
+```html
+<!-- ENGINE -->
+<script src="js/engine/*.js"></script>
+
+<!-- BOMBERVIBE -->
+<script src="js/games/bombervibe/*.js"></script>
+
+<!-- INIT -->
+<script>
+const engine = new GameEngine(
+    new BombervibeGame(),
+    new LLMAdapter(),
+    new BombervibeRenderer()
+);
+</script>
+```
+
+### Future Games
+
+Adding Chess (example):
+```javascript
+class ChessGame extends IGame {
+    getLLMPrompt(gameState, playerId) {
+        return {
+            system: "You are a chess AI...",
+            user: this.generateFEN(gameState)
+        };
+    }
+    // ... implement other IGame methods
+}
+```
+
+Then just swap in:
+```javascript
+const engine = new GameEngine(
+    new ChessGame(),
+    new LLMAdapter(),  // Same LLM adapter!
+    new ChessRenderer()
+);
+```
+
+### Benefits
+
+**For Bombervibe:**
+- All logic in `/js/games/bombervibe/`
+- Clear separation of concerns
+- Easier maintenance
+
+**For Future Games:**
+- Reusable engine + LLM integration
+- Standard interfaces
+- Built-in replay, serialization
+- Just implement IGame + renderer
+
+## Refactoring Status
+
+### Phase 1: State Management (COMPLETED ✅)
+- ✅ Immutable GameState
+- ✅ Action system
+- ✅ History tracking
+- ✅ Serialization
+- ✅ Entity classes
+
+### Phase 2: Generic Engine Architecture (COMPLETED ✅)
+- ✅ GameEngine.js - Turn-based orchestration
+- ✅ LLMAdapter.js - Provider-agnostic AI
+- ✅ UIRenderer.js - Abstract rendering
+- ✅ IGame interface definition
+- ✅ IUIRenderer interface definition
+
+### Phase 3: Bombervibe Game Implementation (COMPLETED ✅)
+- ✅ BombervibeGame.js - Complete game logic (IGame)
+- ✅ BombervibePlayer.js - Player entity
+- ✅ BombervibePrompts.js - Prompt management
+- ✅ BombervibeRenderer.js - Rendering (IUIRenderer)
+- ✅ config.js - Game constants
+
+### Phase 4: Integration & Cleanup (COMPLETED ✅)
+- ✅ index.html updated to load new architecture
+- ✅ ui-init.js replaces ui.js
+- ✅ All legacy code removed (no backward compatibility)
+- ✅ Documentation updated (CLAUDE.md, REFACTORING.md)
+
+### Testing Status
+- ✅ Browser test successful - game loads and runs
+- ✅ LLM integration working (Groq API detected)
+- ✅ Parallel AI execution working (all 4 players)
+- ✅ Players making tactical decisions
+- ✅ UI elements fixed (roundCounter, aliveCount, bombCount added to index.html)
+- ⏳ Automated Playwright tests need updating for new architecture
+
+## Migration Complete!
+
+The refactoring is **100% complete**. The game now uses a fully generic engine architecture that can support any turn-based game (Chess, Checkers, etc.) with the same LLM integration framework.
