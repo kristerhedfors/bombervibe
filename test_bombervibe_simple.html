@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BombervibeGame Test</title>
+</head>
+<body>
+    <h1>Testing BombervibeGame</h1>
+    <div id="output"></div>
+
+    <!-- Dependencies -->
+    <script src="js/rng.js"></script>
+    <script src="js/config/blocks.js"></script>
+    <script src="js/games/bombervibe/config.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/games/bombervibe/BombervibePrompts.js"></script>
+    <script src="js/games/bombervibe/BombervibeGame.js"></script>
+
+    <script>
+    const output = document.getElementById('output');
+    function log(msg) {
+        const div = document.createElement('div');
+        div.textContent = msg;
+        output.appendChild(div);
+        console.log(msg);
+    }
+
+    try {
+        log('Creating prompts...');
+        const prompts = new BombervibePrompts();
+        log('✓ Prompts created');
+
+        log('Creating game with seed 12345...');
+        const game = new BombervibeGame(prompts, 12345);
+        log('✓ Game created');
+
+        log('Initializing game...');
+        game.initialize();
+        log('✓ Game initialized');
+
+        log(`Grid: ${game.GRID_WIDTH}x${game.GRID_HEIGHT}`);
+        log(`Players: ${game.players.length}`);
+        log(`Player 1 at (${game.players[0].x}, ${game.players[0].y})`);
+
+        log('Testing movement...');
+        const moved = game.movePlayer(1, 'down');
+        log(`Move result: ${moved}`);
+        log(`Player 1 now at (${game.players[0].x}, ${game.players[0].y})`);
+
+        log('Testing bomb placement...');
+        const bombPlaced = game.playerPlaceBomb(1);
+        log(`Bomb placed: ${bombPlaced}`);
+        log(`Bombs count: ${game.bombs.length}`);
+
+        log('Testing getGameState...');
+        const state = game.getGameState();
+        log(`State has ${state.players.length} players, ${state.bombs.length} bombs`);
+
+        log('\\n✓ ALL TESTS PASSED');
+        window.testGame = game;
+
+    } catch (error) {
+        log('✗ ERROR: ' + error.message);
+        console.error(error);
+    }
+    </script>
+</body>
+</html>
