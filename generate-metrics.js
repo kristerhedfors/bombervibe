@@ -81,6 +81,10 @@ class ProjectMetrics {
             '.ico',
             '.webp',
 
+            // Documentation (not source code)
+            '.md',
+            '.txt',
+
             // Cache
             '.cache',
 

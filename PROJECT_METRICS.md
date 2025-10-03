@@ -1,6 +1,6 @@
 # Project Metrics
 
-**Generated:** 2025-10-02
+**Generated:** 2025-10-03
 
 > **Note:** This report excludes non-code files including:
 > - Dependencies (.venv, node_modules)
@@ -13,29 +13,27 @@
 
 | Metric | Value |
 |--------|-------|
-| Total Files | 51 |
-| Total Lines | 20,115 |
-| Code Lines | 14,776 |
-| Comment Lines | 1,764 |
-| Blank Lines | 3,575 |
-| Total Size | 680.2 KB |
-| Avg Lines/File | 394 |
-| Avg Size/File | 13.3 KB |
-| Comment Ratio | 11.9% |
+| Total Files | 48 |
+| Total Lines | 13,245 |
+| Code Lines | 9,263 |
+| Comment Lines | 2,006 |
+| Blank Lines | 1,976 |
+| Total Size | 395.4 KB |
+| Avg Lines/File | 276 |
+| Avg Size/File | 8.2 KB |
+| Comment Ratio | 21.7% |
 
 ## File Types
 
 | Extension | Files | Lines | Size |
 |-----------|-------|-------|------|
-| .js | 18 | 8,017 | 247.6 KB |
-| .txt | 3 | 4,609 | 217.3 KB |
-| .md | 9 | 2,900 | 81.2 KB |
-| .py | 13 | 2,451 | 81.7 KB |
+| .js | 23 | 7,800 | 231.6 KB |
+| .py | 15 | 3,054 | 102.2 KB |
 | .css | 1 | 1,586 | 33.0 KB |
-| .html | 2 | 346 | 12.1 KB |
+| .html | 4 | 598 | 21.2 KB |
 | .svg | 1 | 96 | 3.6 KB |
 | .sh | 1 | 72 | 2.7 KB |
-| .json | 1 | 27 | 648 B |
+| .json | 1 | 28 | 696 B |
 | .example | 1 | 9 | 224 B |
 | (none) | 1 | 2 | 249 B |
 
@@ -43,9 +41,9 @@
 
 ### Source
 
-- **Files:** 18
-- **Lines:** 8,017
-- **Size:** 247.6 KB
+- **Files:** 23
+- **Lines:** 7,800
+- **Size:** 231.6 KB
 
 ### Styles
 
@@ -55,21 +53,15 @@
 
 ### Markup
 
-- **Files:** 3
-- **Lines:** 442
-- **Size:** 15.7 KB
-
-### Documentation
-
-- **Files:** 12
-- **Lines:** 7,509
-- **Size:** 298.5 KB
+- **Files:** 5
+- **Lines:** 694
+- **Size:** 24.8 KB
 
 ### Config
 
-- **Files:** 17
-- **Lines:** 2,561
-- **Size:** 85.4 KB
+- **Files:** 19
+- **Lines:** 3,165
+- **Size:** 106.0 KB
 
 ## Largest Files
 
@@ -77,95 +69,95 @@
 
 | Rank | File | Lines |
 |------|------|-------|
-| 1 | [tests/console_output.txt](tests/console_output.txt) | 4,588 |
-| 2 | [css/style.css](css/style.css) | 1,586 |
-| 3 | [js/ui.js](js/ui.js) | 1,391 |
-| 4 | [js/ai.js](js/ai.js) | 925 |
-| 5 | [js/game.js](js/game.js) | 869 |
-| 6 | [js/history.js](js/history.js) | 560 |
-| 7 | [js/serialization.js](js/serialization.js) | 551 |
-| 8 | [CLAUDE.md](CLAUDE.md) | 458 |
-| 9 | [REFACTORING.md](REFACTORING.md) | 446 |
-| 10 | [TESTING.md](TESTING.md) | 440 |
+| 1 | [css/style.css](css/style.css) | 1,586 |
+| 2 | [js/games/bombervibe/BombervibeGame.js](js/games/bombervibe/BombervibeGame.js) | 918 |
+| 3 | [js/engine/ReplaySystem.js](js/engine/ReplaySystem.js) | 560 |
+| 4 | [js/engine/Serialization.js](js/engine/Serialization.js) | 551 |
+| 5 | [js/games/bombervibe/BombervibeRenderer.js](js/games/bombervibe/BombervibeRenderer.js) | 427 |
+| 6 | [js/entities/item.js](js/entities/item.js) | 421 |
+| 7 | [js/engine/StateManager.js](js/engine/StateManager.js) | 403 |
+| 8 | [js/testing/mock-llm.js](js/testing/mock-llm.js) | 381 |
+| 9 | [js/entities/explosion.js](js/entities/explosion.js) | 374 |
+| 10 | [js/engine/ActionSystem.js](js/engine/ActionSystem.js) | 361 |
 
 ### By Size
 
 | Rank | File | Size |
 |------|------|------|
-| 1 | [tests/console_output.txt](tests/console_output.txt) | 216.4 KB |
-| 2 | [js/ui.js](js/ui.js) | 45.7 KB |
-| 3 | [js/ai.js](js/ai.js) | 34.5 KB |
-| 4 | [css/style.css](css/style.css) | 33.0 KB |
-| 5 | [js/game.js](js/game.js) | 29.9 KB |
-| 6 | [js/serialization.js](js/serialization.js) | 15.0 KB |
-| 7 | [js/history.js](js/history.js) | 14.7 KB |
-| 8 | [CLAUDE.md](CLAUDE.md) | 13.2 KB |
-| 9 | [js/entities/item.js](js/entities/item.js) | 12.7 KB |
-| 10 | [REFACTORING.md](REFACTORING.md) | 12.5 KB |
+| 1 | [css/style.css](css/style.css) | 33.0 KB |
+| 2 | [js/games/bombervibe/BombervibeGame.js](js/games/bombervibe/BombervibeGame.js) | 31.1 KB |
+| 3 | [js/engine/Serialization.js](js/engine/Serialization.js) | 15.0 KB |
+| 4 | [js/engine/ReplaySystem.js](js/engine/ReplaySystem.js) | 14.7 KB |
+| 5 | [js/games/bombervibe/BombervibeRenderer.js](js/games/bombervibe/BombervibeRenderer.js) | 14.5 KB |
+| 6 | [js/entities/item.js](js/entities/item.js) | 12.7 KB |
+| 7 | [js/testing/mock-llm.js](js/testing/mock-llm.js) | 12.1 KB |
+| 8 | [js/engine/StateManager.js](js/engine/StateManager.js) | 11.7 KB |
+| 9 | [tests/test_bomb_throw.py](tests/test_bomb_throw.py) | 11.3 KB |
+| 10 | [js/testing/seed-finder.js](js/testing/seed-finder.js) | 11.2 KB |
 
 ## Project Structure
 
 <pre>
 ├── **.claude/**
 │   ├── **agents/**
-│   │   └── [playwright-test-runner.md](.claude/agents/playwright-test-runner.md) _(8.6 KB)_
-│   └── [settings.local.json](.claude/settings.local.json) _(648 B)_
+│   └── [settings.local.json](.claude/settings.local.json) _(696 B)_
 ├── **css/**
 │   └── [style.css](css/style.css) _(33.0 KB)_
 ├── **js/**
 │   ├── **config/**
 │   │   └── [blocks.js](js/config/blocks.js) _(3.3 KB)_
+│   ├── **engine/**
+│   │   ├── [ActionSystem.js](js/engine/ActionSystem.js) _(9.0 KB)_
+│   │   ├── [GameEngine.js](js/engine/GameEngine.js) _(9.0 KB)_
+│   │   ├── [LLMAdapter.js](js/engine/LLMAdapter.js) _(10.4 KB)_
+│   │   ├── [ReplaySystem.js](js/engine/ReplaySystem.js) _(14.7 KB)_
+│   │   ├── [Serialization.js](js/engine/Serialization.js) _(15.0 KB)_
+│   │   ├── [StateManager.js](js/engine/StateManager.js) _(11.7 KB)_
+│   │   └── [UIRenderer.js](js/engine/UIRenderer.js) _(6.4 KB)_
 │   ├── **entities/**
 │   │   ├── [bomb.js](js/entities/bomb.js) _(9.5 KB)_
 │   │   ├── [explosion.js](js/entities/explosion.js) _(11.1 KB)_
 │   │   ├── [item.js](js/entities/item.js) _(12.7 KB)_
 │   │   └── [player.js](js/entities/player.js) _(8.0 KB)_
+│   ├── **games/**
+│   │   └── **bombervibe/**
+│   │       ├── [BombervibeGame.js](js/games/bombervibe/BombervibeGame.js) _(31.1 KB)_
+│   │       ├── [BombervibePlayer.js](js/games/bombervibe/BombervibePlayer.js) _(3.1 KB)_
+│   │       ├── [BombervibePrompts.js](js/games/bombervibe/BombervibePrompts.js) _(9.5 KB)_
+│   │       ├── [BombervibeRenderer.js](js/games/bombervibe/BombervibeRenderer.js) _(14.5 KB)_
+│   │       └── [config.js](js/games/bombervibe/config.js) _(3.4 KB)_
 │   ├── **testing/**
 │   │   ├── [mock-llm.js](js/testing/mock-llm.js) _(12.1 KB)_
 │   │   └── [seed-finder.js](js/testing/seed-finder.js) _(11.2 KB)_
-│   ├── [actions.js](js/actions.js) _(9.0 KB)_
-│   ├── [ai.js](js/ai.js) _(34.5 KB)_
 │   ├── [drag-drop.js](js/drag-drop.js) _(6.7 KB)_
-│   ├── [game.js](js/game.js) _(29.9 KB)_
-│   ├── [history.js](js/history.js) _(14.7 KB)_
 │   ├── [npc-characters.js](js/npc-characters.js) _(3.2 KB)_
-│   ├── [player.js](js/player.js) _(3.1 KB)_
 │   ├── [rng.js](js/rng.js) _(6.0 KB)_
-│   ├── [serialization.js](js/serialization.js) _(15.0 KB)_
-│   ├── [state.js](js/state.js) _(11.7 KB)_
-│   └── [ui.js](js/ui.js) _(45.7 KB)_
+│   └── [ui-init.js](js/ui-init.js) _(10.0 KB)_
 ├── **scripts/**
 ├── **tests/**
 │   ├── **fixtures/**
 │   ├── [.env](tests/.env) _(249 B)_
 │   ├── [.env.example](tests/.env.example) _(224 B)_
-│   ├── [captured_prompts_20251002_202151.txt](tests/captured_prompts_20251002_202151.txt) _(927 B)_
-│   ├── [console_output.txt](tests/console_output.txt) _(216.4 KB)_
 │   ├── [debug_ai_decisions.py](tests/debug_ai_decisions.py) _(7.3 KB)_
 │   ├── [generate_fixtures.py](tests/generate_fixtures.py) _(4.9 KB)_
 │   ├── [helpers.py](tests/helpers.py) _(6.9 KB)_
+│   ├── [index-new.html](tests/index-new.html) _(6.5 KB)_
 │   ├── [quick_test.py](tests/quick_test.py) _(1.8 KB)_
 │   ├── [test_bomb_throw.py](tests/test_bomb_throw.py) _(11.3 KB)_
+│   ├── [test_bombervibe_game.py](tests/test_bombervibe_game.py) _(9.6 KB)_
+│   ├── [test_bombervibe_simple.html](tests/test_bombervibe_simple.html) _(2.1 KB)_
 │   ├── [test_game_mechanics.py](tests/test_game_mechanics.py) _(6.5 KB)_
 │   ├── [test_gameplay.py](tests/test_gameplay.py) _(5.6 KB)_
+│   ├── [test_migration_baseline.py](tests/test_migration_baseline.py) _(10.9 KB)_
 │   ├── [test_mock_gameplay.py](tests/test_mock_gameplay.py) _(10.0 KB)_
 │   ├── [test_mock_llm.py](tests/test_mock_llm.py) _(3.8 KB)_
 │   ├── [test_prompt_analysis.py](tests/test_prompt_analysis.py) _(10.6 KB)_
 │   ├── [test_seeded_world.py](tests/test_seeded_world.py) _(2.2 KB)_
 │   └── [test_simple_prompt_capture.py](tests/test_simple_prompt_capture.py) _(5.5 KB)_
 ├── **videos/**
-├── [BLOCK_CUSTOMIZATION.md](BLOCK_CUSTOMIZATION.md) _(7.6 KB)_
-├── [CLAUDE.md](CLAUDE.md) _(13.2 KB)_
 ├── [debug_game.py](debug_game.py) _(5.1 KB)_
-├── [DEBUG.md](DEBUG.md) _(4.1 KB)_
 ├── [demo.html](demo.html) _(4.7 KB)_
 ├── [favicon.svg](favicon.svg) _(3.6 KB)_
-├── [index.html](index.html) _(7.4 KB)_
-├── [QUICKSTART_TESTING.md](QUICKSTART_TESTING.md) _(5.2 KB)_
-├── [README.md](README.md) _(11.2 KB)_
-├── [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md) _(8.0 KB)_
-├── [REFACTORING.md](REFACTORING.md) _(12.5 KB)_
-├── [requirements.txt](requirements.txt) _(19 B)_
-├── [run_tests.sh](run_tests.sh) _(2.7 KB)_
-└── [TESTING.md](TESTING.md) _(10.8 KB)_
+├── [index.html](index.html) _(8.0 KB)_
+└── [run_tests.sh](run_tests.sh) _(2.7 KB)_
 </pre>
