@@ -660,16 +660,204 @@ class BombervibeGame {
     }
 
     /**
-     * Get LLM prompt for player (IGame interface) - CONTINUED IN PART 2
+     * Get LLM prompt for player (IGame interface)
      */
     getLLMPrompt(gameState, playerId) {
-        // This method will be completed in Part 3 - LLM integration
-        // For now, return basic structure
+        const gameDescription = this.generateGameStateDescription(gameState, playerId);
+        const playerStrategy = this.prompts.getPlayerPrompt(playerId);
+
+        const userPrompt = `${gameDescription}
+STRATEGY: ${playerStrategy}
+
+Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,"thought":"why (50 words max)"}`;
+
         return {
             system: this.prompts.getSystemPrompt(),
-            user: "Game state here", // Will be filled in Part 3
+            user: userPrompt,
             responseFormat: this.prompts.getTacticalResponseFormat()
         };
+    }
+
+    /**
+     * Convert coordinates to chess notation
+     */
+    coordsToChess(x, y) {
+        const file = String.fromCharCode(65 + x);
+        const rank = 11 - y;
+        return `${file}${rank}`;
+    }
+
+    /**
+     * Generate 7x7 vision grid for LLM
+     */
+    generate7x7Grid(gameState, playerId) {
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player) return null;
+
+        const VISION_RADIUS = BombervibeConfig.AI_VISION_RADIUS;
+        let gridStr = '## 7x7 VISION:\n\n| Rank |';
+
+        for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
+            const x = player.x + dx;
+            gridStr += (x >= 0 && x < this.GRID_WIDTH) ? ` ${String.fromCharCode(65 + x)} |` : ' ❌ |';
+        }
+        gridStr += '\n|------|---|---|---|---|---|---|---|\n';
+
+        for (let dy = -VISION_RADIUS; dy <= VISION_RADIUS; dy++) {
+            const y = player.y + dy;
+            const rank = (y >= 0 && y < this.GRID_HEIGHT) ? (11 - y) : '❌';
+            gridStr += `| **${rank.toString().padStart(2, ' ')}** |`;
+
+            for (let dx = -VISION_RADIUS; dx <= VISION_RADIUS; dx++) {
+                const x = player.x + dx;
+                if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) {
+                    gridStr += ' ❌ |';
+                    continue;
+                }
+
+                const cell = gameState.grid[y][x];
+                let cellContent = (x === player.x && y === player.y) ? '🎯' :
+                    gameState.players.find(p => p.alive && p.x === x && p.y === y) ? `P${gameState.players.find(p => p.alive && p.x === x && p.y === y).id}` : '';
+
+                const bombHere = gameState.bombs.find(b => b.x === x && b.y === y);
+                if (bombHere) cellContent = cellContent ? `${cellContent}💣${bombHere.roundsUntilExplode}` : `💣${bombHere.roundsUntilExplode}`;
+
+                const lootHere = gameState.loot && gameState.loot.find(l => l.x === x && l.y === y);
+                if (lootHere && !cellContent) cellContent = cell === 1 ? '🟫⚡' : '⚡';
+                else if (!cellContent) cellContent = cell === 0 ? '·' : cell === 1 ? '🟫' : cell === 2 ? '⬛' : '?';
+
+                gridStr += ` ${cellContent} |`;
+            }
+            gridStr += '\n';
+        }
+
+        gridStr += '\n**Legend:** 🎯=YOU | P1-P4=Players | 💣=Bomb+rounds | ⚡=Loot | ·=Empty | 🟫=Soft | ⬛=Hard\n\n';
+        gridStr += this.generateLocalSummary(gameState, playerId);
+        return gridStr;
+    }
+
+    /**
+     * Generate summary of adjacent blocks
+     */
+    generateLocalSummary(gameState, playerId) {
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player) return '';
+
+        const adjacentBlocks = [];
+        const directions = [{dir:'up',dx:0,dy:-1},{dir:'down',dx:0,dy:1},{dir:'left',dx:-1,dy:0},{dir:'right',dx:1,dy:0}];
+
+        for (const {dir, dx, dy} of directions) {
+            const x = player.x + dx, y = player.y + dy;
+            if (x >= 0 && x < this.GRID_WIDTH && y >= 0 && y < this.GRID_HEIGHT && gameState.grid[y][x] === BombervibeConfig.CELL_TYPES.SOFT) {
+                adjacentBlocks.push(dir);
+            }
+        }
+
+        return adjacentBlocks.length === 0 ? '**Breakable blocks ADJACENT to you:** None\n' :
+            `**Breakable blocks ADJACENT to you:** ${adjacentBlocks.length} at: ${adjacentBlocks.join(',')}\n⚠️ To bomb them: dropBomb:true + move to DIFFERENT empty direction!\n`;
+    }
+
+    /**
+     * Generate complete game state description for LLM
+     */
+    generateGameStateDescription(gameState, playerId) {
+        const player = gameState.players.find(p => p.id === playerId);
+        if (!player) return null;
+
+        let desc = this.generate7x7Grid(gameState, playerId);
+
+        desc += 'PLAYERS: ' + gameState.players.map(p => `P${p.id}:${this.coordsToChess(p.x,p.y)}:${p.score}:${p.hasBomb?'💣1':'💣0'}:${p.alive?'✅':'💀'}`).join(' | ') + '\n';
+        desc += '\nBOMBS: ' + (gameState.bombs.length === 0 ? 'None' : gameState.bombs.map(b => `P${b.playerId}@${this.coordsToChess(b.x,b.y)}:${b.roundsUntilExplode}r:R${b.range||1}`).join(' | ')) + '\n';
+        desc += '\nLOOT: ' + (!gameState.loot || gameState.loot.length === 0 ? 'None' : gameState.loot.map(l => `⚡${this.coordsToChess(l.x,l.y)}`).join(' | ')) + '\n';
+        desc += `\nROUND: ${gameState.roundCount}\n\nVALID MOVES: `;
+
+        const validMoves = [], blockedMoves = [];
+        for (const dir of ['up','down','left','right','stay']) {
+            let x = player.x, y = player.y;
+            if (dir === 'up') y--; else if (dir === 'down') y++; else if (dir === 'left') x--; else if (dir === 'right') x++;
+
+            if (dir === 'stay') { validMoves.push(`stay@${this.coordsToChess(x,y)}`); continue; }
+            if (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT) { blockedMoves.push(`${dir}:OOB`); continue; }
+
+            const cell = gameState.grid[y][x];
+            if (cell === 0 || (typeof cell === 'string' && cell.startsWith('bomb'))) validMoves.push(`${dir}→${this.coordsToChess(x,y)}`);
+            else blockedMoves.push(`${dir}:${cell===1?'soft':cell===2?'hard':'?'}`);
+        }
+
+        desc += validMoves.join(',') + (blockedMoves.length > 0 ? ` | BLOCKED: ${blockedMoves.join(',')}` : '') + '\n';
+
+        const safeMoves = this.getSafeMoves(playerId), dangerousMoves = this.getDangerousMoves(playerId);
+        const currentPos = this.coordsToChess(player.x, player.y);
+        desc += `\nDANGER: Current ${currentPos} is ${!this.isPositionLethal(player.x,player.y,1)?'✅SAFE':'💀LETHAL'}\n`;
+        desc += safeMoves.length > 0 ? `SAFE: ${safeMoves.map(m=>`${m.direction}→${this.coordsToChess(m.x,m.y)}`).join(',')}` : 'SAFE: NONE!';
+        if (dangerousMoves.length > 0) desc += ` | LETHAL: ${dangerousMoves.map(m=>`${m.direction}→${this.coordsToChess(m.x,m.y)}`).join(',')}`;
+        desc += `\n\nYOU (P${playerId}): ${currentPos} | Score:${player.score} | Bomb:${player.hasBomb?'💣1':'💣0'} | Range:${player.bombRange||1}\n`;
+
+        return desc;
+    }
+
+    /**
+     * Check if position will be lethal
+     */
+    isPositionLethal(x, y, afterRounds = 1) {
+        for (const bomb of this.bombs) {
+            const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
+            if (bomb.x === x && bomb.y === y && roundsLeft <= 3) return true;
+            if (roundsLeft <= afterRounds) {
+                for (const dir of [{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}]) {
+                    for (let i = 1; i <= bomb.range; i++) {
+                        const bx = bomb.x + dir.dx * i, by = bomb.y + dir.dy * i;
+                        const blockX = bomb.x + dir.dx * (i-1), blockY = bomb.y + dir.dy * (i-1);
+                        if (i > 1 && this.grid[blockY]?.[blockX] === BombervibeConfig.CELL_TYPES.HARD) break;
+                        if (bx === x && by === y) return true;
+                        if (this.grid[by]?.[bx] === BombervibeConfig.CELL_TYPES.HARD) break;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get safe moves for player
+     */
+    getSafeMoves(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return [];
+
+        const safeMoves = [];
+        for (const dir of ['up','down','left','right','stay']) {
+            let x = player.x, y = player.y;
+            if (dir === 'up') y--; else if (dir === 'down') y++; else if (dir === 'left') x--; else if (dir === 'right') x++;
+            if (dir !== 'stay' && (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT)) continue;
+            if (dir !== 'stay') {
+                const cell = this.grid[y][x];
+                if (cell === BombervibeConfig.CELL_TYPES.SOFT || cell === BombervibeConfig.CELL_TYPES.HARD) continue;
+            }
+            if (!this.isPositionLethal(x, y, 1)) safeMoves.push({direction:dir,x,y,safe:true});
+        }
+        return safeMoves;
+    }
+
+    /**
+     * Get dangerous moves for player
+     */
+    getDangerousMoves(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player || !player.alive) return [];
+
+        const dangerousMoves = [];
+        for (const dir of ['up','down','left','right','stay']) {
+            let x = player.x, y = player.y;
+            if (dir === 'up') y--; else if (dir === 'down') y++; else if (dir === 'left') x--; else if (dir === 'right') x++;
+            if (dir !== 'stay' && (x < 0 || x >= this.GRID_WIDTH || y < 0 || y >= this.GRID_HEIGHT)) continue;
+            if (dir !== 'stay') {
+                const cell = this.grid[y][x];
+                if (cell === BombervibeConfig.CELL_TYPES.SOFT || cell === BombervibeConfig.CELL_TYPES.HARD) continue;
+            }
+            if (this.isPositionLethal(x, y, 1)) dangerousMoves.push({direction:dir,x,y,lethal:true});
+        }
+        return dangerousMoves;
     }
 
     /**
