@@ -21,7 +21,7 @@ class BombervibePrompts {
 RULES:
 • Grid: 13x11, chess notation (A-M cols, 1-11 rows), 11x11 vision
 • Walk through: empty (·), bombs (💣), players | BLOCKED by: soft (🟫), hard (⬛)
-• ONE bomb at a time (💣0=can place, 💣1=already placed)
+• Bomb capacity shown as "Bombs:X/Y" (active/max - starts 1, increases with 💣 power-up)
 • Bombs: Explode after 4 ROUNDS in + pattern (cardinal only, NOT diagonal)
 • Range: 1 base, +1 per Flash Radius (⚡) loot pickup
 • Scoring: +10 per 🟫 destroyed, +100 per kill
@@ -29,6 +29,7 @@ RULES:
 
 POWER-UPS:
 • ⚡ Flash Radius: +1 bomb range
+• 💣 Extra Bomb: Place multiple bombs simultaneously
 • 🧤 Bomb Pickup: Can pickup and throw bombs (wrap-around edges!)
 
 CRITICAL - BOMB MECHANICS:

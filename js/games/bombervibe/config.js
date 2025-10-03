@@ -9,8 +9,8 @@ const BombervibeConfig = {
     // Gameplay settings
     SOFT_BLOCK_DENSITY: 0.4,
     INITIAL_BOMB_RANGE: 1,
-    BOMB_ROUNDS_UNTIL_EXPLODE: 4, // Rounds (not turns)
-    EXPLOSION_DURATION: 500, // milliseconds
+    BOMB_TURNS_UNTIL_EXPLODE: 4, // Player turns (each player gets 4 moves before bomb explodes)
+    EXPLOSION_DURATION: 2000, // milliseconds (2 full turns so they're visible)
 
     // Scoring
     POINTS_PER_BLOCK: 10,
@@ -21,8 +21,9 @@ const BombervibeConfig = {
 
     // Loot types with weights
     LOOT_TYPES: [
-        { type: 'flash_radius', weight: 50 }, // Blast range increase
-        { type: 'bomb_pickup', weight: 30 }   // Pickup/throw bombs
+        { type: 'flash_radius', weight: 40 }, // Blast range increase
+        { type: 'bomb_pickup', weight: 30 },  // Pickup/throw bombs
+        { type: 'extra_bomb', weight: 30 }    // Place multiple bombs simultaneously
     ],
 
     // Player starting positions (corners)
@@ -60,10 +61,10 @@ const BombervibeConfig = {
 
     // Default AI prompts
     DEFAULT_PROMPTS: {
-        1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect Flash Radius (⚡) power-ups! Use your 7x7 vision to find soft blocks. 4 rounds per bomb = plenty of escape time!',
+        1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect power-ups (⚡ range, 💣 extra bombs)! Use your 7x7 vision to find soft blocks. 4 rounds per bomb = plenty of escape time!',
         2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, collect loot, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
-        3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically, grab power-ups. Use DANGER ANALYSIS. Plan escape routes. 4 rounds is enough time!',
-        4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Prioritize Flash Radius loot! Check timing info. Use 7x7 vision to plan 3-4 moves ahead. Control center!'
+        3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically, grab power-ups (💣 extra bombs = more control!). Use DANGER ANALYSIS. Plan escape routes. 4 rounds is enough time!',
+        4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Prioritize loot (⚡ range, 💣 extra bombs)! Check timing info. Use 7x7 vision to plan 3-4 moves ahead. Control center!'
     },
 
     // Rendering settings
@@ -76,7 +77,8 @@ const BombervibeConfig = {
         EXPLOSION_EMOJI: '💥',
         LOOT_EMOJIS: {
             flash_radius: '⚡',
-            bomb_pickup: '🧤'
+            bomb_pickup: '🧤',
+            extra_bomb: '💣'
         }
     }
 };

@@ -191,15 +191,12 @@ class GameEngine {
     /**
      * Main game loop
      */
-    gameLoop() {
+    async gameLoop() {
         if (!this.running || this.paused) {
             return;
         }
 
         const now = Date.now();
-
-        // Render current state
-        this.renderer.render(this.game.getGameState());
 
         // Check for game over
         if (this.game.isGameOver()) {
@@ -209,9 +206,13 @@ class GameEngine {
 
         // Execute turn if enough time has passed and not already in progress
         if (!this.turnInProgress && now - this.lastTurnTime >= this.config.turnDelay) {
-            this.executeTurn();
+            await this.executeTurn();
             this.lastTurnTime = now;
         }
+
+        // Render current state (after turn execution so explosions are visible)
+        const state = this.game.getGameState();
+        this.renderer.render(state);
 
         // Continue loop
         this.animationFrameId = requestAnimationFrame(() => this.gameLoop());

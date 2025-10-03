@@ -106,9 +106,9 @@ class BombervibeGame {
                 playerId: bombSpec.playerId,
                 x: bombSpec.x,
                 y: bombSpec.y,
-                roundsUntilExplode: bombSpec.stage || BombervibeConfig.BOMB_ROUNDS_UNTIL_EXPLODE,
+                turnsUntilExplode: bombSpec.stage || BombervibeConfig.BOMB_TURNS_UNTIL_EXPLODE,
                 range: bombSpec.range || BombervibeConfig.INITIAL_BOMB_RANGE,
-                placedOnRound: this.roundCount
+                placedOnTurn: this.turnCount
             };
             this.bombs.push(bomb);
             this.grid[bombSpec.y][bombSpec.x] = bomb.id;
@@ -186,6 +186,9 @@ class BombervibeGame {
         const previousPlayerIndex = this.currentPlayerIndex;
         this.currentPlayerIndex = (this.currentPlayerIndex + 1) % playerCount;
 
+        // Check if we wrapped around BEFORE skipping dead players
+        const wrappedAround = this.currentPlayerIndex <= previousPlayerIndex;
+
         // Skip dead players
         let attempts = 0;
         while (!this.getCurrentPlayer().alive && attempts < playerCount) {
@@ -193,14 +196,17 @@ class BombervibeGame {
             attempts++;
         }
 
+        // Increment round count when we cycle back to player 1
+        if (wrappedAround) {
+            this.roundCount++;
+        }
+
         this.turnCount++;
 
-        // Increment round count when we cycle back
-        if (this.currentPlayerIndex <= previousPlayerIndex) {
-            this.roundCount++;
-            // Update bombs at the end of each round
-            this.updateBombs();
-        }
+        // Update bombs every turn (not just every round)
+        this.updateBombs();
+        // Clean up old explosions
+        this.updateExplosions();
     }
 
     /**
@@ -226,7 +232,10 @@ class BombervibeGame {
             // Default: move action
             // Drop bomb first if requested
             if (move.dropBomb) {
-                this.playerPlaceBomb(playerId);
+                const bombPlaced = this.playerPlaceBomb(playerId);
+                if (bombPlaced) {
+                    console.log(`[R${this.roundCount}] P${playerId} 💣 BOMB at (${player.x},${player.y})`);
+                }
             }
 
             // Then move
@@ -292,7 +301,7 @@ class BombervibeGame {
         const success = player.placeBomb(this.grid, this.bombs);
         if (success) {
             const bomb = this.bombs[this.bombs.length - 1];
-            bomb.placedOnRound = this.roundCount;
+            bomb.placedOnTurn = this.turnCount; // Use turns instead of rounds
         }
         return success;
     }
@@ -392,9 +401,9 @@ class BombervibeGame {
 
         for (let i = this.bombs.length - 1; i >= 0; i--) {
             const bomb = this.bombs[i];
-            const roundsSincePlaced = this.roundCount - bomb.placedOnRound;
+            const turnsSincePlaced = this.turnCount - bomb.placedOnTurn;
 
-            if (roundsSincePlaced >= bomb.roundsUntilExplode) {
+            if (turnsSincePlaced >= bomb.turnsUntilExplode) {
                 // Handle carried bombs
                 if (bomb.isBeingCarried && bomb.carriedByPlayerId) {
                     const carrier = this.players.find(p => p.id === bomb.carriedByPlayerId);
@@ -420,19 +429,29 @@ class BombervibeGame {
      * Explode a bomb
      */
     explodeBomb(bomb) {
+        console.log(`[EXPLODE] 💥 ${bomb.id} at (${bomb.x},${bomb.y}), range=${bomb.range}, owner=P${bomb.playerId}`);
+
         const explosionCells = [];
 
         // Remove bomb from grid
         if (this.grid[bomb.y][bomb.x] === bomb.id) {
             this.grid[bomb.y][bomb.x] = 0;
+            console.log(`[EXPLODE] Removed ${bomb.id} from grid at (${bomb.x},${bomb.y})`);
+        } else {
+            console.log(`[EXPLODE] WARNING: ${bomb.id} not found in grid at (${bomb.x},${bomb.y}), found: ${this.grid[bomb.y][bomb.x]}`);
         }
 
-        // Reset player bomb flag
+        // Decrement player's active bomb count
         const player = this.players.find(p => p.id === bomb.playerId);
         if (player) {
-            player.hasBomb = false;
-            player.bombX = null;
-            player.bombY = null;
+            const oldCount = player.activeBombs;
+            player.activeBombs = Math.max(0, player.activeBombs - 1);
+            console.log(`[EXPLODE] P${bomb.playerId} activeBombs: ${oldCount} → ${player.activeBombs}`);
+            if (player.activeBombs === 0) {
+                player.hasBomb = false; // Keep for backward compatibility
+                player.bombX = null;
+                player.bombY = null;
+            }
         }
 
         // Center explosion
@@ -440,11 +459,14 @@ class BombervibeGame {
 
         // Explosion in 4 directions
         const directions = [
-            { dx: 0, dy: -1 }, // Up
-            { dx: 0, dy: 1 },  // Down
-            { dx: -1, dy: 0 }, // Left
-            { dx: 1, dy: 0 }   // Right
+            { dx: 0, dy: -1, name: 'up' }, // Up
+            { dx: 0, dy: 1, name: 'down' },  // Down
+            { dx: -1, dy: 0, name: 'left' }, // Left
+            { dx: 1, dy: 0, name: 'right' }   // Right
         ];
+
+        let blocksDestroyed = 0;
+        let lootSpawned = 0;
 
         for (const dir of directions) {
             for (let i = 1; i <= bomb.range; i++) {
@@ -467,6 +489,7 @@ class BombervibeGame {
                 // Soft block stops explosion and gets destroyed
                 if (cell === BombervibeConfig.CELL_TYPES.SOFT) {
                     this.grid[y][x] = BombervibeConfig.CELL_TYPES.EMPTY;
+                    blocksDestroyed++;
                     if (player) {
                         player.addScore(BombervibeConfig.POINTS_PER_BLOCK);
                     }
@@ -474,6 +497,7 @@ class BombervibeGame {
                     // Spawn loot
                     if (this.rng.random() < BombervibeConfig.LOOT_DROP_CHANCE) {
                         this.spawnLootAt(x, y);
+                        lootSpawned++;
                     }
                     break;
                 }
@@ -482,6 +506,7 @@ class BombervibeGame {
                 if (typeof cell === 'string' && cell.startsWith('bomb')) {
                     const chainBomb = this.bombs.find(b => b.id === cell);
                     if (chainBomb) {
+                        console.log(`[EXPLODE] ⚡ Chain reaction: ${bomb.id} → ${chainBomb.id}`);
                         this.bombs = this.bombs.filter(b => b.id !== cell);
                         this.explodeBomb(chainBomb);
                     }
@@ -490,11 +515,16 @@ class BombervibeGame {
             }
         }
 
+        console.log(`[EXPLODE] Destroyed ${blocksDestroyed} blocks, spawned ${lootSpawned} loot items`);
+
         // Check for player hits
+        let playersHit = 0;
         for (const cell of explosionCells) {
             for (const p of this.players) {
                 if (p.alive && p.x === cell.x && p.y === cell.y) {
+                    console.log(`[EXPLODE] ☠️  P${p.id} killed at (${p.x},${p.y})`);
                     p.die();
+                    playersHit++;
                     if (player && player.id !== p.id) {
                         player.addScore(BombervibeConfig.POINTS_PER_KILL);
                     }
@@ -504,19 +534,25 @@ class BombervibeGame {
         }
 
         // Destroy loot in explosion
+        let lootDestroyed = 0;
         for (const cell of explosionCells) {
             const lootIndex = this.loot.findIndex(l => l.x === cell.x && l.y === cell.y);
             if (lootIndex !== -1 && this.grid[cell.y][cell.x] !== BombervibeConfig.CELL_TYPES.SOFT) {
                 this.loot.splice(lootIndex, 1);
+                lootDestroyed++;
             }
         }
 
+        console.log(`[EXPLODE] Blast radius: ${explosionCells.length} cells, ${playersHit} players killed, ${lootDestroyed} loot destroyed`);
+
         // Store explosion for visual
-        this.explosions.push({
+        const explosion = {
             cells: explosionCells,
             timestamp: Date.now(),
             duration: BombervibeConfig.EXPLOSION_DURATION
-        });
+        };
+        this.explosions.push(explosion);
+        console.log(`[EXPLODE] Added explosion to array, now ${this.explosions.length} explosions active`);
     }
 
     /**
@@ -580,9 +616,18 @@ class BombervibeGame {
      */
     updateExplosions() {
         const now = Date.now();
-        this.explosions = this.explosions.filter(exp =>
-            now - exp.timestamp < exp.duration
-        );
+        const before = this.explosions.length;
+        this.explosions = this.explosions.filter(exp => {
+            const age = now - exp.timestamp;
+            const keep = age < exp.duration;
+            if (!keep) {
+                console.log(`[UPDATE EXP] Removing explosion age=${age}ms, duration=${exp.duration}ms`);
+            }
+            return keep;
+        });
+        if (this.explosions.length !== before) {
+            console.log(`[UPDATE EXP] Cleaned explosions: ${before} → ${this.explosions.length}`);
+        }
     }
 
     /**
@@ -615,14 +660,15 @@ class BombervibeGame {
             grid: this.grid.map(row => [...row]),
             players: this.players.map(p => p.getState()),
             bombs: this.bombs.map(b => {
-                const roundsSincePlaced = this.roundCount - b.placedOnRound;
-                const roundsRemaining = Math.max(0, b.roundsUntilExplode - roundsSincePlaced);
+                const turnsSincePlaced = this.turnCount - b.placedOnTurn;
+                const turnsRemaining = Math.max(0, b.turnsUntilExplode - turnsSincePlaced);
                 return {
+                    id: b.id,
                     x: b.x,
                     y: b.y,
                     playerId: b.playerId,
                     range: b.range,
-                    roundsUntilExplode: roundsRemaining
+                    turnsUntilExplode: turnsRemaining
                 };
             }),
             loot: this.loot.map(l => ({
@@ -630,6 +676,7 @@ class BombervibeGame {
                 x: l.x,
                 y: l.y
             })),
+            explosions: this.explosions,
             turnCount: this.turnCount,
             roundCount: this.roundCount,
             currentPlayerId: this.getCurrentPlayer().id
@@ -722,7 +769,7 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
                     gameState.players.find(p => p.alive && p.x === x && p.y === y) ? `P${gameState.players.find(p => p.alive && p.x === x && p.y === y).id}` : '';
 
                 const bombHere = gameState.bombs.find(b => b.x === x && b.y === y);
-                if (bombHere) cellContent = cellContent ? `${cellContent}💣${bombHere.roundsUntilExplode}` : `💣${bombHere.roundsUntilExplode}`;
+                if (bombHere) cellContent = cellContent ? `${cellContent}💣${bombHere.turnsUntilExplode}` : `💣${bombHere.turnsUntilExplode}`;
 
                 const lootHere = gameState.loot && gameState.loot.find(l => l.x === x && l.y === y);
                 if (lootHere && !cellContent) cellContent = cell === 1 ? '🟫⚡' : '⚡';
@@ -769,7 +816,7 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
         let desc = this.generate7x7Grid(gameState, playerId);
 
         desc += 'PLAYERS: ' + gameState.players.map(p => `P${p.id}:${this.coordsToChess(p.x,p.y)}:${p.score}:${p.hasBomb?'💣1':'💣0'}:${p.alive?'✅':'💀'}`).join(' | ') + '\n';
-        desc += '\nBOMBS: ' + (gameState.bombs.length === 0 ? 'None' : gameState.bombs.map(b => `P${b.playerId}@${this.coordsToChess(b.x,b.y)}:${b.roundsUntilExplode}r:R${b.range||1}`).join(' | ')) + '\n';
+        desc += '\nBOMBS: ' + (gameState.bombs.length === 0 ? 'None' : gameState.bombs.map(b => `P${b.playerId}@${this.coordsToChess(b.x,b.y)}:${b.turnsUntilExplode}t:R${b.range||1}`).join(' | ')) + '\n';
         desc += '\nLOOT: ' + (!gameState.loot || gameState.loot.length === 0 ? 'None' : gameState.loot.map(l => `⚡${this.coordsToChess(l.x,l.y)}`).join(' | ')) + '\n';
         desc += `\nROUND: ${gameState.roundCount}\n\nVALID MOVES: `;
 
@@ -793,7 +840,7 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
         desc += `\nDANGER: Current ${currentPos} is ${!this.isPositionLethal(player.x,player.y,1)?'✅SAFE':'💀LETHAL'}\n`;
         desc += safeMoves.length > 0 ? `SAFE: ${safeMoves.map(m=>`${m.direction}→${this.coordsToChess(m.x,m.y)}`).join(',')}` : 'SAFE: NONE!';
         if (dangerousMoves.length > 0) desc += ` | LETHAL: ${dangerousMoves.map(m=>`${m.direction}→${this.coordsToChess(m.x,m.y)}`).join(',')}`;
-        desc += `\n\nYOU (P${playerId}): ${currentPos} | Score:${player.score} | Bomb:${player.hasBomb?'💣1':'💣0'} | Range:${player.bombRange||1}\n`;
+        desc += `\n\nYOU (P${playerId}): ${currentPos} | Score:${player.score} | Bombs:${player.activeBombs}/${player.maxBombs} | Range:${player.bombRange||1}\n`;
 
         return desc;
     }
@@ -801,11 +848,11 @@ Respond with JSON: {"direction":"up|down|left|right|stay","dropBomb":true|false,
     /**
      * Check if position will be lethal
      */
-    isPositionLethal(x, y, afterRounds = 1) {
+    isPositionLethal(x, y, afterTurns = 1) {
         for (const bomb of this.bombs) {
-            const roundsLeft = Math.max(0, bomb.roundsUntilExplode - (this.roundCount - bomb.placedOnRound));
-            if (bomb.x === x && bomb.y === y && roundsLeft <= 3) return true;
-            if (roundsLeft <= afterRounds) {
+            const turnsLeft = Math.max(0, bomb.turnsUntilExplode - (this.turnCount - bomb.placedOnTurn));
+            if (bomb.x === x && bomb.y === y && turnsLeft <= 3) return true;
+            if (turnsLeft <= afterTurns) {
                 for (const dir of [{dx:0,dy:-1},{dx:0,dy:1},{dx:-1,dy:0},{dx:1,dy:0}]) {
                     for (let i = 1; i <= bomb.range; i++) {
                         const bx = bomb.x + dir.dx * i, by = bomb.y + dir.dy * i;

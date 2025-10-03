@@ -118,6 +118,9 @@ class BombervibeRenderer extends BaseUIRenderer {
                     } else if (loot.type === 'bomb_pickup') {
                         lootIcon.innerHTML = '🧤';
                         lootIcon.classList.add('bomb-pickup');
+                    } else if (loot.type === 'extra_bomb') {
+                        lootIcon.innerHTML = '💣';
+                        lootIcon.classList.add('extra-bomb');
                     }
                     cell.appendChild(lootIcon);
                 }
@@ -126,12 +129,24 @@ class BombervibeRenderer extends BaseUIRenderer {
             }
         }
 
+        // Debug: Count explosion cells after rendering
+        if (gameState.explosions && gameState.explosions.length > 0) {
+            const explosionCellsAdded = gridElement.querySelectorAll('.cell.explosion').length;
+            console.log(`[RENDER] Added ${explosionCellsAdded} explosion cells to DOM`);
+        }
+
         // Render players as absolutely positioned entities
         this.renderPlayers(gameState);
 
         // Render floating thought bubbles
         if (this.llm) {
             this.renderFloatingThoughts(gameState);
+        }
+
+        // Debug: Final count
+        if (gameState.explosions && gameState.explosions.length > 0) {
+            const finalExplosionCells = gridElement.querySelectorAll('.cell.explosion').length;
+            console.log(`[RENDER] FINAL: ${finalExplosionCells} explosion cells in DOM after full render`);
         }
     }
 
