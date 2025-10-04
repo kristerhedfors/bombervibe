@@ -134,7 +134,7 @@ bombervibe/
      - Create API key (starts with `sk-...`)
    - The game auto-detects which API to use based on key prefix
 
-### URL Fragment API Key Feature
+### URL Fragment API Key & Test Parameters
 
 The site supports passing your API key via URL fragment (hash):
 
@@ -142,17 +142,49 @@ The site supports passing your API key via URL fragment (hash):
 https://kristerhedfors.github.io/electric-boogaloo/#gsk_your_api_key_here
 ```
 
+**URL Parameters for Testing:**
+
+You can add additional parameters after the API key using `&key=value` format:
+
+```
+# Basic loot placement
+file://index.html#gsk_your_key&extrabomb_player1=true
+
+# Multiple loot items
+file://index.html#gsk_your_key&extrabomb_player1=true&flashradius_player2=true
+
+# With round limit for testing
+file://index.html#gsk_your_key&extrabomb_player1=true&maxRounds=10
+
+# All loot types
+file://index.html#gsk_your_key&extrabomb_player1=true&flashradius_player2=true&bombpickup_player3=true
+```
+
+**Available Parameters:**
+- `extrabomb_player[1-4]=true` - Place extra_bomb loot next to specified player
+- `flashradius_player[1-4]=true` - Place flash_radius loot next to specified player
+- `bombpickup_player[1-4]=true` - Place bomb_pickup loot next to specified player
+- `maxRounds=N` - Auto-stop game after N rounds (for testing)
+
 **Benefits:**
 - No need to manually enter API key each visit
-- Shareable links (but keep your key private!)
+- Instant loot placement for testing specific features
+- Shareable test configurations
 - Bypasses modal prompt for faster game start
 - Still saves to localStorage for subsequent visits
 
 **Implementation:**
 - On page load, checks `window.location.hash` for API key
+- Parses additional parameters after first `&`
+- Places specified loot items adjacent to players (to the right)
 - If fragment starts with `gsk_` or `sk-`, automatically sets it
 - Falls back to localStorage if no fragment
 - Falls back to modal prompt if neither exists
+
+**Quick Test Script:**
+```bash
+./test_loot_url.sh   # Opens game with extra_bomb next to Player 1
+```
 
 ## API Integration
 

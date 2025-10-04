@@ -13,6 +13,8 @@ class Player {
         this.bombX = null;
         this.bombY = null;
         this.bombRange = 1; // Blast radius (can be increased by loot)
+        this.maxBombs = 1; // Maximum simultaneous bombs (can be increased by loot)
+        this.activeBombs = 0; // Track number of active bombs
 
         // Power-ups
         this.canPickupBombs = false; // Bomb pickup/throw power-up
@@ -39,29 +41,34 @@ class Player {
     }
 
     placeBomb(grid, bombs) {
-        // Can only place one bomb at a time
-        if (this.hasBomb) {
+        // Check if player has reached max bombs limit
+        if (this.activeBombs >= this.maxBombs) {
             return false;
         }
 
         // Check if there's already a bomb at this position
-        if (grid[this.y][this.x] === 'bomb' + this.id) {
+        const cellContent = grid[this.y][this.x];
+        if (typeof cellContent === 'string' && cellContent.startsWith('bomb')) {
             return false;
         }
 
         // Place bomb
-        this.hasBomb = true;
-        this.bombX = this.x;
-        this.bombY = this.y;
+        this.activeBombs++;
+
+        if (this.activeBombs === 1) {
+            this.hasBomb = true; // Keep for backward compatibility
+            this.bombX = this.x;
+            this.bombY = this.y;
+        }
 
         const bomb = {
-            id: 'bomb' + this.id,
+            id: 'bomb' + this.id + '_' + Date.now(), // Unique ID for multiple bombs
             playerId: this.id,
             x: this.x,
             y: this.y,
-            roundsUntilExplode: 4, // Explodes after 4 rounds (1 round = all players move once)
+            turnsUntilExplode: BombervibeConfig.BOMB_TURNS_UNTIL_EXPLODE, // Explodes after N player turns
             range: this.bombRange || 1, // Use player's bombRange or default 1
-            placedOnRound: null // Will be set by game
+            placedOnTurn: null // Will be set by game
         };
 
         bombs.push(bomb);
@@ -94,6 +101,9 @@ class Player {
         } else if (lootType === 'bomb_pickup') {
             this.canPickupBombs = true;
             console.log(`[P${this.id}] Picked up Bomb Pickup! Can now pickup and throw bombs`);
+        } else if (lootType === 'extra_bomb') {
+            this.maxBombs += 1;
+            console.log(`[P${this.id}] Picked up Extra Bomb! Max bombs now: ${this.maxBombs}`);
         }
     }
 
@@ -108,6 +118,8 @@ class Player {
             score: this.score,
             hasBomb: this.hasBomb,
             bombRange: this.bombRange,
+            maxBombs: this.maxBombs,
+            activeBombs: this.activeBombs,
             canPickupBombs: this.canPickupBombs,
             carriedBomb: this.carriedBomb ? this.carriedBomb.id : null
         };

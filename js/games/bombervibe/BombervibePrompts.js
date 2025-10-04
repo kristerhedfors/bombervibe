@@ -21,7 +21,7 @@ class BombervibePrompts {
 RULES:
 • Grid: 13x11, chess notation (A-M cols, 1-11 rows), 11x11 vision
 • Walk through: empty (·), bombs (💣), players | BLOCKED by: soft (🟫), hard (⬛)
-• ONE bomb at a time (💣0=can place, 💣1=already placed)
+• Bomb capacity shown as "Bombs:X/Y" (active/max - starts 1, increases with 💣 power-up)
 • Bombs: Explode after 4 ROUNDS in + pattern (cardinal only, NOT diagonal)
 • Range: 1 base, +1 per Flash Radius (⚡) loot pickup
 • Scoring: +10 per 🟫 destroyed, +100 per kill
@@ -29,6 +29,7 @@ RULES:
 
 POWER-UPS:
 • ⚡ Flash Radius: +1 bomb range
+• 💣 Extra Bomb: Place multiple bombs simultaneously
 • 🧤 Bomb Pickup: Can pickup and throw bombs (wrap-around edges!)
 
 CRITICAL - BOMB MECHANICS:
@@ -40,10 +41,16 @@ CRITICAL - BOMB MECHANICS:
    - ✅ CORRECT: dropBomb:true + direction:"stay" (if current position safe for 4 rounds)
    - ❌ WRONG: dropBomb:true + direction:"up" (BLOCKED by soft block at A3!)
 
-SURVIVAL:
+SURVIVAL - MULTI-BOMB ESCAPE LOGIC:
 • DIAGONAL = SAFE from bombs (only cardinal directions lethal)
 • If bomb at C5: C4/C6/B5/D5 = DEATH, D6/B4/D4/B6 = SAFE
 • Higher range = escape further! Range 2 = 2 tiles, Range 3 = 3 tiles
+⚠️ **MULTIPLE BOMBS WARNING**: When placing a bomb, you MUST escape from ALL bombs:
+  - Your OWN bombs (including the one you just placed)
+  - Other players' bombs (yours or theirs)
+  - Check EACH bomb's position + range + timing
+  - Move MUST be safe from ALL bomb blast zones combined
+  - Example: If bomb at D5 (range 2) and you place at D7, moving to D6 = DEATH (hit by both)
 
 CRITICAL PRIORITY - BOMB WHEN ADJACENT TO SOFT BLOCKS:
 ⚠️ **IF "Breakable: 1+" appears → IMMEDIATELY dropBomb:true + escape direction**
@@ -58,12 +65,14 @@ WINNING STRATEGY (in order):
 5. **STAY MOBILE** - Avoid corners and dead ends
 
 BOMB PLACEMENT RULES:
-✅ "Breakable: 1+" + 💣0 + safe escape → DROP BOMB NOW!
+✅ "Breakable: 1+" + bombs available + safe escape from ALL bombs → DROP BOMB NOW!
 ✅ Stay on bomb if 4 rounds to explode, otherwise move to EMPTY space
+✅ Check DANGER ANALYSIS for ALL active bombs before placing new one
 ✅ Example: At D11 with "Breakable: 1 (right)" → {"direction":"left","dropBomb":true}
 ❌ WRONG: Moving away when breakable blocks are adjacent (you waste the opportunity!)
-❌ WRONG: Already have bomb (💣1)
-❌ WRONG: No escape route available
+❌ WRONG: No bombs available (check "Bombs:X/Y" - if X=Y, can't place more!)
+❌ WRONG: Escape route is in another bomb's blast zone (check ALL bomb positions + ranges!)
+❌ WRONG: Ignoring existing bombs when planning escape (you die from old bombs too!)
 
 RESPONSE (JSON):
 {

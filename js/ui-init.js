@@ -81,6 +81,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const fragment = window.location.hash.substring(1);
         let apiKeyFromURL = null;
         let maxRoundsFromURL = null;
+        const lootParams = [];
 
         if (fragment) {
             const parts = fragment.split('&');
@@ -96,6 +97,29 @@ window.addEventListener('DOMContentLoaded', () => {
                         window.maxRoundsForTesting = maxRoundsFromURL;
                         log(`[TEST MODE] Will auto-stop after ${maxRoundsFromURL} rounds`);
                     }
+                    // Parse loot placement parameters
+                    // Format: extrabomb_player1=true, flashradius_player2=true, etc.
+                    else if (value === 'true') {
+                        const lootMatch = key.match(/(extrabomb|flashradius|bombpickup)_player([1-4])/i);
+                        if (lootMatch) {
+                            const lootType = lootMatch[1].toLowerCase();
+                            const playerId = parseInt(lootMatch[2]);
+
+                            // Map friendly names to game loot types
+                            const lootTypeMap = {
+                                'extrabomb': 'extra_bomb',
+                                'flashradius': 'flash_radius',
+                                'bombpickup': 'bomb_pickup'
+                            };
+
+                            lootParams.push({
+                                type: lootTypeMap[lootType],
+                                playerId: playerId
+                            });
+
+                            log(`[TEST MODE] Will place ${lootTypeMap[lootType]} next to Player ${playerId}`);
+                        }
+                    }
                 }
 
                 llm.setApiKey(apiKeyFromURL);
@@ -107,6 +131,38 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('apiModal').classList.add('hidden');
             document.getElementById('apiKeyInput').value = '***';
             log('API key loaded from localStorage');
+        }
+
+        // Place loot next to players if specified in URL
+        if (lootParams.length > 0) {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    for (const loot of lootParams) {
+                        const player = game.players.find(p => p.id === loot.playerId);
+                        if (player) {
+                            // Place loot adjacent to player (to the right)
+                            const lootX = player.x + 1;
+                            const lootY = player.y;
+
+                            // Make sure position is valid
+                            if (lootX < game.GRID_WIDTH) {
+                                game.loot.push({
+                                    type: loot.type,
+                                    x: lootX,
+                                    y: lootY,
+                                    spawnedRound: 0
+                                });
+                                log(`Placed ${loot.type} at (${lootX},${lootY}) next to Player ${loot.playerId}`, 'success');
+
+                                // Force a render update to show the loot
+                                if (renderer && game) {
+                                    renderer.render(game.getGameState());
+                                }
+                            }
+                        }
+                    }
+                }, 500);
+            });
         }
 
         // Load stored prompts
