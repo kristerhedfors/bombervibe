@@ -10,7 +10,7 @@ const BombervibeConfig = {
     SOFT_BLOCK_DENSITY: 0.4,
     INITIAL_BOMB_RANGE: 1,
     BOMB_TURNS_UNTIL_EXPLODE: 4, // Player turns (each player gets 4 moves before bomb explodes)
-    EXPLOSION_DURATION: 2000, // milliseconds (2 full turns so they're visible)
+    EXPLOSION_DURATION: 500, // milliseconds
 
     // Scoring
     POINTS_PER_BLOCK: 10,
