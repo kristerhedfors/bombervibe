@@ -328,6 +328,59 @@ class BombervibeRenderer extends BaseUIRenderer {
         if (bombElement) {
             bombElement.textContent = gameState.bombs.length;
         }
+
+        // Update player loot in prompt headers
+        this.updatePlayerLoot(gameState);
+    }
+
+    /**
+     * Update player loot display in prompt headers
+     */
+    updatePlayerLoot(gameState) {
+        const headerMapping = {
+            1: '.prompt-editor.top-left .prompt-header',
+            2: '.prompt-editor.top-right .prompt-header',
+            3: '.prompt-editor.bottom-left .prompt-header',
+            4: '.prompt-editor.bottom-right .prompt-header'
+        };
+
+        for (const player of gameState.players) {
+            const headerSelector = headerMapping[player.id];
+            const headerElement = document.querySelector(headerSelector);
+            if (!headerElement) continue;
+
+            // Build loot display
+            const lootItems = [];
+
+            // Flash radius (bomb range)
+            if (player.bombRange > 1) {
+                lootItems.push(`⚡×${player.bombRange}`);
+            }
+
+            // Bomb pickup ability
+            if (player.canPickupBombs) {
+                lootItems.push('🧤');
+            }
+
+            // Extra bombs
+            if (player.maxBombs > 1) {
+                lootItems.push(`💣×${player.maxBombs}`);
+            }
+
+            // Get base text (remove old loot display if exists)
+            const playerNames = ['PLAYER 1 [CYAN]', 'PLAYER 2 [MAGENTA]', 'PLAYER 3 [YELLOW]', 'PLAYER 4 [GREEN]'];
+            const baseName = playerNames[player.id - 1];
+
+            // Update header text
+            const lootDisplay = lootItems.length > 0 ? ` ${lootItems.join(' ')}` : '';
+            const resetButton = headerElement.querySelector('.reset-prompt');
+
+            // Preserve reset button
+            headerElement.innerHTML = `${baseName}${lootDisplay}`;
+            if (resetButton) {
+                headerElement.appendChild(resetButton);
+            }
+        }
     }
 
     /**

@@ -17,13 +17,13 @@ const BombervibeConfig = {
     POINTS_PER_KILL: 100,
 
     // Power-ups
-    LOOT_DROP_CHANCE: 0.25, // 25% chance when block breaks
+    LOOT_DROP_CHANCE: 0.333, // 33.3% chance (1/3) when soft block breaks
 
-    // Loot types with weights
+    // Loot types with equal weights (33.33% each)
     LOOT_TYPES: [
-        { type: 'flash_radius', weight: 40 }, // Blast range increase
-        { type: 'bomb_pickup', weight: 30 },  // Pickup/throw bombs
-        { type: 'extra_bomb', weight: 30 }    // Place multiple bombs simultaneously
+        { type: 'flash_radius', weight: 33 }, // Blast range increase
+        { type: 'bomb_pickup', weight: 33 },  // Pickup/throw bombs
+        { type: 'extra_bomb', weight: 34 }    // Place multiple bombs simultaneously
     ],
 
     // Player starting positions (corners)
@@ -61,10 +61,10 @@ const BombervibeConfig = {
 
     // Default AI prompts
     DEFAULT_PROMPTS: {
-        1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect power-ups (⚡ range, 💣 extra bombs)! Use your 7x7 vision to find soft blocks. 4 rounds per bomb = plenty of escape time!',
-        2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, collect loot, pressure opponents. Check VALID MOVES and DANGER ANALYSIS. Adapt each round!',
-        3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically, grab power-ups (💣 extra bombs = more control!). Use DANGER ANALYSIS. Plan escape routes. 4 rounds is enough time!',
-        4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Prioritize loot (⚡ range, 💣 extra bombs)! Check timing info. Use 7x7 vision to plan 3-4 moves ahead. Control center!'
+        1: 'You are Player 1 (cyan). EXPLORER: Move toward center (G6). Collect loot (⚡ range, 💣 extra bombs)! ⚠️ CRITICAL: When placing bombs, escape must avoid ALL active bombs (yours + others). Check DANGER ANALYSIS for all bomb blast zones!',
+        2: 'You are Player 2 (magenta). AGGRESSIVE: Push toward center, destroy blocks, collect loot, pressure opponents. ⚠️ Multi-bomb escape: Check ALL bombs before placing new one! Use DANGER ANALYSIS to verify escape is safe from every blast.',
+        3: 'You are Player 3 (yellow). DEFENSIVE: Stay safe, clear blocks methodically, grab power-ups (💣 extra bombs = more control!). ⚠️ SURVIVAL: When you place a bomb, verify escape avoids ALL active bombs (check every position + range). Use DANGER ANALYSIS!',
+        4: 'You are Player 4 (green). TACTICAL: Balance risk/reward. Prioritize loot (⚡ range, 💣 extra bombs)! ⚠️ Critical escape logic: Placing a bomb? Check EVERY active bomb position + range. Your move must dodge ALL blasts, not just your new bomb!'
     },
 
     // Rendering settings

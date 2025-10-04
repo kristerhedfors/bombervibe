@@ -151,6 +151,11 @@ class BombervibeGame {
         this.bombs = [];
         this.explosions = [];
         this.loot = [];
+
+        // Generate new random seed for variety (add random component to avoid same-millisecond resets)
+        this.rng = new SeededRNG(Date.now() + Math.floor(Math.random() * 1000000));
+        this.seed = this.rng.getSeed();
+
         this.initialize();
     }
 
@@ -484,23 +489,26 @@ class BombervibeGame {
                     break;
                 }
 
-                explosionCells.push({ x, y });
-
                 // Soft block stops explosion and gets destroyed
                 if (cell === BombervibeConfig.CELL_TYPES.SOFT) {
+                    // Don't add soft block to explosion cells (it blocks the blast)
                     this.grid[y][x] = BombervibeConfig.CELL_TYPES.EMPTY;
                     blocksDestroyed++;
                     if (player) {
                         player.addScore(BombervibeConfig.POINTS_PER_BLOCK);
                     }
 
-                    // Spawn loot
-                    if (this.rng.random() < BombervibeConfig.LOOT_DROP_CHANCE) {
+                    // Spawn loot (safe from explosion since not in explosionCells)
+                    // Use Math.random() instead of seeded RNG (seeded RNG is biased)
+                    if (Math.random() < BombervibeConfig.LOOT_DROP_CHANCE) {
                         this.spawnLootAt(x, y);
                         lootSpawned++;
                     }
                     break;
                 }
+
+                // Add to explosion cells (empty spaces, bombs, players)
+                explosionCells.push({ x, y });
 
                 // Chain reaction
                 if (typeof cell === 'string' && cell.startsWith('bomb')) {
@@ -562,18 +570,26 @@ class BombervibeGame {
         const hasLoot = this.loot.some(l => l.x === x && l.y === y);
         if (hasLoot) return;
 
-        const totalWeight = BombervibeConfig.LOOT_TYPES.reduce((sum, item) => sum + item.weight, 0);
-        const roll = this.rng.random() * totalWeight;
-        let cumulative = 0;
-        let selectedType = 'flash_radius';
+        // Use Math.random() for loot selection (seeded RNG is biased)
+        const types = BombervibeConfig.LOOT_TYPES;
+        const totalWeight = types.reduce((sum, item) => sum + item.weight, 0);
+        const roll = Math.random() * totalWeight;
 
-        for (const item of BombervibeConfig.LOOT_TYPES) {
+        console.log(`[LOOT DEBUG] types=${JSON.stringify(types)}, totalWeight=${totalWeight}, roll=${roll}`);
+
+        let cumulative = 0;
+        let selectedType = types[types.length - 1].type;
+
+        for (const item of types) {
             cumulative += item.weight;
+            console.log(`[LOOT DEBUG] checking ${item.type}: cumulative=${cumulative}, roll=${roll}, selected=${roll < cumulative}`);
             if (roll < cumulative) {
                 selectedType = item.type;
                 break;
             }
         }
+
+        console.log(`[LOOT] Spawned ${selectedType} at (${x},${y})`);
 
         this.loot.push({
             type: selectedType,
